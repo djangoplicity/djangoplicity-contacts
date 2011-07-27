@@ -33,7 +33,7 @@
 
 from django.contrib import admin
 from django.utils.translation import ugettext as _
-from djangoplicity.contacts.models import ContactGroup, Contact, Country, CountryGroup, GroupCategory, ContactField, Field
+from djangoplicity.contacts.models import ContactGroup, Contact, Country, CountryGroup, GroupCategory, ContactField, Field, Label
 from djangoplicity.admincomments.admin import AdminCommentInline, AdminCommentMixin
 
 
@@ -44,66 +44,90 @@ class CountryAdmin( admin.ModelAdmin ):
 	search_fields = ['name', 'iso_code', 'dialing_code', ]
 	filter_horizontal = ['groups']
 
-
 class GroupCategoryAdmin( admin.ModelAdmin ):
 	list_display = ['name', ]
 	search_fields = ['name', ]
-	
+
 class FieldAdmin( admin.ModelAdmin ):
 	list_display = ['name', ]
 	search_fields = ['name', ]
 
-	
+class LabelAdmin( admin.ModelAdmin ):
+	list_display = ['name', 'paper', 'repeat', 'enabled' ]
+	search_fields = ['name', 'style', 'template' ]
+	list_filter = [ 'enabled', 'paper' ]
+	fieldsets = ( 
+		( None, {
+			'fields': ( ( 'name', 'repeat' , 'enabled' ), )
+		} ),
+		( 'Label template', {
+			'fields': ( 'paper', 'style', 'template', )
+		} ),
+	)
+
 class CountryGroupAdmin( admin.ModelAdmin ):
 	list_display = ['name', 'category' ]
 	search_fields = ['name', 'category__name' ]
 	list_filter = ['category', ]
 
-	
 class ContactGroupAdmin( admin.ModelAdmin ):
 	list_display = ['name', 'category' ]
 	search_fields = ['name', 'category__name' ]
 	list_filter = ['category', ]
-	
 
 class ContactFieldInlineAdmin( admin.TabularInline ):
 	model = ContactField
 	extra = 1
 
 class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
-	list_display = ['id','organisation', 'department','street','city','country', 'first_name', 'last_name', 'email', 'phone', 'website', 'created', 'last_modified' ]
-	list_editable = ['first_name', 'last_name', 'email', 'organisation','department','street','city','phone','website', ]
+	list_display = ['id', 'organisation', 'department', 'street', 'city', 'country', 'first_name', 'last_name', 'email', 'phone', 'website', 'created', 'last_modified' ]
+	list_editable = ['first_name', 'last_name', 'email', 'organisation', 'department', 'street', 'city', 'phone', 'website', ]
 	list_filter = ['last_modified', 'groups__category__name', 'groups', 'country__groups', 'extra_fields__name', 'country', 'title' ]
-	search_fields = ['first_name', 'last_name', 'title','position', 'email', 'organisation','department','street','city','phone','website','social','extra_fields__contactfield__value' ]
-	fieldsets = (
+	search_fields = ['first_name', 'last_name', 'title', 'position', 'email', 'organisation', 'department', 'street', 'city', 'phone', 'website', 'social', 'extra_fields__contactfield__value' ]
+	fieldsets = ( 
 		( None, {
-			'fields': ( ('id', 'created', 'last_modified'), )
-		}),
+			'fields': ( ( 'id', 'created', 'last_modified' ), )
+		} ),
 		( 'Person', {
-			'fields': ( ('title', 'first_name', 'last_name'), 'position', )
-		}),
+			'fields': ( ( 'title', 'first_name', 'last_name' ), 'position', )
+		} ),
 		( 'Address', {
 			'fields': ( 'organisation', 'department', 'street', 'city', 'country' )
-		}),
+		} ),
 		( 'Groups', {
 			'fields': ( 'groups', )
-		}),
+		} ),
 		( 'Contact', {
 			'fields': ( 'email', 'phone', 'website', 'social', )
-		}),
+		} ),
 	)
 	filter_horizontal = ['groups']
 	readonly_fields = ['id', 'created', 'last_modified']
 	inlines = [ ContactFieldInlineAdmin, AdminCommentInline, ]
-
 	
+	def action_make_label( self, request, queryset, label=None ):
+		return label.get_label_render().render_http_response( queryset, 'contact_labels.pdf' )
+	
+	def _make_label_action( self, label ):
+		name = 'make_label_%s' % label.pk
+		action = lambda modeladmin, request, queryset: modeladmin.action_make_label( request, queryset, label=label )
+		return ( name, ( action, name, "Make labels for selected objects (%s)" % label.name ) )
+
+	def get_actions( self, request ):
+		actions = super( ContactAdmin, self ).get_actions( request )
+		actions.update( dict( [self._make_label_action( l ) for l in Label.objects.filter( enabled=True ).order_by( 'name' )] ) )
+		return actions
+
+
+
 def register_with_admin( admin_site ):
+	admin_site.register( Label, LabelAdmin )
 	admin_site.register( Field, FieldAdmin )
 	admin_site.register( Country, CountryAdmin )
 	admin_site.register( GroupCategory, GroupCategoryAdmin )
 	admin_site.register( CountryGroup, CountryGroupAdmin )
 	admin_site.register( ContactGroup, ContactGroupAdmin )
 	admin_site.register( Contact, ContactAdmin )
-		
+
 # Register with default admin site	
 register_with_admin( admin.site )

@@ -1,0 +1,28 @@
+<spacer length="0.4cm" />
+<blockTable style="labeltable" colWidths="2cm,7.11cm" rowHeights="2.2cm,3.2cm,0.7cm">
+	<tr>
+		<td>
+			<illustration height="2cm" width="1.5cm">
+				<image file="http://www.eso.org/public/archives/logos/screen/eso-logo-p3005.jpg" x="0" y="0" height="2cm" />
+			</illustration>
+		</td>
+		<td align="right">
+		<para style="returnto">European Southern Observatory</para>
+		<para style="returnto">Karl-Schwarzschild-Str. 2</para>
+		<para style="returnto">D-85748 Garching, Germany</para>
+		</td>
+	</tr>
+	<tr>
+		<td>
+			{% if obj.first_name or obj.last_name %}<para style="sendto">{% if obj.title %}{{obj.title}} {% endif%}{% if obj.first_name %}{{obj.first_name}} {% endif%}{{obj.last_name}}</para>{% endif %}
+			{% if obj.organisation %}<para style="sendto">{{ obj.organisation }}</para>{% endif %}
+			{% if obj.department %}<para style="sendto">{{ obj.department }}</para>{% endif %}
+			{% if obj.street %}<para style="sendto">{{ obj.street }}</para>{% endif %}
+			{% if obj.city %}<para style="sendto">{{ obj.city }}</para>{% endif %}
+			{% if obj.country %}<para style="sendto">{{ obj.country|upper }}</para>{% endif %}
+		</td>
+	</tr>
+	<tr>
+		<td>AIRMAIL</td>
+	</tr>
+</blockTable>

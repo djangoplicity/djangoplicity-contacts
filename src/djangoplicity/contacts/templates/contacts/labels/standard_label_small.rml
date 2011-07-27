@@ -1,0 +1,17 @@
+<spacer length="0.4cm" />
+<blockTable style="labeltable" colWidths="2cm,7.11cm" rowHeights="0cm,2.5cm,0.7cm">
+	<tr><td></td><td align="right"></td></tr>
+	<tr>
+		<td>
+			{% if obj.first_name or obj.last_name %}<para style="sendto">{% if obj.title %}{{obj.title}} {% endif%}{% if obj.first_name %}{{obj.first_name}} {% endif%}{{obj.last_name}}</para>{% endif %}
+			{% if obj.organisation %}<para style="sendto">{{ obj.organisation }}</para>{% endif %}
+			{% if obj.department %}<para style="sendto">{{ obj.department }}</para>{% endif %}
+			{% if obj.street %}<para style="sendto">{{ obj.street }}</para>{% endif %}
+			{% if obj.city %}<para style="sendto">{{ obj.city }}</para>{% endif %}
+			{% if obj.country %}<para style="sendto">{{ obj.country|upper }}</para>{% endif %}
+		</td>
+	</tr>
+	<tr>
+		<td>AIRMAIL</td>
+	</tr>
+</blockTable>

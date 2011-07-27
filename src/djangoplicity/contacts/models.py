@@ -32,8 +32,28 @@
 
 
 from django.db import models
-from django.utils.translation import ugettext as _
 from django.forms import ValidationError
+from django.template import loader, Context, Template
+from django.utils.encoding import smart_str
+from django.utils.translation import ugettext as _
+from djangoplicity.contacts.labels import LabelRender, LABEL_PAPER_CHOICES
+
+import os
+
+class Label( models.Model ):
+	"""
+	Object to define labels
+	"""
+	name = models.CharField( max_length=255 )
+	paper = models.CharField( max_length=255, choices=LABEL_PAPER_CHOICES )
+	repeat = models.PositiveIntegerField( default=1 )
+	style = models.TextField( blank=True )
+	template = models.TextField( blank=True )
+	enabled = models.BooleanField( default=True )
+	
+	def get_label_render( self ):
+		return LabelRender( self.paper, label_template=self.template, style=self.style, repeat=self.repeat )
+
 
 class Field( models.Model ):
 	name = models.CharField( max_length=255 )
@@ -122,9 +142,12 @@ class Contact( models.Model ):
 
 	class Meta:
 		ordering = ['last_name']
-
+		
 
 class ContactField( models.Model ):
+	"""
+	Stores a field value for a given contact.
+	"""
 	field = models.ForeignKey( Field )
 	contact = models.ForeignKey( Contact )
 	value = models.CharField( max_length=255, blank=True )

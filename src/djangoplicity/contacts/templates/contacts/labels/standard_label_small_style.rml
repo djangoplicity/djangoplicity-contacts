@@ -1,0 +1,15 @@
+<blockTableStyle id="labeltable">
+ 	<blockFont name="HelveticaNeueLight" fontSize="11" start="0,0" stop="-1,-1"/>
+
+ 	<blockValign value="MIDDLE" start="0,0" stop="-1,0" />
+ 	<blockValign value="TOP" start="0,1" stop="-1,1" />
+
+	<!-- Last two rows span entire all table cols -->
+	<blockSpan start="0,1" stop="-1,1" />
+ 	<blockSpan start="0,2" stop="-1,2" />
+ 	
+ 	<!-- Extra info (right align and use big font) -->
+ 	<blockAlignment value="RIGHT" start="0,2" stop="-1,2" />
+ 	<blockFont name="HelveticaNeue" size="14" start="0,1" stop="-1,-1"/>
+ 	<blockValign value="MIDDLE" start="0,2" stop="-1,2" />
+ </blockTableStyle>
