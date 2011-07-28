@@ -30,6 +30,42 @@
 # POSSIBILITY OF SUCH DAMAGE
 #
 
+"""
+Module for generating labels in PDF documents. Relying on trml2pdf to generate the
+PDFs. Works together with the ``Label`` class to define different labels.
+
+
+Uses base templates to define a specific types of label paper with a standard
+layout of each label. The layout of each label can be overwritten. The standard
+labels assumes you are passing ``Contact`` models
+
+Usage::
+	>>> from djangoplicity.contacts.labels import LabelRender
+	>>> from djangoplicity.contacts.models import Contact
+	>>> queryset = Contacts.objects.all()[:100]
+	>>> l = LabelRender( 'a4-l7165' )
+	
+	# Write a PDF file
+	>>> l.render_file( queryset, 'somefilename.pdf', outputdir='/path/to/somewhere/', extra_context={ 'title' : 'Some Title', 'author' : 'Some Author' } )
+	
+	# Get a HTTP response with PDF file instead
+	>>> l.render_http_response( queryset, 'somefilename.pdf', extra_context={ 'title' : 'Some Title', 'author' : 'Some Author' } )
+	
+	# Override default template layout and repeat each label 4 times.
+	>>> style = '{% include "contacts/labels/cool_label_style.rml" %}'
+	>>> template = '{% include "contacts/labels/cool_label.rml" %}'
+	>>> l = LabelRender( 'a4-l7165', label_template=template, style=style, repeat=4 )
+	
+	# in the label template you have access to the variable ``obj`` which contains the
+	# current object instance for the label you are rendering:
+	>>> template = '...{{obj.email}}...'
+	
+	
+When override templates, instead of including a template in a file, you can also just
+directly define the django template in a string. This is used by the ``Label`` model to
+define custom labels. 
+"""
+
 from django.template import loader, Context, Template
 from django.utils.encoding import smart_str
 from django.http import HttpResponse
@@ -57,22 +93,54 @@ LABEL_PAPER = {
 		'label_template_style' : 'contacts/labels/standard_label_style.rml',
 	},
 }
+"""
+Variable defines all possible paper types. For each paper type following properties 
+are defined:
+    * ``labels_no``: Number of labels per page
+    * ``template``: The RML template for the paper type
+    * ``label_template``: The default RML template file for layout of one label (the 
+        template file is included once for each label in template)
+    * ``label_template_style``:  The default extra RML stylesheet which may be needed
+        by label_template
+"""
 
 LABEL_PAPER_CHOICES = tuple( [( k, v['title'] ) for k, v in LABEL_PAPER.items()] )
+""" Label paper choices for use as choices in a django field. """
 
 
 class LabelRender( object ):
 	"""
-	Class that renders labels from a queryset
+	Class that renders labels from a queryset.
 	"""
 	
 	def __init__( self, paper, label_template=None, style=None, repeat=1 ):
+		"""
+		Initialise template render.
+		
+		    * ``paper``: a  key in LAPER_PAPER (required)
+		    * ``label_template``: string with a django template to use instead of the default label template (optional)
+		    * ``style``: string with a django template to use instead of the default label template style (optional)
+		    * ``repeat``: the number of times to repeat each object in the query set.   
+		"""
+		# Ensure trml2pdf is installed
 		if trml2pdf is None:
 			raise Exception( "Cannot generate PDF - trml2pdf is not installed." )
 		
+		# Check paper type
 		if paper not in LABEL_PAPER:
 			raise Exception( "Label paper %s is not defined." )
 
+		# The render works by generating a template which looks like this: 
+		# {% extends "contacts/labels/<papertype>.rml" %}
+		# {% block label_style %}<label_template_style>{% endblock %}
+		# {% block label0 %}<label_template>{% endblock %}
+		# {% block label1 %}<label_template>{% endblock %}
+		# ...
+		# {% block label<label_no-1> %}<label_template>{% endblock %}
+		# 
+		# Hence, the <papertype>.rml template must naturally define these blocks:
+		# 1 block for the label_style
+		# X blocks for the individual labels on a page.
 		self.label_paper = LABEL_PAPER[paper]
 		self.document_template = """{%% extends "%s" %%}""" % self.label_paper['template']
 		

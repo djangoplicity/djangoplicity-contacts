@@ -30,6 +30,9 @@
 # POSSIBILITY OF SUCH DAMAGE
 #
 
+"""
+Admin interfaces for contact models.
+"""
 
 from django.contrib import admin
 from django.utils.translation import ugettext as _
@@ -106,14 +109,23 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 	inlines = [ ContactFieldInlineAdmin, AdminCommentInline, ]
 	
 	def action_make_label( self, request, queryset, label=None ):
+		"""
+		Action method for generating a PDF
+		"""
 		return label.get_label_render().render_http_response( queryset, 'contact_labels.pdf' )
 	
 	def _make_label_action( self, label ):
+		"""
+		Helper method to define an admin action for a specific label 
+		"""
 		name = 'make_label_%s' % label.pk
 		action = lambda modeladmin, request, queryset: modeladmin.action_make_label( request, queryset, label=label )
 		return ( name, ( action, name, "Make labels for selected objects (%s)" % label.name ) )
 
 	def get_actions( self, request ):
+		"""
+		Dynamically add admin actions for creating labels based on enabled labels.
+		"""
 		actions = super( ContactAdmin, self ).get_actions( request )
 		actions.update( dict( [self._make_label_action( l ) for l in Label.objects.filter( enabled=True ).order_by( 'name' )] ) )
 		return actions
