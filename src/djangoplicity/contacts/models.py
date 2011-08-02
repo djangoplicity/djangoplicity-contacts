@@ -92,7 +92,9 @@ class Country( models.Model ):
 	name = models.CharField( max_length=40, db_index=True )
 	iso_code = models.CharField( _( 'ISO code' ), max_length=5, blank=True )
 	dialing_code = models.CharField( max_length=10, blank=True )
+	zip_after_city = models.BooleanField( default=False )
 	groups = models.ManyToManyField( CountryGroup, blank=True )
+	
 	
 	def __unicode__( self ):
 		return self.name
@@ -151,6 +153,9 @@ class ContactField( models.Model ):
 	field = models.ForeignKey( Field )
 	contact = models.ForeignKey( Contact )
 	value = models.CharField( max_length=255, blank=True )
+	
+	def __unicode__( self ):
+		return "%s: %s" % ( self.field.name, self.value )
 	
 	def clean(self):
 		if not self.field.blank and self.value == '':

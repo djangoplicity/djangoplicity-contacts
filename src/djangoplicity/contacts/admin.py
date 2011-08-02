@@ -41,8 +41,8 @@ from djangoplicity.admincomments.admin import AdminCommentInline, AdminCommentMi
 
 
 class CountryAdmin( admin.ModelAdmin ):
-	list_display = ['name', 'iso_code', 'dialing_code', ]
-	list_editable = ['iso_code', 'dialing_code', ]
+	list_display = ['name', 'iso_code', 'dialing_code', 'zip_after_city' ]
+	list_editable = ['iso_code', 'dialing_code', 'zip_after_city' ]
 	list_filter = ['groups', ]
 	search_fields = ['name', 'iso_code', 'dialing_code', ]
 	filter_horizontal = ['groups']
@@ -114,6 +114,17 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 		"""
 		return label.get_label_render().render_http_response( queryset, 'contact_labels.pdf' )
 	
+	def action_set_group( self, request, queryset, group=None, remove=False ):
+		"""
+		Action method for generating a PDF
+		"""
+		for obj in queryset:
+			if remove:
+				obj.groups.remove( group )
+			else:
+				obj.groups.add( group )
+		#return label.get_label_render().render_http_response( queryset, 'contact_labels.pdf' )
+	
 	def _make_label_action( self, label ):
 		"""
 		Helper method to define an admin action for a specific label 
@@ -121,13 +132,23 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 		name = 'make_label_%s' % label.pk
 		action = lambda modeladmin, request, queryset: modeladmin.action_make_label( request, queryset, label=label )
 		return ( name, ( action, name, "Make labels for selected objects (%s)" % label.name ) )
-
+	
+	def _make_group_action( self, group, remove=False ):
+		"""
+		Helper method to define an admin action for a specific group 
+		"""
+		name = 'unset_group_%s' % group.pk if remove else 'set_group_%s' % group.pk 
+		action = lambda modeladmin, request, queryset: modeladmin.action_set_group( request, queryset, group=group, remove=remove )
+		return ( name, ( action, name, "%s group %s" % ("Unset" if remove else "Set", group.name) ) )
+	
 	def get_actions( self, request ):
 		"""
 		Dynamically add admin actions for creating labels based on enabled labels.
 		"""
 		actions = super( ContactAdmin, self ).get_actions( request )
 		actions.update( dict( [self._make_label_action( l ) for l in Label.objects.filter( enabled=True ).order_by( 'name' )] ) )
+		actions.update( dict( [self._make_group_action( g, remove=False ) for g in ContactGroup.objects.all().order_by( 'name' )] ) )
+		actions.update( dict( [self._make_group_action( g, remove=True ) for g in ContactGroup.objects.all().order_by( 'name' )] ) )
 		return actions
 
 
