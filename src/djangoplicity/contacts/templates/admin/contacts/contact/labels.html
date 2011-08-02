@@ -1,0 +1,77 @@
+{% extends "admin/base_site.html" %}
+{% load adminmedia admin_list i18n %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <link rel="stylesheet" type="text/css" href="{% admin_media_prefix %}css/changelists.css" />
+  {{ media.css }}
+    <style>
+      #changelist table thead th:first-child {width: inherit}
+    </style>
+{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+{{ media.js }}
+{% endblock %}
+
+{% block bodyclass %}change-list{% endblock %}
+
+{% block breadcrumbs %}{% with search as original %}
+<div class="breadcrumbs">
+     <a href="../../../../">{% trans "Home" %}</a> &rsaquo;
+     <a href="../../../">{{ app_label|capfirst|escape }}</a> &rsaquo;
+     <a href="../../">{{ opts.verbose_name_plural|capfirst }}</a> &rsaquo;
+     <a href="../">{{ object|truncatewords:"18" }}</a> &rsaquo;
+     {% trans "Results" %}
+</div>
+{% endwith %}
+{% endblock %}
+
+
+{% block coltype %}flex{% endblock %}
+{% block site_title %}TEST{% endblock %}
+
+{% block content %}
+ <h1>Contact: {{ object }}</h1>
+<div id="content-main">
+    <div class="module{% if filtered %} filtered{% endif %}" id="changelist">
+      {% block filters %}
+      {% endblock %}
+      <form id="changelist-form" action="" method="post"{% if cl.formset.is_multipart %} enctype="multipart/form-data"{% endif %}>{% csrf_token %}
+      {% block result_list %}
+          	{% if labels %}
+			<table cellspacing="0" id="result_list">
+			<thead>
+			<tr>
+			<th>Label name</th>
+			<th>Paper</th>
+			<th>Repeat</th>
+			<th></th>
+			</tr>
+			</thead>
+			<tbody>
+			{% for label in labels %}
+			<tr class="{% cycle 'row1' 'row2' %}">
+			<td>{{label.name}}</td>
+			<td>{{label.get_paper_display}}</td>
+			<td>{{label.repeat}}</td>
+			<td><a href="?label={{label.pk}}">Download</a></td>
+			</tr>
+			{% endfor %}
+			</tbody>
+			</table>
+			{% endif %}
+
+      {% endblock %}
+		<p class="paginator">
+		{% if objects.has_other_pages %}
+		{% for i in objects.paginator.page_range %}
+		{% if objects.number == i %}<span class="this-page">{{i}}</span>{% else %}<a href="?p={{i}}">{{i}}</a> {% endif %}		
+		{% endfor %}
+		{% endif %}
+		</p>
+      </form>
+    </div>
+  </div>
+{% endblock %}

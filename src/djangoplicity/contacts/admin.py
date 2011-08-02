@@ -38,7 +38,10 @@ from django.contrib import admin
 from django.utils.translation import ugettext as _
 from djangoplicity.contacts.models import ContactGroup, Contact, Country, CountryGroup, GroupCategory, ContactField, Field, Label
 from djangoplicity.admincomments.admin import AdminCommentInline, AdminCommentMixin
-
+from django.conf.urls.defaults import patterns
+from django.shortcuts import get_object_or_404, render_to_response
+from django.template import RequestContext
+from django.template.defaultfilters import slugify
 
 class CountryAdmin( admin.ModelAdmin ):
 	list_display = ['name', 'iso_code', 'dialing_code', 'zip_after_city' ]
@@ -69,12 +72,14 @@ class LabelAdmin( admin.ModelAdmin ):
 	)
 
 class CountryGroupAdmin( admin.ModelAdmin ):
-	list_display = ['name', 'category' ]
+	list_display = ['id', 'name', 'category' ]
+	list_editable = ['name', 'category' ]
 	search_fields = ['name', 'category__name' ]
 	list_filter = ['category', ]
 
 class ContactGroupAdmin( admin.ModelAdmin ):
-	list_display = ['name', 'category' ]
+	list_display = ['id', 'name', 'category' ]
+	list_editable = ['name', 'category' ]
 	search_fields = ['name', 'category__name' ]
 	list_filter = ['category', ]
 
@@ -108,6 +113,44 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 	readonly_fields = ['id', 'created', 'last_modified']
 	inlines = [ ContactFieldInlineAdmin, AdminCommentInline, ]
 	
+	def get_urls( self ):
+		urls = super( ContactAdmin, self ).get_urls()
+		extra_urls = patterns( '',
+			( r'^(?P<pk>[0-9]+)/label/$', self.admin_site.admin_view( self.label_view ) ),
+		)
+		return extra_urls + urls
+	
+	def label_view( self, request, pk=None ):
+		"""
+		Generate labels or show list of available labels
+		"""
+		# Get contact
+		qs = Contact.objects.filter( pk=pk )
+		if len(qs) == 0:
+			raise Http404
+		else:
+			obj = qs[0]
+		
+		# Get label 
+		try:
+			label = Label.objects.get( pk=request.GET.get( 'label', None ), enabled=True )
+			return label.get_label_render().render_http_response( qs, 'contact_label_%s.pdf' % obj.pk )
+		except Label.DoesNotExist:
+			# No label, so display list of available labels
+			labels = Label.objects.filter( enabled=True ).order_by( 'name' )
+			
+			return render_to_response(
+				"admin/contacts/contact/labels.html", 
+				{
+					'labels' : labels,
+					'object' : obj,
+					'messages': [],
+					'app_label' : obj._meta.app_label,
+					'opts' : obj._meta,
+				}, 
+				context_instance=RequestContext( request )
+			)
+	
 	def action_make_label( self, request, queryset, label=None ):
 		"""
 		Action method for generating a PDF
@@ -116,14 +159,13 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 	
 	def action_set_group( self, request, queryset, group=None, remove=False ):
 		"""
-		Action method for generating a PDF
+		Action method for set/removing groups to contacts.
 		"""
 		for obj in queryset:
 			if remove:
 				obj.groups.remove( group )
 			else:
 				obj.groups.add( group )
-		#return label.get_label_render().render_http_response( queryset, 'contact_labels.pdf' )
 	
 	def _make_label_action( self, label ):
 		"""

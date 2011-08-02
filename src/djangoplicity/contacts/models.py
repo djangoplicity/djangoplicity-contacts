@@ -73,6 +73,7 @@ class GroupCategory( models.Model ):
 	
 	class Meta:
 		verbose_name_plural = 'group categories'
+		ordering = ('name',)
 
 
 class CountryGroup( models.Model ):
@@ -84,6 +85,9 @@ class CountryGroup( models.Model ):
 
 	def __unicode__( self ):
 		return self.name
+	
+	class Meta:
+		ordering = ( 'category__name', 'name' )
 
 class Country( models.Model ):
 	"""
@@ -113,6 +117,11 @@ class ContactGroup( models.Model ):
 	
 	def __unicode__(self):
 		return self.name
+		#return "%s: %s" % (self.category, self.name) if self.category else self.name
+	
+	class Meta:
+		ordering = ( 'category__name', 'name' )
+
 
 class Contact( models.Model ):
 	"""
@@ -140,7 +149,14 @@ class Contact( models.Model ):
 	last_modified = models.DateTimeField( auto_now=True )
 	
 	def __unicode__( self ):
-		return "%s %s" % ( self.first_name, self.last_name )
+		if self.first_name or self.last_name:
+			return ("%s %s %s" % ( self.title, self.first_name, self.last_name )).strip()
+		elif self.organisation:
+			return self.organisation
+		elif self.department:
+			return self.department
+		else:
+			return self.pk
 
 	class Meta:
 		ordering = ['last_name']
