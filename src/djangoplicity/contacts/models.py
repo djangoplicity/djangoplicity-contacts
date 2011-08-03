@@ -187,7 +187,7 @@ class Contact( models.Model ):
 		cf.save()
 		
 	
-	def get_extra_field( self, field_name, value ):
+	def get_extra_field( self, field_name ):
 		"""
 		Convenience method to get the value of an extra field on a contact
 		"""
