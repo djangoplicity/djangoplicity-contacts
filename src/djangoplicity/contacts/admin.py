@@ -88,10 +88,10 @@ class ContactFieldInlineAdmin( admin.TabularInline ):
 	extra = 1
 
 class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
-	list_display = ['id', 'organisation', 'department', 'street', 'city', 'country', 'first_name', 'last_name', 'email', 'phone', 'website', 'created', 'last_modified' ]
-	list_editable = ['first_name', 'last_name', 'email', 'organisation', 'department', 'street', 'city', 'phone', 'website', ]
+	list_display = ['id', 'organisation', 'department', 'street_1', 'street_2', 'city', 'country', 'first_name', 'last_name', 'email', 'phone', 'website', 'created', 'last_modified' ]
+	list_editable = ['first_name', 'last_name', 'email', 'organisation', 'department', 'street_1', 'street_2', 'city', 'phone', 'website', ]
 	list_filter = ['last_modified', 'groups__category__name', 'groups', 'country__groups', 'extra_fields__name', 'country', 'title' ]
-	search_fields = ['first_name', 'last_name', 'title', 'position', 'email', 'organisation', 'department', 'street', 'city', 'phone', 'website', 'social', 'extra_fields__contactfield__value' ]
+	search_fields = ['first_name', 'last_name', 'title', 'position', 'email', 'organisation', 'department', 'street_1', 'street_2', 'city', 'phone', 'website', 'social', 'extra_fields__contactfield__value' ]
 	fieldsets = ( 
 		( None, {
 			'fields': ( ( 'id', 'created', 'last_modified' ), )
@@ -100,7 +100,7 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 			'fields': ( ( 'title', 'first_name', 'last_name' ), 'position', )
 		} ),
 		( 'Address', {
-			'fields': ( 'organisation', 'department', 'street', 'city', 'country' )
+			'fields': ( 'organisation', 'department', 'street_1', 'street_2', 'city', 'country' )
 		} ),
 		( 'Groups', {
 			'fields': ( 'groups', )

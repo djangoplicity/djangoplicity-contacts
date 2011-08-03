@@ -56,7 +56,7 @@ class Label( models.Model ):
 
 
 class Field( models.Model ):
-	name = models.CharField( max_length=255 )
+	name = models.CharField( max_length=255, unique=True )
 	blank = models.BooleanField( default=True )
 	
 	def __unicode__(self):
@@ -99,6 +99,30 @@ class Country( models.Model ):
 	zip_after_city = models.BooleanField( default=False )
 	groups = models.ManyToManyField( CountryGroup, blank=True )
 	
+	def get_zip_city( self, zip, city ):
+		"""
+		Method to combine ZIP/post case and city for a country.
+		"""
+		if self.zip_after_city:
+			return ( "%s %s" % ( city, zip ) ).strip()
+		else:
+			return ( "%s %s" % ( zip, city ) ).strip()
+
+	@classmethod
+	def country_index( cls ):
+		"""
+		Get a dictionary which can be indexed by ISO code to get the country.
+		"""
+		data = {}
+		for c in cls.objects.all():
+			if c.iso_code:
+				data[c.iso_code.upper()] = c
+		return data
+
+	def save(self, *args, **kwargs ):
+		""" Ensure ISO code is in upper case """
+		self.iso_code = self.iso_code.upper() 
+		super( Country, self ).save( *args, **kwargs )
 	
 	def __unicode__( self ):
 		return self.name
@@ -133,7 +157,8 @@ class Contact( models.Model ):
 	position = models.CharField( max_length=255, blank=True )
 	organisation = models.CharField( max_length=255, blank=True )
 	department = models.CharField( max_length=255, blank=True )
-	street = models.CharField( max_length=255, blank=True )
+	street_1 = models.CharField( max_length=255, blank=True )
+	street_2 = models.CharField( max_length=255, blank=True )
 	city = models.CharField( max_length=255, blank=True )
 	country = models.ForeignKey( Country, blank=True, null=True )
 	
@@ -147,6 +172,44 @@ class Contact( models.Model ):
 	
 	created = models.DateTimeField( auto_now_add=True )
 	last_modified = models.DateTimeField( auto_now=True )
+	
+	def set_extra_field( self, field_name, value ):
+		"""
+		Convenience method to set the value of an extra field on a contact
+		"""
+		f = Field.objects.get( name=field_name )
+		try:
+			cf = ContactField.objects.get( field=f, contact=self )
+		except ContactField.DoesNotExist:
+			cf = ContactField( field=f, contact=self )
+		
+		cf.value = value
+		cf.save()
+		
+	
+	def get_extra_field( self, field_name, value ):
+		"""
+		Convenience method to get the value of an extra field on a contact
+		"""
+		f = Field.objects.get( name=field_name )
+		try:
+			cf = ContactField.objects.get( field=f, contact=self )
+			return cf.value
+		except ContactField.DoesNotExist:
+			return None  
+	
+	def get_data( self ):
+		"""
+		Get a dictionary of this object
+		"""
+		data = {}
+		data['name'] = ("%s %s %s" % ( self.title, self.first_name, self.last_name )).strip()
+		data['address_lines'] = [x.strip() for x in self.organisation, self.department, self.street_1, self.street_2]
+		data['city'] = self.city.strip()
+		data['email'] = self.email.strip()
+		data['country'] = self.country.iso_code.upper() if self.country else ''
+		data['contact_object'] = self
+		return data
 	
 	def __unicode__( self ):
 		if self.first_name or self.last_name:
