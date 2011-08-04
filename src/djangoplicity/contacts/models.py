@@ -53,6 +53,9 @@ class Label( models.Model ):
 	
 	def get_label_render( self ):
 		return LabelRender( self.paper, label_template=self.template, style=self.style, repeat=self.repeat )
+	
+	class Meta:
+		ordering = ['name']
 
 
 class Field( models.Model ):
@@ -61,6 +64,9 @@ class Field( models.Model ):
 	
 	def __unicode__(self):
 		return self.name
+	
+	class Meta:
+		ordering = ['name']
 
 class GroupCategory( models.Model ):
 	"""
@@ -144,7 +150,7 @@ class ContactGroup( models.Model ):
 		#return "%s: %s" % (self.category, self.name) if self.category else self.name
 	
 	class Meta:
-		ordering = ( 'category__name', 'name' )
+		ordering = ( 'name', )
 
 
 class Contact( models.Model ):
