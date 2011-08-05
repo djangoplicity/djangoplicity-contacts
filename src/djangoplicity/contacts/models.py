@@ -159,7 +159,7 @@ class Contact( models.Model ):
 	"""
 	first_name = models.CharField( max_length=255, blank=True )
 	last_name = models.CharField( max_length=255, blank=True )
-	title = models.CharField( max_length=50, blank=True )
+	title = models.CharField( max_length=50, blank=True, db_index=True )
 	position = models.CharField( max_length=255, blank=True )
 	organisation = models.CharField( max_length=255, blank=True )
 	department = models.CharField( max_length=255, blank=True )
@@ -237,7 +237,7 @@ class ContactField( models.Model ):
 	"""
 	field = models.ForeignKey( Field )
 	contact = models.ForeignKey( Contact )
-	value = models.CharField( max_length=255, blank=True )
+	value = models.CharField( max_length=255, blank=True, db_index=True )
 	
 	def __unicode__( self ):
 		return "%s: %s" % ( self.field.name, self.value )

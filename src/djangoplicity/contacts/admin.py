@@ -91,7 +91,7 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 	list_display = ['id', 'last_name', 'first_name', 'organisation', 'department', 'street_1', 'street_2', 'city', 'country', 'email', 'phone', 'website', 'created', 'last_modified' ]
 	list_editable = ['first_name', 'last_name', 'email', 'organisation', 'department', 'street_1', 'street_2', 'city', 'phone', 'website', ]
 	list_filter = ['last_modified', 'groups__category__name', 'groups', 'country__groups', 'extra_fields__name', 'country', 'title' ]
-	search_fields = ['first_name', 'last_name', 'title', 'position', 'email', 'organisation', 'department', 'street_1', 'street_2', 'city', 'phone', 'website', 'social', 'extra_fields__contactfield__value' ]
+	search_fields = ['first_name', 'last_name', 'title', 'position', 'email', 'organisation', 'department', 'street_1', 'street_2', 'city', 'phone', 'website', 'social', ]
 	fieldsets = ( 
 		( None, {
 			'fields': ( ( 'id', 'created', 'last_modified' ), )
@@ -112,6 +112,7 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 	filter_horizontal = ['groups']
 	readonly_fields = ['id', 'created', 'last_modified']
 	inlines = [ ContactFieldInlineAdmin, AdminCommentInline, ]
+	list_select_related = True
 	
 	def get_urls( self ):
 		urls = super( ContactAdmin, self ).get_urls()
