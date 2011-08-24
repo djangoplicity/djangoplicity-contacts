@@ -30,3 +30,55 @@
 # POSSIBILITY OF SUCH DAMAGE
 #
 
+import json
+
+def serialize_contact( c, out ):
+	"""
+	Write serialization of object to output stream
+	"""
+	d = {
+		'pk' :  c.pk,
+		'first_name' :  c.first_name.encode('utf-8'),
+		'last_name' :  c.last_name.encode('utf-8'),
+		'title' :  c.title.encode('utf-8'),
+		'organisation' : c.organisation.encode('utf-8'),
+		'department' : c.department.encode('utf-8'),
+		'street_1' : c.street_1.encode('utf-8'),
+		'street_2' : c.street_2.encode('utf-8'),
+		'city' :  c.city.encode('utf-8'),
+		'country' :  c.country.iso_code,
+	}
+	if out:
+		json.dump( d, out)
+		
+		
+def print_sideby( a, b ):
+	l_a = len(a['address_lines'])
+	l_b = len(b['address_lines'])
+	l = max(l_a,l_b)
+	
+	if l_a != l:
+		a['address_lines'] += ['']*(l-l_a)
+	if l_b != l:
+		b['address_lines'] += ['']*(l-l_b)
+	
+	a_lines = [a['name']] + a['address_lines'] + [a['city'], a['country']]
+	b_lines = [b['name']] + b['address_lines'] + [b['city'], b['country']]
+	
+	linelen = max([len(x) for x in a_lines+b_lines]) + 1
+	
+	lines = []
+	for i in range(len(a_lines)):
+		lina = a_lines[i]
+		linb = b_lines[i]
+		lina += " "*(linelen-len(lina))
+		linb += " "*(linelen-len(linb))
+		lines.append( "%s %s" % (lina,linb))
+	return "\n".join( lines	)
+
+
+def joinfields( *args ):
+	return " ".join( [a for a in args if a] )
+	
+def debug_data( data ):
+	return "\n".join( filter(lambda x: x, [data['name']] + data['address_lines'] + [data['city'], data['country']] ) )

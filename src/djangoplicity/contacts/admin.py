@@ -36,7 +36,7 @@ Admin interfaces for contact models.
 
 from django.contrib import admin
 from django.utils.translation import ugettext as _
-from djangoplicity.contacts.models import ContactGroup, Contact, Country, CountryGroup, GroupCategory, ContactField, Field, Label
+from djangoplicity.contacts.models import ContactGroup, Contact, Country, CountryGroup, GroupCategory, ContactField, Field, Label, PostalZone
 from djangoplicity.admincomments.admin import AdminCommentInline, AdminCommentMixin
 from django.conf.urls.defaults import patterns
 from django.shortcuts import get_object_or_404, render_to_response
@@ -44,13 +44,17 @@ from django.template import RequestContext
 from django.template.defaultfilters import slugify
 
 class CountryAdmin( admin.ModelAdmin ):
-	list_display = ['name', 'iso_code', 'dialing_code', 'zip_after_city' ]
-	list_editable = ['iso_code', 'dialing_code', 'zip_after_city' ]
-	list_filter = ['groups', ]
+	list_display = ['name', 'iso_code', 'postal_zone', 'dialing_code', 'zip_after_city' ]
+	list_editable = ['iso_code', 'postal_zone', 'dialing_code', 'zip_after_city' ]
+	list_filter = ['groups', 'postal_zone', 'zip_after_city']
 	search_fields = ['name', 'iso_code', 'dialing_code', ]
 	filter_horizontal = ['groups']
 
 class GroupCategoryAdmin( admin.ModelAdmin ):
+	list_display = ['name', ]
+	search_fields = ['name', ]
+	
+class PostalZoneAdmin( admin.ModelAdmin ):
 	list_display = ['name', ]
 	search_fields = ['name', ]
 
@@ -204,6 +208,7 @@ def register_with_admin( admin_site ):
 	admin_site.register( CountryGroup, CountryGroupAdmin )
 	admin_site.register( ContactGroup, ContactGroupAdmin )
 	admin_site.register( Contact, ContactAdmin )
+	admin_site.register( PostalZone, PostalZoneAdmin )
 
 # Register with default admin site	
 register_with_admin( admin.site )

@@ -94,6 +94,19 @@ class CountryGroup( models.Model ):
 	
 	class Meta:
 		ordering = ( 'category__name', 'name' )
+		
+class PostalZone( models.Model ):
+	"""
+	Postal zones for countries
+	"""
+	name = models.CharField( max_length=255, unique=True )
+
+	def __unicode__( self ):
+		return self.name
+	
+	class Meta:
+		ordering = [ 'name', ]
+
 
 class Country( models.Model ):
 	"""
@@ -103,6 +116,7 @@ class Country( models.Model ):
 	iso_code = models.CharField( _( 'ISO code' ), max_length=5, blank=True )
 	dialing_code = models.CharField( max_length=10, blank=True )
 	zip_after_city = models.BooleanField( default=False )
+	postal_zone = models.ForeignKey( PostalZone, null=True, blank=True )
 	groups = models.ManyToManyField( CountryGroup, blank=True )
 	
 	def get_zip_city( self, zip, city ):
