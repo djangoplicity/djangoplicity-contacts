@@ -30,3 +30,117 @@
 # POSSIBILITY OF SUCH DAMAGE
 #
 
+import xlwt
+import datetime
+import decimal
+
+class Exporter( object ):
+	"""
+	Abstract base class for all exporters
+	"""
+	def __init__( self, header=[] ):
+		self._wrote_header = False
+		self._header_mapping = {}
+		self._header = []
+		i = 0
+
+		for h, func in header:
+			self._header.append( h )
+			self._header_mapping[h] = {'func': func, 'idx' : i}
+			i += 1
+
+	def _prepare_row( self, data ):
+		row = []
+		for h in self._header:
+			func = self._header_mapping[h]['func']
+			try:
+				val = data[h]
+				if func:
+					val = func( val )
+			except KeyError:
+				val = None
+			row.append( val )
+		return row
+	
+	def writeheader( self ):
+		if not self._wrote_header:
+			self._wrote_header = True
+			self.writerow( self._header )
+
+	def writedata( self, data ):
+		row = self._prepare_row( data )
+		self.writerow( row )
+
+	def writerow( self, row ):
+		raise NotImplementedError
+
+	def writerows( self, rows ):
+		for r in rows:
+			self.writerow( r )
+
+
+class ExcelExporter( Exporter ):
+	"""
+	Excel exporter
+	
+	Example:: 
+		exporter = ExcelExporter( filename_or_stream='/path/to/excelfile.xls', header=[ ('id',None), ('email', None) ] )
+		for obj in queryset:
+			exporter.writedata( { 'id' : obj.id, 'email' : obj.email } )
+		exporter.save()
+	"""
+	mimetype = "application/vnd.ms-excel"
+	
+	def __init__( self, filename_or_stream=None, title="Contacts", header=[] ):
+		super( ExcelExporter, self ).__init__( header=header )
+		self._out = filename_or_stream
+		self._wb = xlwt.Workbook()
+		self._ws = self._wb.add_sheet( title )
+		self._row = 0
+		self.writeheader()
+
+	def save( self, filename_or_stream ):
+		self._wb.save( filename_or_stream if filename_or_stream else self._out )
+		
+	def writeheader( self ):
+		self._style = xlwt.easyxf( 'font: bold on' )
+		super( ExcelExporter, self ).writeheader()
+		self._style = None
+
+	def _prepare_value( self, value ):
+		if (isinstance( value, basestring ) or 
+			isinstance( value, int ) or
+			isinstance( value, float ) or
+			isinstance( value, long ) or
+			isinstance( value, decimal.Decimal ) or
+			isinstance( value, bool ) or
+			isinstance( value, decimal.Decimal ) or
+			value is None):
+			return [value]
+		elif isinstance( value, datetime.datetime ):
+			style = xlwt.XFStyle()
+			style.num_format_str = "YYYY/MM/DD hh:mm:ss"
+			return [value,style]
+		elif isinstance( value, datetime.date ):
+			style = xlwt.XFStyle()
+			style.num_format_str = "YYYY/MM/DD"
+			return [value,style]
+		elif isinstance( value, datetime.time ):
+			style = xlwt.XFStyle()
+			style.num_format_str = "hh:mm:ss"
+			return [value,style]
+		else:
+			return [unicode( value )]
+		
+	def _prepare_values( self, values ):
+		return map( lambda x: self._prepare_value( x ), values )
+
+	def writerow( self, row ):
+		i = 0
+		for cval in row:
+			if self._style:
+				self._ws.write( self._row, i, self._prepare_value(cval)[0], self._style )
+			else:
+				self._ws.write( self._row, i, *self._prepare_value(cval) )
+			i += 1
+		self._row += 1
