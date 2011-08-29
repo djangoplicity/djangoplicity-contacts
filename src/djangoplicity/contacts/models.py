@@ -239,7 +239,7 @@ class Contact( models.Model ):
 		elif self.department:
 			return self.department
 		else:
-			return self.pk
+			return unicode( self.pk )
 
 	class Meta:
 		ordering = ['last_name']
