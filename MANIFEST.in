@@ -31,6 +31,6 @@
 #
 include distribute_setup.py *.txt
 recursive-include docs *
-recursive-include src/djangoplicity.contacts/templates *
-recursive-include src/djangoplicity.contacts/static * 
+recursive-include src/djangoplicity/contacts/templates *
+recursive-include src/djangoplicity/contacts/static * 
 prune docs/build
