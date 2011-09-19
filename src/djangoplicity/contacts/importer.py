@@ -143,10 +143,20 @@ class ExcelImporter( Importer ):
 		self.sheet = xlrd.open_workbook( filename ).sheet_by_index( sheet )
 		
 		i = 0
+		self._header = []
 		self.cols = {}
 		for c in self.sheet.row_values( 0 ):
 			self.cols[c] = i
+			self._header.append( ( c, None ) )
 			i += 1
+			
+	def header( self ):
+		"""
+		Return the Excel header for this file. This can be used as input to
+		ExcelExporter.
+		"""
+		import copy
+		return copy.copy( self._header )
 
 	def __len__( self ):
 		"""

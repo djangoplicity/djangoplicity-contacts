@@ -62,19 +62,19 @@ class Exporter( object ):
 			row.append( val )
 		return row
 	
-	def writeheader( self ):
+	def writeheader( self, **kwargs ):
 		if not self._wrote_header:
 			self._wrote_header = True
-			self.writerow( self._header )
+			self.writerow( self._header, **kwargs )
 
-	def writedata( self, data ):
+	def writedata( self, data, **kwargs ):
 		row = self._prepare_row( data )
-		self.writerow( row )
+		self.writerow( row, **kwargs )
 
-	def writerow( self, row ):
+	def writerow( self, row, **kwargs ):
 		raise NotImplementedError
 
-	def writerows( self, rows ):
+	def writerows( self, rows, **kwargs ):
 		for r in rows:
 			self.writerow( r )
 
@@ -99,13 +99,13 @@ class ExcelExporter( Exporter ):
 		self._row = 0
 		self.writeheader()
 
-	def save( self, filename_or_stream ):
+	def save( self, filename_or_stream=None ):
 		self._wb.save( filename_or_stream if filename_or_stream else self._out )
 		
-	def writeheader( self ):
-		self._style = xlwt.easyxf( 'font: bold on' )
-		super( ExcelExporter, self ).writeheader()
-		self._style = None
+	def writeheader( self, **kwargs ):
+		defaults = { 'style' : xlwt.easyxf( 'font: bold on, colour white; pattern: pattern solid, fore-colour black' ) }
+		defaults.update( kwargs )
+		super( ExcelExporter, self ).writeheader( **defaults )
 
 	def _prepare_value( self, value ):
 		if (isinstance( value, basestring ) or 
@@ -135,11 +135,11 @@ class ExcelExporter( Exporter ):
 	def _prepare_values( self, values ):
 		return map( lambda x: self._prepare_value( x ), values )
 
-	def writerow( self, row ):
+	def writerow( self, row, style=None, **kwargs ):
 		i = 0
 		for cval in row:
-			if self._style:
-				self._ws.write( self._row, i, self._prepare_value(cval)[0], self._style )
+			if style is not None:
+				self._ws.write( self._row, i, self._prepare_value(cval)[0], style )
 			else:
 				self._ws.write( self._row, i, *self._prepare_value(cval) )
 			i += 1

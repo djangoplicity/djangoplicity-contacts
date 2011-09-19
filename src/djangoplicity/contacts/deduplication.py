@@ -436,7 +436,10 @@ def find_duplicates( obj, search_space, ratio_limit=0.3 ):
 	for s in search_space:
 		ratio = similar( obj, s )
 		if ratio > ratio_limit:
-			dups.append( s )
-
+			dups.append( (ratio,s) )
+			
+	dups.sort( key=lambda x: x[0] )
+	dups.reverse()
+	#dups = [x[1] for x in dups]
 	return dups
 
