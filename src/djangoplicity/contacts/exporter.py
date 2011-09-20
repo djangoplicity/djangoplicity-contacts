@@ -91,12 +91,19 @@ class ExcelExporter( Exporter ):
 	"""
 	mimetype = "application/vnd.ms-excel"
 	
-	def __init__( self, filename_or_stream=None, title="Contacts", header=[] ):
+	styles = {
+		'datetime' : xlwt.easyxf( num_format_str="YYYY/MM/DD hh:mm:ss" ),
+		'date' : xlwt.easyxf( num_format_str="YYYY/MM/DD" ),
+		'time' : xlwt.easyxf( num_format_str="hh:mm:ss" ),
+	}
+	
+	def __init__( self, filename_or_stream=None, title="Contacts", header=[], flush_rows=500 ):
 		super( ExcelExporter, self ).__init__( header=header )
 		self._out = filename_or_stream
 		self._wb = xlwt.Workbook()
 		self._ws = self._wb.add_sheet( title )
 		self._row = 0
+		self._flush_rows = flush_rows
 		self.writeheader()
 
 	def save( self, filename_or_stream=None ):
@@ -118,17 +125,11 @@ class ExcelExporter( Exporter ):
 			value is None):
 			return [value]
 		elif isinstance( value, datetime.datetime ):
-			style = xlwt.XFStyle()
-			style.num_format_str = "YYYY/MM/DD hh:mm:ss"
-			return [value,style]
+			return [value,self.styles['datetime']]
 		elif isinstance( value, datetime.date ):
-			style = xlwt.XFStyle()
-			style.num_format_str = "YYYY/MM/DD"
-			return [value,style]
+			return [value,self.styles['date']]
 		elif isinstance( value, datetime.time ):
-			style = xlwt.XFStyle()
-			style.num_format_str = "hh:mm:ss"
-			return [value,style]
+			return [value,self.styles['time']]
 		else:
 			return [unicode( value )]
 		
@@ -143,4 +144,9 @@ class ExcelExporter( Exporter ):
 			else:
 				self._ws.write( self._row, i, *self._prepare_value(cval) )
 			i += 1
+		# Writing large amount of data requires the sheet to be flushed from time to time 
+		# otherwise a "ValueError: More than 4094 XFs (styles)" error is thrown.
+		# Once the rows are flushed, they can no longer be edited. 
+		if self._flush_rows > 0 and self._row % self._flush_rows == 0:
+			self._ws.flush_row_data() 
 		self._row += 1
