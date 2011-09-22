@@ -37,8 +37,10 @@ from django.template import loader, Context, Template
 from django.utils.encoding import smart_str
 from django.utils.translation import ugettext as _
 from djangoplicity.contacts.labels import LabelRender, LABEL_PAPER_CHOICES
-from djangoplicity.contacts.signals import contact_added, contact_removed 
-from django.db.models.signals import m2m_changed, pre_delete
+from djangoplicity.contacts.signals import contact_added, contact_removed
+from django.db.models.signals import m2m_changed, pre_delete, post_delete, post_save
+from django.core.cache import cache
+from djangoplicity.actions.models import Action
 
 import os
 
@@ -199,9 +201,9 @@ class Contact( models.Model ):
 		Take a snapshot of the groups for this contact. The snapshot 
 		is used to detect added/removed groups.
 		"""
-		if not hasattr( self, '_snapshot'):
+		if not hasattr( self, '_snapshot' ):
 			self._snapshot = None
-		
+
 		if self._snapshot is None:
 			self._snapshot = ( action, set( self.groups.all() ) )
 
@@ -280,6 +282,7 @@ class Contact( models.Model ):
 		
 		TODO: Does not take the reverse relation into account - e.g: grp.contact_set.add(..)
 		"""
+		print "m2m_changed:%s" % action
 		if action in ['pre_clear', 'pre_remove', 'pre_add']:
 			instance.create_snapshot( action[4:] )
 		elif action in ['post_clear', 'post_remove', 'post_add']:
@@ -294,7 +297,7 @@ class Contact( models.Model ):
 					contact_removed.send_robust( sender=cls, group=g, contact=instance )
 
 				instance.reset_snapshot()
-	
+
 	@classmethod
 	def pre_delete_callback( cls, sender, instance=None, **kwargs ):
 		"""
@@ -325,6 +328,96 @@ class ContactField( models.Model ):
 	class Meta:
 		unique_together = ( 'field', 'contact' )
 
+#
+# More advanced stuff - configurable actions to be execute once
+# contacts are added/removed from groups (e.g subscribe to mailman).
+#
+ACTION_EVENTS = ( 
+	( 'contact_added', 'Contact added to group' ),
+	( 'contact_removed', 'Contact removed from group' ),
+ )
+
+class ContactGroupAction( models.Model ):
+	"""
+	Define actions to be executed when a contact is added
+	or removed to a group.
+	"""
+	group = models.ForeignKey( ContactGroup )
+	action = models.ForeignKey( Action )
+	on_event = models.CharField( max_length=50, choices=ACTION_EVENTS, db_index=True )
+
+	_key = 'djangoplicity.contacts.action_cache'
+	
+	@classmethod
+	def clear_cache( cls, *args, **kwargs ):
+		"""
+		Ensure cache is reset in case any change is made.
+		"""
+		cache.delete( cls._key )
+
+	@classmethod
+	def get_actions( cls, group, on_event=None ):
+		"""
+		Get all actions defined for a certain group.
+		
+		Caches result to prevent many queries to the database. Currently the entire
+		table is cached, however in case of issues, this caching strategy can be improved.
+		"""
+		action_cache = cache.get( cls._key )
+
+		# Prime cache if needed
+		if action_cache is None:
+			action_cache = {}
+			for a in cls.objects.all().select_related( depth=1 ).order_by( 'group', 'on_event', 'action' ):
+				g_pk = str( a.group.pk )				
+				if g_pk not in action_cache:
+					action_cache[ g_pk ] = {}
+				if a.on_event not in action_cache[g_pk]:
+					action_cache[ g_pk ][a.on_event] = []
+				action_cache[ g_pk ][a.on_event].append( a.action )
+				cache.set( cls._key, action_cache )
+		
+		# Find actions for this group 
+		try:
+			actions = action_cache[ str( group.pk ) ]
+			return actions if on_event is None else actions[on_event]
+		except KeyError:
+			return []
+
+
+	@classmethod
+	def contact_added_callback( cls, sender=None, group=None, contact=None, **kwargs ):
+		"""
+		Callback handler for when a contact is *added* to a group. Will execute defined
+		actions for this group.
+		"""
+		print "contact_added"
+		for a in cls.get_actions( group, on_event='contact_added' ): 
+			a.dispatch( group=group, contact=contact )
+
+	@classmethod
+	def contact_removed_callback( cls, sender=None, group=None, contact=None, **kwargs ):
+		"""
+		Callback handler for when a contact is *removed* to a group. Will execute defined
+		actions for this group.
+		"""
+		print "contact_removed"
+		for a in cls.get_actions( group, on_event='contact_removed' ):
+			a.dispatch( group=group, contact=contact )
+
+
+# Conncet signals to clear the action cache
+post_delete.connect( ContactGroupAction.clear_cache, sender=ContactGroupAction )
+post_save.connect( ContactGroupAction.clear_cache, sender=ContactGroupAction )
+post_delete.connect( ContactGroupAction.clear_cache, sender=Action )
+post_save.connect( ContactGroupAction.clear_cache, sender=Action )
+post_delete.connect( ContactGroupAction.clear_cache, sender=ContactGroup )
+post_save.connect( ContactGroupAction.clear_cache, sender=ContactGroup )
+
 # Connect signals needed to send out contac_added/contact_removed signals.
 m2m_changed.connect( Contact.m2m_changed_callback, sender=Contact.groups.through )
 pre_delete.connect( Contact.pre_delete_callback, sender=Contact )
+
+# Connect signals handling the execution of actions
+contact_added.connect( ContactGroupAction.contact_added_callback, sender=Contact )
+contact_removed.connect( ContactGroupAction.contact_removed_callback, sender=Contact )

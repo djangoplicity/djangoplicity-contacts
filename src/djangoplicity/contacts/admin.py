@@ -36,7 +36,7 @@ Admin interfaces for contact models.
 
 from django.contrib import admin
 from django.utils.translation import ugettext as _
-from djangoplicity.contacts.models import ContactGroup, Contact, Country, CountryGroup, GroupCategory, ContactField, Field, Label, PostalZone
+from djangoplicity.contacts.models import ContactGroup, Contact, Country, CountryGroup, GroupCategory, ContactField, Field, Label, PostalZone, ContactGroupAction
 from djangoplicity.admincomments.admin import AdminCommentInline, AdminCommentMixin
 from django.conf.urls.defaults import patterns
 from django.shortcuts import get_object_or_404, render_to_response
@@ -176,6 +176,10 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 				obj.groups.add( group )
 				
 	def save_model( self, request, obj, form, change ):
+		"""
+		Method needed to make Contact.m2m_changed_callback work correctly when saving
+		in the admin. See notes for function and futher notes in signals.py.
+		"""
 		obj.save()
 		obj.create_snapshot( 'add' ) # very important! trust me ;-)
 
@@ -206,7 +210,10 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 		actions.update( dict( [self._make_group_action( g, remove=True ) for g in ContactGroup.objects.all().order_by( 'name' )] ) )
 		return actions
 
-
+class ContactGroupActionAdmin( admin.ModelAdmin ):
+	list_display = ['group', 'on_event', 'action',  ]
+	list_filter = [ 'on_event', 'action', 'group', ]
+	search_fields = ['group__name', 'action__name', ]
 
 def register_with_admin( admin_site ):
 	admin_site.register( Label, LabelAdmin )
@@ -217,6 +224,8 @@ def register_with_admin( admin_site ):
 	admin_site.register( ContactGroup, ContactGroupAdmin )
 	admin_site.register( Contact, ContactAdmin )
 	admin_site.register( PostalZone, PostalZoneAdmin )
+	admin_site.register( ContactGroupAction, ContactGroupActionAdmin )
+	
 
 # Register with default admin site	
 register_with_admin( admin.site )
