@@ -42,6 +42,7 @@ from django.conf.urls.defaults import patterns
 from django.shortcuts import get_object_or_404, render_to_response
 from django.template import RequestContext
 from django.template.defaultfilters import slugify
+from djangoplicity.contacts.signals import contact_added, contact_removed
 
 class CountryAdmin( admin.ModelAdmin ):
 	list_display = ['name', 'iso_code', 'postal_zone', 'dialing_code', 'zip_after_city' ]
@@ -155,6 +156,8 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 				}, 
 				context_instance=RequestContext( request )
 			)
+
+
 	
 	def action_make_label( self, request, queryset, label=None ):
 		"""
@@ -165,12 +168,17 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 	def action_set_group( self, request, queryset, group=None, remove=False ):
 		"""
 		Action method for set/removing groups to contacts.
-		"""
+		"""	
 		for obj in queryset:
 			if remove:
 				obj.groups.remove( group )
 			else:
 				obj.groups.add( group )
+				
+	def save_model( self, request, obj, form, change ):
+		obj.save()
+		obj.create_snapshot( 'add' ) # very important! trust me ;-)
+
 	
 	def _make_label_action( self, label ):
 		"""
