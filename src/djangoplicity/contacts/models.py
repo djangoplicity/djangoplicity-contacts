@@ -281,8 +281,8 @@ class Contact( models.Model ):
 		Callback is used to send contact_removed, contact_added signals
 		
 		TODO: Does not take the reverse relation into account - e.g: grp.contact_set.add(..)
+		TODO: When last group is removed via admin, only a pre_clear, post_clear is sent, and not a pre_clear, post_clear, pre_add, post_add  
 		"""
-		print "m2m_changed:%s" % action
 		if action in ['pre_clear', 'pre_remove', 'pre_add']:
 			instance.create_snapshot( action[4:] )
 		elif action in ['post_clear', 'post_remove', 'post_add']:
