@@ -271,6 +271,19 @@ class Contact( models.Model ):
 		else:
 			return unicode( self.pk )
 
+	def dispatch_signals( self, action ):
+		old_groups = self.get_snapshot(action)
+		# Signals only sent if snapshot was created with the same action 
+		if old_groups is not None:
+			new_groups = set(self.groups.all())
+			# added groups
+			for g in new_groups - old_groups:
+				contact_added.send_robust(sender=self.__class__, group=g, contact=self)
+			# removed groups
+			for g in old_groups - new_groups:
+				contact_removed.send_robust(sender=self.__class__, group=g, contact=self)
+			self.reset_snapshot()
+	
 	@classmethod
 	def m2m_changed_callback( cls, sender, instance=None, action=None, reverse=None, model=None, pk_set=[], **kwargs ):
 		"""
@@ -284,19 +297,10 @@ class Contact( models.Model ):
 		TODO: When last group is removed via admin, only a pre_clear, post_clear is sent, and not a pre_clear, post_clear, pre_add, post_add  
 		"""
 		if action in ['pre_clear', 'pre_remove', 'pre_add']:
-			instance.create_snapshot( action[4:] )
+			instance.create_snapshot(action[4:])
 		elif action in ['post_clear', 'post_remove', 'post_add']:
-			old_groups = instance.get_snapshot( action[5:] )
-			if old_groups is not None:
-				new_groups = set( instance.groups.all() )
-				# added groups
-				for g in new_groups - old_groups:
-					contact_added.send_robust( sender=cls, group=g, contact=instance )
-				# removed groups
-				for g in old_groups - new_groups:
-					contact_removed.send_robust( sender=cls, group=g, contact=instance )
-
-				instance.reset_snapshot()
+			instance.dispatch_signals(action[5:])
+		
 
 	@classmethod
 	def pre_delete_callback( cls, sender, instance=None, **kwargs ):
@@ -391,7 +395,6 @@ class ContactGroupAction( models.Model ):
 		Callback handler for when a contact is *added* to a group. Will execute defined
 		actions for this group.
 		"""
-		print "contact_added"
 		for a in cls.get_actions( group, on_event='contact_added' ): 
 			a.dispatch( group=group, contact=contact )
 
@@ -401,7 +404,6 @@ class ContactGroupAction( models.Model ):
 		Callback handler for when a contact is *removed* to a group. Will execute defined
 		actions for this group.
 		"""
-		print "contact_removed"
 		for a in cls.get_actions( group, on_event='contact_removed' ):
 			a.dispatch( group=group, contact=contact )
 
