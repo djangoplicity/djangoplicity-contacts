@@ -37,10 +37,11 @@ from django.template import loader, Context, Template
 from django.utils.encoding import smart_str
 from django.utils.translation import ugettext as _
 from djangoplicity.contacts.labels import LabelRender, LABEL_PAPER_CHOICES
-from djangoplicity.contacts.signals import contact_added, contact_removed
-from django.db.models.signals import m2m_changed, pre_delete, post_delete, post_save
+from djangoplicity.contacts.signals import contact_added, contact_removed, contact_updated
+from django.db.models.signals import m2m_changed, pre_delete, post_delete, post_save, pre_save
 from django.core.cache import cache
 from djangoplicity.actions.models import Action
+from dirtyfields import DirtyFieldsMixin
 
 import os
 
@@ -170,7 +171,7 @@ class ContactGroup( models.Model ):
 	class Meta:
 		ordering = ( 'name', )
 
-class Contact( models.Model ):
+class Contact( DirtyFieldsMixin, models.Model ):
 	"""
 	Contacts model
 	"""
@@ -309,7 +310,24 @@ class Contact( models.Model ):
 		"""
 		for g in instance.groups.all():
 			contact_removed.send_robust( sender=cls, group=g, contact=instance )
-
+	
+	@classmethod		
+	def pre_save_callback( cls, sender, instance=None, raw=False, **kwargs ):
+		"""
+		Callback for detecting changes to the model.
+		"""
+		instance._dirty_fields = instance.get_dirty_fields()
+			
+	@classmethod		
+	def post_save_callback( cls, sender, instance=None, raw=False, **kwargs ):
+		"""
+		Callback for detecting changes to the model.
+		"""
+		dirty_fields = instance._dirty_fields
+		instance._dirty_fields = None
+		if dirty_fields != {}:
+			contact_updated.send_robust( sender=cls, instance=instance, dirty_fields=dirty_fields )
+			
 	class Meta:
 		ordering = ['last_name']
 
@@ -339,6 +357,7 @@ class ContactField( models.Model ):
 ACTION_EVENTS = ( 
 	( 'contact_added', 'Contact added to group' ),
 	( 'contact_removed', 'Contact removed from group' ),
+	( 'contact_updated', 'Contact updated' ),
  )
 
 class ContactGroupAction( models.Model ):
@@ -406,6 +425,14 @@ class ContactGroupAction( models.Model ):
 		"""
 		for a in cls.get_actions( group, on_event='contact_removed' ):
 			a.dispatch( group=group, contact=contact )
+			
+	@classmethod
+	def contact_updated_callback( cls, sender=None, instance=None, dirty_fields={}, **kwargs ):
+		"""
+		Callback handler
+		"""
+		# TODO: figure out how to connect MailmanUpdate action with an email being updated. 
+		print "contact_updated: %s" % unicode( dirty_fields )
 
 
 # Conncet signals to clear the action cache
@@ -419,7 +446,10 @@ post_save.connect( ContactGroupAction.clear_cache, sender=ContactGroup )
 # Connect signals needed to send out contac_added/contact_removed signals.
 m2m_changed.connect( Contact.m2m_changed_callback, sender=Contact.groups.through )
 pre_delete.connect( Contact.pre_delete_callback, sender=Contact )
+pre_save.connect( Contact.pre_save_callback, sender=Contact )
+post_save.connect( Contact.post_save_callback, sender=Contact )
 
 # Connect signals handling the execution of actions
 contact_added.connect( ContactGroupAction.contact_added_callback, sender=Contact )
 contact_removed.connect( ContactGroupAction.contact_removed_callback, sender=Contact )
+contact_updated.connect(ContactGroupAction.contact_updated_callback, sender=Contact)
