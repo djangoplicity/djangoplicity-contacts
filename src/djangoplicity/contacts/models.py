@@ -166,6 +166,11 @@ class ContactGroup( models.Model ):
 	"""
 	name = models.CharField( max_length=255, blank=True )
 	category = models.ForeignKey( GroupCategory, blank=True, null=True )
+	
+	
+	def get_emails( self ):
+		""" Get all email addresses for contacts in this group """
+		return self.contact_set.exclude( email='' ).values_list( 'email', flat=True )
 
 	def __unicode__( self ):
 		return self.name
@@ -374,6 +379,11 @@ ACTION_EVENTS = (
 	( 'contact_added', 'Contact added to group' ),
 	( 'contact_removed', 'Contact removed from group' ),
 	( 'contact_updated', 'Contact updated' ),
+	( 'periodic_1min', 'Every minute' ),
+	( 'periodic_30min', 'Every 30 minutes' ),
+	( 'periodic_1hr', 'Every hour' ),
+	( 'periodic_6hr', 'Every 6 hours' ),
+	( 'periodic_24hr', 'Every day' ),
  )
 
 class ContactGroupAction( models.Model ):
@@ -394,37 +404,97 @@ class ContactGroupAction( models.Model ):
 		"""
 		logger.debug( "clearing action cache" )
 		cache.delete( cls._key )
+		
+	@classmethod
+	def create_cache( cls, *args, **kwargs ):
+		"""
+		Generate new action cache.
+		
+		The cache has two ways of indexing:
+			* by group then event
+			* or, event then group
+			
+		Since ``group_pk'' are always numbers, and ``on_event'' is 
+		always characters, the keys will not collide. 
+		
+		cache = {
+			'<group_pk>' : {
+				'<on_event>' : [ <action>, ... ],
+				...
+			},
+			...
+			'<on_event>' : {
+				'<group_pk>' : [ <action>, ... ],
+				'<group_pk>' : [ <action>, ... ],
+			}, 
+			...
+		}
+		"""
+		logger.debug( "generating action cache" )
+		action_cache = {}
+		for a in cls.objects.all().select_related( depth=1 ).order_by( 'group', 'on_event', 'action' ):
+			g_pk = str( a.group.pk )
+			# by group_pk, event
+			if g_pk not in action_cache:
+				action_cache[ g_pk ] = {}
+			if a.on_event not in action_cache[g_pk]:
+				action_cache[ g_pk ][a.on_event] = []
+			
+			if a.on_event not in action_cache:
+				action_cache[a.on_event] = {}
+			if g_pk not in action_cache[a.on_event]:
+				action_cache[a.on_event][ g_pk ] = []
+			
+			action_cache[ g_pk ][a.on_event].append( a.action )
+			action_cache[ a.on_event ][g_pk].append( a.action )
+
+			# by event, group_pk = actions
+		
+		cache.set( cls._key, action_cache )
+		return action_cache
+	
+	@classmethod
+	def get_cache( cls,  ):
+		"""
+		Get the action cache - generate it if necessary.
+		
+		Caches results to prevent many queries to the database. Currently the entire
+		table is cached, however in case of issues, this caching strategy can be improved.
+		"""
+		action_cache = cache.get( cls._key )
+		
+		# Prime cache if needed
+		if action_cache is None:
+			action_cache = cls.create_cache()
+		
+		return action_cache
+		
+	@classmethod
+	def get_actions_for_event( cls, on_event, group_pk=None ):
+		"""
+		"""
+		action_cache = cls.get_cache()
+		
+		try:
+			actions = action_cache[on_event]
+			return actions if group_pk is None else actions[str( group_pk )]
+		except:
+			return {} if group_pk is None else []
+		
 
 	@classmethod
 	def get_actions( cls, group, on_event=None ):
 		"""
 		Get all actions defined for a certain group.
-		
-		Caches result to prevent many queries to the database. Currently the entire
-		table is cached, however in case of issues, this caching strategy can be improved.
 		"""
-		action_cache = cache.get( cls._key )
+		action_cache = cls.get_cache()
 
-		# Prime cache if needed
-		if action_cache is None:
-			logger.debug( "generating action cache" )
-			action_cache = {}
-			for a in cls.objects.all().select_related( depth=1 ).order_by( 'group', 'on_event', 'action' ):
-				g_pk = str( a.group.pk )				
-				if g_pk not in action_cache:
-					action_cache[ g_pk ] = {}
-				if a.on_event not in action_cache[g_pk]:
-					action_cache[ g_pk ][a.on_event] = []
-				action_cache[ g_pk ][a.on_event].append( a.action )
-			
-			cache.set( cls._key, action_cache )
-		
 		# Find actions for this group 
 		try:
 			actions = action_cache[ str( group.pk ) ]
 			return actions if on_event is None else actions[on_event]
 		except KeyError:
-			return []
+			return {} if on_event is None else []
 
 
 	@classmethod
@@ -484,4 +554,3 @@ post_save.connect( Contact.post_save_callback, sender=Contact )
 contact_added.connect( ContactGroupAction.contact_added_callback, sender=Contact )
 contact_removed.connect( ContactGroupAction.contact_removed_callback, sender=Contact )
 contact_updated.connect( ContactGroupAction.contact_updated_callback, sender=Contact )
-
