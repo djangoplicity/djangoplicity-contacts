@@ -65,4 +65,5 @@ from django.dispatch import Signal
 
 contact_added = Signal( providing_args=[ "group", "contact", ] )
 contact_removed = Signal( providing_args=[ "group", "contact", ] )
-contact_updated = Signal(providing_args=[ "instance", "dirty_fields" ]) # Some field changed value
+contact_updated = Signal( providing_args=[ "instance", "dirty_fields", ] ) # Some field changed value
+

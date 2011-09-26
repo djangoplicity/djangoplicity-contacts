@@ -43,7 +43,10 @@ from django.core.cache import cache
 from djangoplicity.actions.models import Action
 from dirtyfields import DirtyFieldsMixin
 
+import logging
 import os
+
+logger = logging.getLogger( 'djangoplicity' )
 
 class Label( models.Model ):
 	"""
@@ -205,6 +208,7 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		if not hasattr( self, '_snapshot' ):
 			self._snapshot = None
 
+		logger.debug( "create_snapshot:%s" % action )
 		if self._snapshot is None:
 			self._snapshot = ( action, set( self.groups.all() ) )
 
@@ -274,15 +278,21 @@ class Contact( DirtyFieldsMixin, models.Model ):
 
 	def dispatch_signals( self, action ):
 		old_groups = self.get_snapshot(action)
-		# Signals only sent if snapshot was created with the same action 
+		# Signals only sent if snapshot was created with the same action
 		if old_groups is not None:
+			logger.debug( "dispatch_signals:%s" % action)
 			new_groups = set(self.groups.all())
 			# added groups
 			for g in new_groups - old_groups:
-				contact_added.send_robust(sender=self.__class__, group=g, contact=self)
+				logger.debug( "send contact_added")
+				contact_added.send( sender=self.__class__, group=g, contact=self )
+				
 			# removed groups
 			for g in old_groups - new_groups:
-				contact_removed.send_robust(sender=self.__class__, group=g, contact=self)
+				logger.debug( "send contact_removed")
+				contact_removed.send( sender=self.__class__, group=g, contact=self )
+				
+
 			self.reset_snapshot()
 	
 	@classmethod
@@ -297,6 +307,7 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		TODO: Does not take the reverse relation into account - e.g: grp.contact_set.add(..)
 		TODO: When last group is removed via admin, only a pre_clear, post_clear is sent, and not a pre_clear, post_clear, pre_add, post_add  
 		"""
+		logger.debug( "m2m_changed:%s"  % action )
 		if action in ['pre_clear', 'pre_remove', 'pre_add']:
 			instance.create_snapshot(action[4:])
 		elif action in ['post_clear', 'post_remove', 'post_add']:
@@ -308,6 +319,7 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		"""
 		Callback is used to send contact_removed, contact_added signals
 		"""
+		logger.debug( "pre_delete" )
 		for g in instance.groups.all():
 			contact_removed.send_robust( sender=cls, group=g, contact=instance )
 	
@@ -316,6 +328,7 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		"""
 		Callback for detecting changes to the model.
 		"""
+		logger.debug( "pre_save" )
 		instance._dirty_fields = instance.get_dirty_fields()
 			
 	@classmethod		
@@ -323,10 +336,13 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		"""
 		Callback for detecting changes to the model.
 		"""
+		logger.debug( "post_save" )
 		dirty_fields = instance._dirty_fields
 		instance._dirty_fields = None
 		if dirty_fields != {}:
-			contact_updated.send_robust( sender=cls, instance=instance, dirty_fields=dirty_fields )
+			logger.debug( "send contact_updated")
+			contact_updated.send( sender=cls, instance=instance, dirty_fields=dirty_fields )
+		
 			
 	class Meta:
 		ordering = ['last_name']
@@ -376,6 +392,7 @@ class ContactGroupAction( models.Model ):
 		"""
 		Ensure cache is reset in case any change is made.
 		"""
+		logger.debug( "clearing action cache" )
 		cache.delete( cls._key )
 
 	@classmethod
@@ -390,6 +407,7 @@ class ContactGroupAction( models.Model ):
 
 		# Prime cache if needed
 		if action_cache is None:
+			logger.debug( "generating action cache" )
 			action_cache = {}
 			for a in cls.objects.all().select_related( depth=1 ).order_by( 'group', 'on_event', 'action' ):
 				g_pk = str( a.group.pk )				
@@ -398,7 +416,8 @@ class ContactGroupAction( models.Model ):
 				if a.on_event not in action_cache[g_pk]:
 					action_cache[ g_pk ][a.on_event] = []
 				action_cache[ g_pk ][a.on_event].append( a.action )
-				cache.set( cls._key, action_cache )
+			
+			cache.set( cls._key, action_cache )
 		
 		# Find actions for this group 
 		try:
@@ -414,6 +433,7 @@ class ContactGroupAction( models.Model ):
 		Callback handler for when a contact is *added* to a group. Will execute defined
 		actions for this group.
 		"""
+		logger.debug( "contact %s added to group %s" % (contact.pk, group.pk) )
 		for a in cls.get_actions( group, on_event='contact_added' ): 
 			a.dispatch( group=group, contact=contact )
 
@@ -423,19 +443,30 @@ class ContactGroupAction( models.Model ):
 		Callback handler for when a contact is *removed* to a group. Will execute defined
 		actions for this group.
 		"""
+		logger.debug( "contact %s removed from group %s" % (contact.pk, group.pk) )
 		for a in cls.get_actions( group, on_event='contact_removed' ):
 			a.dispatch( group=group, contact=contact )
 			
 	@classmethod
 	def contact_updated_callback( cls, sender=None, instance=None, dirty_fields={}, **kwargs ):
 		"""
-		Callback handler
+		Callback handler for when a local field is *updated*. Will execute defined actions for
+		all groups for this contact.
 		"""
-		# TODO: figure out how to connect MailmanUpdate action with an email being updated. 
-		print "contact_updated: %s" % unicode( dirty_fields )
+		# TODO: figure out how to connect MailmanUpdate action with an email being updated.
+		logger.debug( "contact %s updated"  % instance.pk )
+		updates = {}
+		if dirty_fields:
+			for attr, val in dirty_fields.items():
+				updates['from_%s' % attr] = val
+				updates['to_%s' % attr] = getattr( instance, attr, None )
+		
+			for group in instance.groups.all(): 
+				for a in cls.get_actions( group, on_event='contact_updated' ):
+					a.dispatch( instance=instance, **updates )
 
 
-# Conncet signals to clear the action cache
+# Connect signals to clear the action cache
 post_delete.connect( ContactGroupAction.clear_cache, sender=ContactGroupAction )
 post_save.connect( ContactGroupAction.clear_cache, sender=ContactGroupAction )
 post_delete.connect( ContactGroupAction.clear_cache, sender=Action )
@@ -452,4 +483,5 @@ post_save.connect( Contact.post_save_callback, sender=Contact )
 # Connect signals handling the execution of actions
 contact_added.connect( ContactGroupAction.contact_added_callback, sender=Contact )
 contact_removed.connect( ContactGroupAction.contact_removed_callback, sender=Contact )
-contact_updated.connect(ContactGroupAction.contact_updated_callback, sender=Contact)
+contact_updated.connect( ContactGroupAction.contact_updated_callback, sender=Contact )
+
