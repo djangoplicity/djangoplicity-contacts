@@ -1,14 +1,16 @@
-#Mon Sep 26 11:20:20 CEST 2011
+#Wed Oct 12 10:49:55 CEST 2011
 eclipse.preferences.version=1
 encoding//src/djangoplicity/__init__.py=utf-8
 encoding//src/djangoplicity/contacts/__init__.py=utf-8
-encoding//src/djangoplicity/contacts/actions.py=utf-8
 encoding//src/djangoplicity/contacts/admin.py=utf-8
 encoding//src/djangoplicity/contacts/deduplication.py=utf-8
 encoding//src/djangoplicity/contacts/exporter.py=utf-8
 encoding//src/djangoplicity/contacts/importer.py=utf-8
 encoding//src/djangoplicity/contacts/labels.py=utf-8
 encoding//src/djangoplicity/contacts/migrations/0003_auto__add_unique_field_name__del_field_contact_street__add_field_conta.py=utf-8
+encoding//src/djangoplicity/contacts/migrations/0004_auto.py=utf-8
+encoding//src/djangoplicity/contacts/migrations/0005_auto__add_postalzone__add_field_country_postal_zone.py=utf-8
+encoding//src/djangoplicity/contacts/migrations/0006_auto__add_contactgroupaction.py=utf-8
 encoding//src/djangoplicity/contacts/models.py=utf-8
 encoding//src/djangoplicity/contacts/signals.py=utf-8
 encoding//src/djangoplicity/contacts/tasks.py=utf-8

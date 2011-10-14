@@ -166,8 +166,8 @@ class ContactGroup( models.Model ):
 	"""
 	name = models.CharField( max_length=255, blank=True )
 	category = models.ForeignKey( GroupCategory, blank=True, null=True )
-	
-	
+
+
 	def get_emails( self ):
 		""" Get all email addresses for contacts in this group """
 		return self.contact_set.exclude( email='' ).values_list( 'email', flat=True )
@@ -271,6 +271,70 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		data['contact_object'] = self
 		return data
 
+	ALLOWED_FIELDS = ['first_name', 'last_name', 'title', 'position', 'organisation', 'department', 'street_1', 'street_2', 'city', 'zip', 'state', 'country', 'phone', 'website', 'social', 'email']
+
+	def update( self, **kwargs ):
+		"""
+		Update a contact with new information from a dictionary. Following keys are supported:
+		  * first_name
+		  * last_name
+		  * title
+		  * position
+		  * organisation
+		  * department
+		  * street_1
+		  * street_2
+		  * city 
+		  * zip, postal_code, state, city - since the contacts only have a city field, these will be concatenated, also country must be set 
+		  * country (2 letter ISO code)
+		  * phone
+		  * website
+		  * social
+		  * email
+		"""
+		changed = False
+		
+		if 'country' in kwargs:
+			if kwargs['country'] and len( kwargs['country'] ) == 2:
+				ctry = Country.objects.get( iso_code=kwargs['country'].upper() )
+			else:
+				ctry = None
+			self.country = ctry
+			changed = True
+			del kwargs['country']
+		
+		if ctry:
+			
+			zip_code = kwargs.get( 'zip', None )
+			postal_code = kwargs.get( 'postal_code', None )
+			state = kwargs.get( 'state', None )
+			city = kwargs.get( 'city', None )
+			
+			if zip_code or postal_code or state or city:
+				if ctry.zip_after_city:
+					self.city = "  ".join( filter( lambda x: x, [city, state, zip_code, postal_code, ] ) )
+				else:
+					self.city = "  ".join( filter( lambda x: x, [zip_code, postal_code, city, state] ) )
+				changed = True
+		elif 'city' in kwargs:
+			self.city = kwargs['city']
+			changed = True
+			
+		# Delete keys that have already been dealt with.	
+		for k in ['zip', 'postal_code', 'state', 'city']:
+			if k in kwargs:
+				del kwargs[k]
+		
+		# The rest is simply settings the fields
+		for field, val in kwargs.items():
+			if field in self.ALLOWED_FIELDS:
+				setattr( self, field, val )
+				changed = True
+		
+		return changed
+
+
+
 	def __unicode__( self ):
 		if self.first_name or self.last_name:
 			return ( "%s %s %s" % ( self.title, self.first_name, self.last_name ) ).strip()
@@ -282,24 +346,24 @@ class Contact( DirtyFieldsMixin, models.Model ):
 			return unicode( self.pk )
 
 	def dispatch_signals( self, action ):
-		old_groups = self.get_snapshot(action)
+		old_groups = self.get_snapshot( action )
 		# Signals only sent if snapshot was created with the same action
 		if old_groups is not None:
-			logger.debug( "dispatch_signals:%s" % action)
-			new_groups = set(self.groups.all())
+			logger.debug( "dispatch_signals:%s" % action )
+			new_groups = set( self.groups.all() )
 			# added groups
 			for g in new_groups - old_groups:
-				logger.debug( "send contact_added")
+				logger.debug( "send contact_added" )
 				contact_added.send( sender=self.__class__, group=g, contact=self )
-				
+
 			# removed groups
 			for g in old_groups - new_groups:
-				logger.debug( "send contact_removed")
+				logger.debug( "send contact_removed" )
 				contact_removed.send( sender=self.__class__, group=g, contact=self )
-				
+
 
 			self.reset_snapshot()
-	
+
 	@classmethod
 	def m2m_changed_callback( cls, sender, instance=None, action=None, reverse=None, model=None, pk_set=[], **kwargs ):
 		"""
@@ -312,12 +376,12 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		TODO: Does not take the reverse relation into account - e.g: grp.contact_set.add(..)
 		TODO: When last group is removed via admin, only a pre_clear, post_clear is sent, and not a pre_clear, post_clear, pre_add, post_add  
 		"""
-		logger.debug( "m2m_changed:%s"  % action )
+		logger.debug( "m2m_changed:%s" % action )
 		if action in ['pre_clear', 'pre_remove', 'pre_add']:
-			instance.create_snapshot(action[4:])
+			instance.create_snapshot( action[4:] )
 		elif action in ['post_clear', 'post_remove', 'post_add']:
-			instance.dispatch_signals(action[5:])
-		
+			instance.dispatch_signals( action[5:] )
+
 
 	@classmethod
 	def pre_delete_callback( cls, sender, instance=None, **kwargs ):
@@ -327,16 +391,16 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		logger.debug( "pre_delete" )
 		for g in instance.groups.all():
 			contact_removed.send_robust( sender=cls, group=g, contact=instance )
-	
-	@classmethod		
+
+	@classmethod
 	def pre_save_callback( cls, sender, instance=None, raw=False, **kwargs ):
 		"""
 		Callback for detecting changes to the model.
 		"""
 		logger.debug( "pre_save" )
 		instance._dirty_fields = instance.get_dirty_fields()
-			
-	@classmethod		
+
+	@classmethod
 	def post_save_callback( cls, sender, instance=None, raw=False, **kwargs ):
 		"""
 		Callback for detecting changes to the model.
@@ -345,10 +409,10 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		dirty_fields = instance._dirty_fields
 		instance._dirty_fields = None
 		if dirty_fields != {}:
-			logger.debug( "send contact_updated")
+			logger.debug( "send contact_updated" )
 			contact_updated.send( sender=cls, instance=instance, dirty_fields=dirty_fields )
-		
-			
+
+
 	class Meta:
 		ordering = ['last_name']
 
@@ -379,7 +443,7 @@ ACTION_EVENTS = (
 	( 'contact_added', 'Contact added to group' ),
 	( 'contact_removed', 'Contact removed from group' ),
 	( 'contact_updated', 'Contact updated' ),
-	( 'periodic_1min', 'Every minute' ),
+	( 'periodic_5min', 'Every 5 minutes' ),
 	( 'periodic_30min', 'Every 30 minutes' ),
 	( 'periodic_1hr', 'Every hour' ),
 	( 'periodic_6hr', 'Every 6 hours' ),
@@ -396,7 +460,7 @@ class ContactGroupAction( models.Model ):
 	on_event = models.CharField( max_length=50, choices=ACTION_EVENTS, db_index=True )
 
 	_key = 'djangoplicity.contacts.action_cache'
-	
+
 	@classmethod
 	def clear_cache( cls, *args, **kwargs ):
 		"""
@@ -404,7 +468,7 @@ class ContactGroupAction( models.Model ):
 		"""
 		logger.debug( "clearing action cache" )
 		cache.delete( cls._key )
-		
+
 	@classmethod
 	def create_cache( cls, *args, **kwargs ):
 		"""
@@ -439,22 +503,22 @@ class ContactGroupAction( models.Model ):
 				action_cache[ g_pk ] = {}
 			if a.on_event not in action_cache[g_pk]:
 				action_cache[ g_pk ][a.on_event] = []
-			
+
 			if a.on_event not in action_cache:
 				action_cache[a.on_event] = {}
 			if g_pk not in action_cache[a.on_event]:
 				action_cache[a.on_event][ g_pk ] = []
-			
+
 			action_cache[ g_pk ][a.on_event].append( a.action )
 			action_cache[ a.on_event ][g_pk].append( a.action )
 
 			# by event, group_pk = actions
-		
+
 		cache.set( cls._key, action_cache )
 		return action_cache
-	
+
 	@classmethod
-	def get_cache( cls,  ):
+	def get_cache( cls, ):
 		"""
 		Get the action cache - generate it if necessary.
 		
@@ -462,25 +526,25 @@ class ContactGroupAction( models.Model ):
 		table is cached, however in case of issues, this caching strategy can be improved.
 		"""
 		action_cache = cache.get( cls._key )
-		
+
 		# Prime cache if needed
 		if action_cache is None:
 			action_cache = cls.create_cache()
-		
+
 		return action_cache
-		
+
 	@classmethod
 	def get_actions_for_event( cls, on_event, group_pk=None ):
 		"""
 		"""
 		action_cache = cls.get_cache()
-		
+
 		try:
 			actions = action_cache[on_event]
 			return actions if group_pk is None else actions[str( group_pk )]
 		except:
 			return {} if group_pk is None else []
-		
+
 
 	@classmethod
 	def get_actions( cls, group, on_event=None ):
@@ -503,37 +567,35 @@ class ContactGroupAction( models.Model ):
 		Callback handler for when a contact is *added* to a group. Will execute defined
 		actions for this group.
 		"""
-		logger.debug( "contact %s added to group %s" % (contact.pk, group.pk) )
-		for a in cls.get_actions( group, on_event='contact_added' ): 
+		logger.debug( "contact %s added to group %s" % ( contact.pk, group.pk ) )
+		for a in cls.get_actions( group, on_event='contact_added' ):
 			a.dispatch( group=group, contact=contact )
 
 	@classmethod
 	def contact_removed_callback( cls, sender=None, group=None, contact=None, **kwargs ):
 		"""
-		Callback handler for when a contact is *removed* to a group. Will execute defined
+		Callback handler for when a contact is *removed* from a group. Will execute defined
 		actions for this group.
 		"""
-		logger.debug( "contact %s removed from group %s" % (contact.pk, group.pk) )
+		logger.debug( "contact %s removed from group %s" % ( contact.pk, group.pk ) )
 		for a in cls.get_actions( group, on_event='contact_removed' ):
 			a.dispatch( group=group, contact=contact )
-			
+
 	@classmethod
 	def contact_updated_callback( cls, sender=None, instance=None, dirty_fields={}, **kwargs ):
 		"""
 		Callback handler for when a local field is *updated*. Will execute defined actions for
 		all groups for this contact.
 		"""
-		# TODO: figure out how to connect MailmanUpdate action with an email being updated.
-		logger.debug( "contact %s updated"  % instance.pk )
+		logger.debug( "contact %s updated" % instance.pk )
 		updates = {}
 		if dirty_fields:
 			for attr, val in dirty_fields.items():
-				updates['from_%s' % attr] = val
-				updates['to_%s' % attr] = getattr( instance, attr, None )
-		
-			for group in instance.groups.all(): 
+				updates[attr] = ( val, getattr( instance, attr, None ) )
+
+			for group in instance.groups.all():
 				for a in cls.get_actions( group, on_event='contact_updated' ):
-					a.dispatch( instance=instance, **updates )
+					a.dispatch( instance=instance, changes=updates )
 
 
 # Connect signals to clear the action cache
