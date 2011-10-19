@@ -152,17 +152,50 @@ class UpdateContactAction( ContactAction ):
 				if k in Contact.ALLOWED_FIELDS:
 					defaults[k] = v
 			
-			if contact.update( **defaults ):
+			if contact.update_object( **defaults ):
 				contact.save()
 				self.get_logger().info( "Contact %s was updated." % ( contact.pk ) )
 			else:
 				self.get_logger().info( "Contact %s was not updated." % ( contact.pk ) )
 
 
+class SetContactGroupAction( ContactAction ):
+	action_name = 'Contacts add group'
+	action_parameters = [
+		( 'group', 'Name of group to assign to contact.', 'str' ),
+	]
+	
+	@classmethod
+	def get_arguments( cls, conf, *args, **kwargs ):
+		"""
+		"""
+		try:
+			model_identifier = kwargs['model_identifier']
+			pk = kwargs['pk']
+		except KeyError:
+			model_identifier = None
+			pk = None
+
+		return ( [], { 'model_identifier' : model_identifier, 'pk' : pk } )
+
+	def run( self, conf, model_identifier=None, pk=None ):
+		"""
+		Remove from a group from a contact. 
+		"""
+		from djangoplicity.contacts.models import Contact
+
+		if model_identifier == 'contacts.contact' and pk:
+			contact = self._get_object( model_identifier, pk )
+			group = self._get_group( conf['group'] )
+
+			contact.groups.add( group )
+			self.get_logger().info( "Added contact %s from group %s." % ( contact.pk, group.name ) )
+
+
 class UnsetContactGroupAction( ContactAction ):
 	action_name = 'Contacts remove group'
 	action_parameters = [
-		( 'group', 'Name of group to assign to/remove from contact.', 'str' ),
+		( 'group', 'Name of group to remove from contact.', 'str' ),
 	]
 	
 	@classmethod
@@ -228,5 +261,6 @@ class RemoveEmailAction( ContactAction ):
 
 
 UnsetContactGroupAction.register()
+SetContactGroupAction.register()
 RemoveEmailAction.register()
 UpdateContactAction.register()

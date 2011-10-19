@@ -273,7 +273,53 @@ class Contact( DirtyFieldsMixin, models.Model ):
 
 	ALLOWED_FIELDS = ['first_name', 'last_name', 'title', 'position', 'organisation', 'department', 'street_1', 'street_2', 'city', 'zip', 'state', 'country', 'phone', 'website', 'social', 'email']
 
-	def update( self, **kwargs ):
+	@classmethod
+	def find_or_create_object( cls, **kwargs ):
+		"""
+		Find an object or create it if no match was found.
+		"""
+		obj = cls.find_object( **kwargs )
+		return obj if obj else cls.create_object( **kwargs )
+
+	@classmethod
+	def _select_contact( cls, qs ):
+		"""
+		"""
+		qsnew = filter( lambda x: 'librarian' in x.last_name.lower(), qs )
+		if len(qsnew) > 0:
+			return qsnew[0]
+		else:
+			return qs[0]
+			
+	@classmethod
+	def find_object( cls, **kwargs ):
+		"""
+		Find a matching contact
+		"""
+		for field in ['email']:
+			if field in kwargs and kwargs[field]:
+				qs = cls.objects.filter( email=kwargs[field] )
+				if len( qs ) == 1:
+					return qs[0]
+				elif len( qs ) > 1:
+					return cls._select_contact( qs )
+		
+		return None
+		
+		
+	@classmethod
+	def create_object( cls, **kwargs ):
+		"""
+		Create a new contact from dictionary.
+		"""
+		obj = cls()
+		if obj.update_object( **kwargs ):
+			obj.save()
+			return obj
+		else:
+			return None
+
+	def update_object( self, **kwargs ):
 		"""
 		Update a contact with new information from a dictionary. Following keys are supported:
 		  * first_name
@@ -294,11 +340,10 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		"""
 		changed = False
 		
+		ctry = None
 		if 'country' in kwargs:
 			if kwargs['country'] and len( kwargs['country'] ) == 2:
 				ctry = Country.objects.get( iso_code=kwargs['country'].upper() )
-			else:
-				ctry = None
 			self.country = ctry
 			changed = True
 			del kwargs['country']
