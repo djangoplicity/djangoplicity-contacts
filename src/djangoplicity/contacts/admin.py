@@ -34,15 +34,134 @@
 Admin interfaces for contact models.
 """
 
-from django.contrib import admin
-from django.utils.translation import ugettext as _
-from djangoplicity.contacts.models import ContactGroup, Contact, Country, CountryGroup, GroupCategory, ContactField, Field, Label, PostalZone, ContactGroupAction
-from djangoplicity.admincomments.admin import AdminCommentInline, AdminCommentMixin
 from django.conf.urls.defaults import patterns
+from django.contrib import admin
 from django.shortcuts import get_object_or_404, render_to_response
 from django.template import RequestContext
 from django.template.defaultfilters import slugify
+from django.utils.translation import ugettext as _
+from djangoplicity.admincomments.admin import AdminCommentInline, \
+	AdminCommentMixin
+from djangoplicity.contacts.models import ContactGroup, Contact, Country, \
+	CountryGroup, GroupCategory, ContactField, Field, Label, PostalZone, \
+	ContactGroupAction, ImportTemplate, ImportMapping, ImportSelector, \
+	ImportGroupMapping, Import
 from djangoplicity.contacts.signals import contact_added, contact_removed
+from django.shortcuts import get_object_or_404
+
+
+class ImportSelectorInlineAdmin( admin.TabularInline ):
+	model = ImportSelector
+	extra = 0
+
+class ImportMappingInlineAdmin( admin.TabularInline ):
+	model = ImportMapping
+	extra = 0
+	
+class ImportGroupMappingInlineAdmin( admin.TabularInline ):
+	model = ImportGroupMapping
+	extra = 0
+
+class ImportAdmin( admin.ModelAdmin ):
+	list_display = ['template', 'imported', 'last_modified', 'created' ]
+	list_filter = ['imported', 'last_modified', 'created' ]
+	readonly_fields = ['imported', 'last_modified', 'created' ]
+	fieldsets = ( 
+		( None, {
+			'fields': ( 'template', 'data_file' , )
+		} ),
+		( 'Status', {
+			'fields': ( 'imported', 'last_modified', 'created' )
+		} ),
+	)
+	
+	def get_urls( self ):
+		urls = super( ImportAdmin, self ).get_urls()
+		extra_urls = patterns( '',
+			( r'^(?P<pk>[0-9]+)/preview/$', self.admin_site.admin_view( self.preview_view ) ),
+			( r'^(?P<pk>[0-9]+)/import/$', self.admin_site.admin_view( self.import_view ) ),
+		)
+		return extra_urls + urls
+	
+	def preview_view( self, request, pk=None ):
+		"""
+		Generate labels or show list of available labels
+		"""
+		obj = get_object_or_404( Import, pk=pk )
+		
+		mapping, rows = obj.preview_data()
+			
+		return render_to_response(
+				"admin/contacts/import/preview.html", 
+				{
+					'columns' : mapping,
+					'rows' : rows,
+					'object' : obj,
+					'messages': [],
+					'app_label' : obj._meta.app_label,
+					'opts' : obj._meta,
+				}, 
+				context_instance=RequestContext( request )
+			)
+		
+	def import_view( self, request, pk=None ):
+		"""
+		Generate labels or show list of available labels
+		"""
+		obj = get_object_or_404( Import, pk=pk )
+		
+		# Import in background
+		if request.method == "POST":
+			from djangoplicity.contacts.tasks import import_data
+			import_data( obj.pk )
+				
+			return render_to_response(
+					"admin/contacts/import/import.html", 
+					{
+						'object' : obj,
+						'messages': [],
+						'app_label' : obj._meta.app_label,
+						'opts' : obj._meta,
+					}, 
+					context_instance=RequestContext( request )
+				)
+		else:
+			raise Http404
+		
+		
+
+class ImportTemplateAdmin( admin.ModelAdmin ):
+	list_display = ['name', 'duplicate_handling', 'multiple_duplicates', 'tag_import', ]
+	list_editable = ['duplicate_handling', 'multiple_duplicates', 'tag_import', ]
+	search_fields = ['name',  ]
+	filter_horizontal = ['extra_groups']
+	fieldsets = ( 
+		( None, {
+			'fields': ( 'name', 'tag_import' , 'extra_groups' )
+		} ),
+		( 'Duplicate handling', {
+			'fields': ( 'duplicate_handling', 'multiple_duplicates', )
+		} ),
+	)
+	inlines = [ImportSelectorInlineAdmin,ImportMappingInlineAdmin]
+	
+class ImportMappingAdmin( admin.ModelAdmin ):
+	list_display = ['template', 'header', 'group_separator', ]
+	list_editable = ['header', 'group_separator',]
+	search_fields = ['header', 'field' , 'group_separator', ]
+	readonly_fields = ['template']
+	fieldsets = ( 
+		( None, {
+			'fields': ( 'template', 'header' , 'group_separator' )
+		} ),
+	)
+	inlines = [ImportGroupMappingInlineAdmin]
+	
+	def queryset( self, request ):
+		qs = super( ImportMappingAdmin, self ).queryset( request )
+		qs = qs.filter( field='groups' )
+		return qs
+	
 
 class CountryAdmin( admin.ModelAdmin ):
 	list_display = ['name', 'iso_code', 'postal_zone', 'dialing_code', 'zip_after_city' ]
@@ -236,6 +355,10 @@ def register_with_admin( admin_site ):
 	admin_site.register( Contact, ContactAdmin )
 	admin_site.register( PostalZone, PostalZoneAdmin )
 	admin_site.register( ContactGroupAction, ContactGroupActionAdmin )
+	admin_site.register( ImportTemplate, ImportTemplateAdmin )
+	admin_site.register( ImportMapping, ImportMappingAdmin )
+	admin_site.register( Import, ImportAdmin )
+	
 	
 
 # Register with default admin site	

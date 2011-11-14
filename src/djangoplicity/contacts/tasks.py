@@ -31,11 +31,30 @@
 #
 
 from celery.schedules import crontab
-from celery.task import PeriodicTask
+from celery.task import PeriodicTask, task
 from datetime import timedelta
 from django.core.exceptions import ImproperlyConfigured
 from django.db import models
 from djangoplicity.actions.plugins import ActionPlugin
+
+
+@task( ignore_result=True )
+def import_data( import_pk ):
+	"""
+	"""
+	logger = import_data.get_logger()
+	
+	from djangoplicity.contacts.models import Import
+	
+	obj = Import.objects.get( pk=import_pk )
+	
+	if obj.import_data():
+		obj.save()
+		logger.warning( "File was imported (pk=%s)" % obj.pk )
+	else:
+		logger.warning( "File has already been imported (pk=%s)" % obj.pk )
+
+
 
 class PeriodicAction( PeriodicTask ):
 	"""

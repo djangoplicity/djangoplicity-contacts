@@ -1,0 +1,73 @@
+{% extends "admin/base_site.html" %}
+{% load adminmedia admin_list i18n %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <link rel="stylesheet" type="text/css" href="{% admin_media_prefix %}css/changelists.css" />
+  {{ media.css }}
+    <style>
+      #changelist table thead th:first-child {width: inherit}
+    </style>
+{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+{{ media.js }}
+{% endblock %}
+
+{% block bodyclass %}change-list{% endblock %}
+
+{% block breadcrumbs %}{% with search as original %}
+<div class="breadcrumbs">
+     <a href="../../../../">{% trans "Home" %}</a> &rsaquo;
+     <a href="../../../">{{ app_label|capfirst|escape }}</a> &rsaquo;
+     <a href="../../">{{ opts.verbose_name_plural|capfirst }}</a> &rsaquo;
+     <a href="../">{{ object|truncatewords:"18" }}</a> &rsaquo;
+     {% trans "Results" %}
+</div>
+{% endwith %}
+{% endblock %}
+
+
+{% block coltype %}flex{% endblock %}
+{% block site_title %}Contacts Import Preview{% endblock %}
+
+{% block content %}
+<h1>Contacts Import Preview</h1>
+<p>
+	<strong>Template:</strong> <a href="{% url admin:contacts_importtemplate_change object.template.pk %}">{{object.template}}</a><br />
+	<strong>Tag import:</strong> {{object.template.tag_import|yesno}}<br />
+	<strong>Extra groups:</strong> {% for g in object.template.extra_groups.all%}{% if not forloop.first%}, {%endif%}{{ g }}{% endfor %}<br />
+	<strong>Duplicate handling:</strong> {{object.template.get_duplicate_handling_display}}<br /> 
+	<strong>Multiple duplicates:</strong> {{object.template.get_multiple_duplicates_display}}<br />
+	<strong>Selector columns:</strong> {% for s in object.template.get_selectors %}{{s.header}} ("{{s.value}}"){% endfor%}<br /> 
+</p>
+<div id="content-main">
+    <div class="module{% if filtered %} filtered{% endif %}" id="changelist">
+      {% block filters %}
+      {% endblock %}
+      <form id="changelist-form" action="../import/" method="post"{% if cl.formset.is_multipart %} enctype="multipart/form-data"{% endif %}>{% csrf_token %}
+      {% block result_list %}
+          	{% if rows %}
+			<table cellspacing="0" id="result_list">
+			<thead>
+			<tr>{% for col in columns %}<th>{% if col.field %}{{ col.field }}{% else %}{{col}}{% endif%}</th>{% endfor %}</tr>
+			</thead>
+			<tbody>
+			{% for row in rows %}
+			<tr class="{% cycle 'row1' 'row2' %}">{% for cell in row %}<td>{{ cell }}</td>{% endfor %}</tr>
+			{% endfor %}
+			</tbody>
+			</table>
+			{% endif %}
+
+      {% endblock %}
+		<p class="paginator">
+			{{rows|length}} rows
+			<input type="submit" name="_import" class="default" value="Import">
+		</p>
+      </form>
+    </div>
+    
+  </div>
+{% endblock %}

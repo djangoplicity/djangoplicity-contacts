@@ -31,20 +31,25 @@
 #
 
 
+from datetime import datetime
+from dirtyfields import DirtyFieldsMixin
+from django.conf import settings
+from django.core.cache import cache
+from django.core.files.storage import FileSystemStorage
 from django.db import models
+from django.db.models.signals import m2m_changed, pre_delete, post_delete, \
+	post_save, pre_save
 from django.forms import ValidationError
 from django.template import loader, Context, Template
 from django.utils.encoding import smart_str
 from django.utils.translation import ugettext as _
-from djangoplicity.contacts.labels import LabelRender, LABEL_PAPER_CHOICES
-from djangoplicity.contacts.signals import contact_added, contact_removed, contact_updated
-from django.db.models.signals import m2m_changed, pre_delete, post_delete, post_save, pre_save
-from django.core.cache import cache
 from djangoplicity.actions.models import Action
-from dirtyfields import DirtyFieldsMixin
-
+from djangoplicity.contacts.labels import LabelRender, LABEL_PAPER_CHOICES
+from djangoplicity.contacts.signals import contact_added, contact_removed, \
+	contact_updated
 import logging
 import os
+
 
 logger = logging.getLogger( 'djangoplicity' )
 
@@ -271,7 +276,7 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		data['contact_object'] = self
 		return data
 
-	ALLOWED_FIELDS = ['first_name', 'last_name', 'title', 'position', 'organisation', 'department', 'street_1', 'street_2', 'city', 'zip', 'state', 'country', 'phone', 'website', 'social', 'email']
+	ALLOWED_FIELDS = ['first_name', 'last_name', 'title', 'position', 'organisation', 'department', 'street_1', 'street_2', 'city', 'zip', 'state', 'country', 'phone', 'website', 'social', 'email',]
 
 	@classmethod
 	def find_or_create_object( cls, **kwargs ):
@@ -290,31 +295,43 @@ class Contact( DirtyFieldsMixin, models.Model ):
 			return qsnew[0]
 		else:
 			return qs[0]
-			
+	
 	@classmethod
-	def find_object( cls, **kwargs ):
+	def find_objects( cls, **kwargs ):
 		"""
-		Find a matching contact
+		Find all matching contacts
 		"""
 		for field in ['email']:
 			if field in kwargs and kwargs[field]:
 				qs = cls.objects.filter( email=kwargs[field] )
-				if len( qs ) == 1:
-					return qs[0]
-				elif len( qs ) > 1:
-					return cls._select_contact( qs )
-		
+				if len( qs ) >= 1:
+					return qs
+		return None
+			
+	@classmethod
+	def find_object( cls, **kwargs ):
+		"""
+		Find one matching contact
+		"""
+		qs = cls.find_objects( **kwargs )
+		if qs: 
+			if len( qs ) == 1:
+				return qs[0]
+			elif len( qs ) > 1:
+				return cls._select_contact( qs )
 		return None
 		
 		
 	@classmethod
-	def create_object( cls, **kwargs ):
+	def create_object( cls, groups=[], **kwargs ):
 		"""
 		Create a new contact from dictionary.
 		"""
 		obj = cls()
 		if obj.update_object( **kwargs ):
 			obj.save()
+			if groups:
+				obj.groups.add( *ContactGroup.objects.filter( name__in=groups ) )
 			return obj
 		else:
 			return None
@@ -443,6 +460,9 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		Callback for detecting changes to the model.
 		"""
 		logger.debug( "pre_save" )
+		if instance.email:
+			# All email addresses use lower-case
+			instance.email = instance.email.lower()
 		instance._dirty_fields = instance.get_dirty_fields()
 
 	@classmethod
@@ -642,6 +662,383 @@ class ContactGroupAction( models.Model ):
 				for a in cls.get_actions( group, on_event='contact_updated' ):
 					a.dispatch( instance=instance, changes=updates )
 
+# ====================================================================
+# Import-related models
+# ====================================================================
+
+class DataImportError( Exception ):
+	pass
+
+ISO_EXPANSION = {
+	'ES' : [u'espana',u'españa'],
+	'IT' : [u'italia',],
+	'GB' : [u'uk',u'england',u'great britan',],
+	'US' : [u'united states'],
+	'NL' : [u'netherlands',u'holland'],
+	'MX' : [u'méxico'],
+}
+		
+DUPLICATE_HANDLING = [
+	('none','Import all - no duplicate detection'),
+	('ignore','Import non-duplicates only'),
+	('update','Update existing contact'),
+	('update_groups','Update existing contact (contact groups only)'),
+]
+
+MULTIPLE_DUPLICATES = [
+	('ignore','None'),
+	('first','First'),
+	('create_new','Create new'),				
+]
+
+class ImportTemplate( models.Model ):
+	"""
+	An import template defines how a CSV or Excel file should be
+	imported into the contacts model. It supports mapping columns
+	to contacts fields.
+	
+	It also supports mapping columns to country and groups models.
+	
+	Mapping to a country is done in a fuzzy way, to allow for different
+	spellings of a country name.
+	"""
+	
+	name = models.CharField( max_length=255, unique=True )
+	duplicate_handling = models.CharField( max_length=20, choices=DUPLICATE_HANDLING, help_text='' )
+	multiple_duplicates = models.CharField( max_length=20, choices=MULTIPLE_DUPLICATES, help_text='Method use to select a duplicate in case multiple possible duplicates are found.' )
+	
+	tag_import = models.BooleanField( default=True, help_text="Create a contact group for this import.")
+	extra_groups = models.ManyToManyField( ContactGroup, blank=True )
+	
+	_selectors_cache = None
+	_mapping_cache = None
+	
+	class Meta:
+		ordering = ['name',]
+	
+	def __unicode__(self):
+		return self.name
+		
+	def get_selectors(self):
+		if self._selectors_cache is None:
+			self._selectors_cache = [x for x in ImportSelector.objects.filter( template=self )]
+		return self._selectors_cache
+	
+	def is_selected( self, data ):
+		"""
+		Determine if a data row should be imported or not.
+		"""
+		selectors = self.get_selectors()
+
+		if not selectors:
+			return True
+		
+		for s in selectors:
+			if s.is_selected( data ):
+				return True
+		return False
+	
+	def get_mapping( self ):
+		if self._mapping_cache is None:
+			self._mapping_cache = [x for x in ImportMapping.objects.filter( template=self )]
+		return self._mapping_cache
+
+	
+	def parse_row( self, incoming_data, as_list=False, flat=False ):
+		"""
+		Transform the incoming data according to 
+		the defined data mapping.
+		"""
+		if self.is_selected( incoming_data ):
+			outgoing_data = [] if as_list else {}
+			for m in self.get_mapping():
+				val = m.get_value( incoming_data )
+
+				if as_list:
+					outgoing_data.append( ", ".join(val) if isinstance( val,list ) and flat else val )
+				else:
+					field = m.get_field()
+					if field in outgoing_data:
+						outgoing_data[field] += val
+					else:
+						outgoing_data[field] = val
+			return outgoing_data
+		return None
+	
+	def get_importer( self, filename ):
+		"""
+		"""
+		from djangoplicity.contacts.importer import CSVImporter, ExcelImporter
+		
+		base, ext = os.path.splitext( filename )
+		extmap = {
+			'.xls' : ExcelImporter,
+			'.csv' : CSVImporter,
+		}
+
+		try:
+			importercls = extmap[ext.lower()]
+		except KeyError:
+			raise DataImportError("Unsupported file format '%s'." % ext)
+		
+		return importercls( filename=filename )
+		
+	def extract_data( self, filename ):
+		"""
+		Extract data from an import file. Supported formats
+		are currently, CSV and Excel (.xls).
+		"""
+		importer = self.get_importer( filename )
+		return ( self.parse_row( row ) for row in importer )
+		
+	
+	def preview_data( self, filename ):
+		"""
+		Preview the data file according to the defined
+		import template.
+		"""
+		data_table = []
+		i = 1 # Excel start with header at row 1
+		for row in self.get_importer( filename ):
+			i += 1
+			data = self.parse_row( row, as_list=True, flat=True )
+			if data:
+				data.insert( 0, i )
+				data_table.append( data )
+		return ( ["Row"] + self.get_mapping(), data_table )
+		
+	def import_data( self, filename ):
+		"""
+		Import the data file according to the defined
+		import template.
+		"""
+		if self.tag_import:
+			import_grp, created = ContactGroup.objects.get_or_create( name='Import %s at %s' % ( self.name, datetime.now().replace( microsecond=0 ) ) )
+		else:
+			import_grp = None
+			
+		extra_groups = self.extra_groups.all().values_list( 'name', flat=True )
+
+		i = 0
+		for data in self.extract_data( filename ):
+			if data:
+				i += 1
+				if 'groups' in data:
+					data['groups'] += extra_groups
+				else:
+					data['groups'] = extra_groups
+				
+				# Add import group if needed
+				if import_grp:
+					data['groups'].append( import_grp.name )
+			
+				if self.duplicate_handling != 'none':
+					#
+					# Duplicate handling
+					#
+					existing_obj = None
+					qs = Contact.find_objects( **data )
+					if qs and len( qs ) >= 1:
+						if self.multiple_duplicates == 'first':
+							existing_obj = qs[0] # Select first duplicate
+						elif self.multiple_duplicates == 'ignore':
+							continue # Ignore row
+						elif  self.multiple_duplicates == 'create_new':
+							existing_obj = None # Create new object instead
+					elif qs and len( qs ) == 1:
+						existing_obj = qs[0]
+						
+					# Check if existing object was found
+					if existing_obj:
+						if self.duplicate_handling == 'ignore':
+							continue
+						elif self.duplicate_handling == 'update':
+							existing_obj.update_object( **data )
+
+						if 'groups' in data and data['groups']:
+							grps = ContactGroup.objects.filter( name__in=data['groups'] )
+							if grps:
+								existing_obj.groups.add( *grps )
+						continue
+				obj = Contact.create_object( **data )
+				logger.info("Creating contact %s" % obj.pk )
+
+
+
+CONTACTS_FIELDS = [
+	('city','City'),
+	('groups','Contact groups'),
+	('country','Country'),
+	('department','Department'),
+	('email','Email'),
+	('first_name','First name'),
+	('last_name','Last name'),
+	('organisation','Organisation'),
+	('phone','Phone'),
+	('position','Position'),
+	('social','Social'),
+	('street_1','Street 1'),
+	('street_2','Street 2'),
+	('title','Title'),
+	('website','Website'),
+]
+
+class ImportMapping( models.Model ):
+	"""
+	Defines a mapping from a column in an CSV or Excel file to a contact model field.
+	"""
+	template = models.ForeignKey( ImportTemplate )
+	header = models.CharField( max_length=255 )
+	field = models.SlugField( max_length=255, choices=CONTACTS_FIELDS )
+	group_separator = models.CharField( max_length=20, default='', blank=True )
+	
+	_country_cache = None
+	_groupmap_cache = None
+
+	def get_field( self ):
+		"""
+		"""
+		trail = self.field.split("__")
+		return trail[0]
+	
+	def get_country_value( self, value ):
+		"""
+		"""
+		from djangoplicity.contacts.deduplication import similar_text
+		
+		if ImportMapping._country_cache is None:
+			ImportMapping._country_cache = { 'iso' : {}, 'name' : {} }
+			for c in Country.objects.all():
+				ImportMapping._country_cache['iso'][c.iso_code.lower()] = c.iso_code
+				ImportMapping._country_cache['name'][c.name.lower()] = c.iso_code
+		
+		value = value.lower().strip()
+		if len(value) == 2 and value in ImportMapping._country_cache['iso']: 
+			return ImportMapping._country_cache['iso']['value'].upper()
+		elif value in ImportMapping._country_cache['name']:
+			return ImportMapping._country_cache['name'][value].upper()
+		else:
+			for k,v in ImportMapping._country_cache['name'].items():
+				if similar_text( k, value ):
+					logger.info( "similar %s = %s" % (k,value) )
+					return v.upper()
+
+			for iso,exps in ISO_EXPANSION.items():
+				for e in exps:
+					if similar_text( unicode(value), e ):
+						return iso.upper()
+			return None
+	
+	def get_groups_value( self, value ):
+		"""
+		"""
+		if self.field == 'groups' and self.group_separator:
+			values = [x.strip() for x in value.split( self.group_separator )]
+		else:
+			values = [value.strip()]
+		
+		# Cache the mapping from values to contact groups so future queries are fast. 	
+		if self._groupmap_cache is None:
+			self._groupmap_cache = dict( ImportGroupMapping.objects.filter( mapping=self ).values_list( 'value', 'group__name' ) )
+				
+		return filter( lambda x: x, map( lambda x: self._groupmap_cache.get(x,None), values ) )
+		
+	def get_value( self, data ):
+		"""
+		Get the value for the model field. For most fields, this is just
+		the direct value, however for groups and country there are special
+		processing going on. 
+		"""
+		try:
+			val = data[self.header]
+			if self.field:
+				trail = self.field.split("__")
+				if trail[0] == 'groups':
+					return self.get_groups_value( val )
+				if trail[0] == 'country':
+					return self.get_country_value( val )
+			return val
+		except KeyError:
+			return None
+	
+	
+class ImportSelector( models.Model ):
+	"""
+	Defines a selector for an import template. This allows
+	the template to only import certain rows (e.g. if a specific
+	column contains an x in a cell it will be imported).
+	"""
+	template = models.ForeignKey( ImportTemplate )
+	header = models.CharField( max_length=255 )
+	value = models.CharField( max_length=255 )
+	case_sensitive = models.BooleanField( default=False )
+	
+	def get_value( self, data ):
+		try:
+			return data[self.header]
+		except KeyError:
+			return None
+	
+	def is_selected( self, data ):
+		val = self.get_value( data )
+		if val:
+			val = unicode( val ).strip() if self.case_sensitive else unicode( val ).strip().lower()
+		return val == self.value
+	
+
+class ImportGroupMapping( models.Model ):
+	""" 
+	Defines a mapping for values to a group
+	"""
+	mapping = models.ForeignKey( ImportMapping, limit_choices_to={ 'field' : 'groups' } )
+	value = models.CharField( max_length=255 )
+	group = models.ForeignKey( ContactGroup )
+	
+
+upload_dir = os.path.join( settings.TMP_DIR, 'contacts_import' )
+upload_fs = FileSystemStorage( location=upload_dir, base_url=None )
+
+def handle_uploaded_file( instance, filename ):
+	"""
+	"""
+	base, ext = os.path.splitext( filename )
+	
+	import uuid
+	name = "%s%s%s" % ( "%s_" % instance.template.name if instance.template else '', str( uuid.uuid1() ), ext.lower() )
+	
+	return name
+	
+class Import( models.Model ):
+	template = models.ForeignKey( ImportTemplate )
+	data_file = models.FileField( upload_to=handle_uploaded_file, storage=upload_fs )
+	imported = models.BooleanField( default=False )
+	created = models.DateTimeField( auto_now_add=True )
+	last_modified = models.DateTimeField( auto_now=True )
+	
+	def preview_data( self ):
+		"""
+		"""
+		return self.template.preview_data( self.data_file.path )
+	
+	def import_data( self ):
+		"""
+		"""
+		if not self.imported:
+			self.template.import_data( self.data_file.path )
+			self.imported = True
+			return True
+		return False
+	
+	@classmethod
+	def pre_delete_callback( cls, sender, instance=None, **kwargs ):
+		"""
+		"""
+		try:
+			instance.data_file.delete()
+		except Exception:
+			pass	
+
+pre_delete.connect( Import.pre_delete_callback, sender=Import )
 
 # Connect signals to clear the action cache
 post_delete.connect( ContactGroupAction.clear_cache, sender=ContactGroupAction )

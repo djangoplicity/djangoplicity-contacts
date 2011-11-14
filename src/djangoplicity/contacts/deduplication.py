@@ -49,7 +49,6 @@ contacts_search_space for all contacts in the contact database.
 
   
 """
-from djangoplicity.contacts.models import Contact
 import difflib
 import re
 
@@ -251,6 +250,8 @@ def contacts_search_space():
 	"""
 	Create a search space from all contacts in the database.
 	"""
+	from djangoplicity.contacts.models import Contact
+	
 	search_space = []
 	for c in Contact.objects.all().select_related( 'country' ):
 		search_space.append( c.get_data() )
