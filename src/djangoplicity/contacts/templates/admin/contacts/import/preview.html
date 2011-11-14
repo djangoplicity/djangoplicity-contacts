@@ -43,6 +43,11 @@
 	<strong>Selector columns:</strong> {% for s in object.template.get_selectors %}{{s.header}} ("{{s.value}}"){% endfor%}<br /> 
 </p>
 <div id="content-main">
+    {% if error %}
+    <p class="errornote">
+    {{error}}
+    </p>
+    {% endif %}
     <div class="module{% if filtered %} filtered{% endif %}" id="changelist">
       {% block filters %}
       {% endblock %}

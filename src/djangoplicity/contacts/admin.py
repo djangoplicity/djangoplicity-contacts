@@ -89,13 +89,25 @@ class ImportAdmin( admin.ModelAdmin ):
 		"""
 		obj = get_object_or_404( Import, pk=pk )
 		
-		mapping, rows = obj.preview_data()
-			
-		return render_to_response(
+		try:
+			mapping, rows = obj.preview_data()
+			return render_to_response(
 				"admin/contacts/import/preview.html", 
 				{
 					'columns' : mapping,
 					'rows' : rows,
+					'object' : obj,
+					'messages': [],
+					'app_label' : obj._meta.app_label,
+					'opts' : obj._meta,
+				}, 
+				context_instance=RequestContext( request )
+			)
+		except Exception, e:
+			return render_to_response(
+				"admin/contacts/import/preview.html", 
+				{
+					'error' : e.message,
 					'object' : obj,
 					'messages': [],
 					'app_label' : obj._meta.app_label,
