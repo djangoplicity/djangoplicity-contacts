@@ -125,7 +125,7 @@ class ImportAdmin( admin.ModelAdmin ):
 		# Import in background
 		if request.method == "POST":
 			from djangoplicity.contacts.tasks import import_data
-			import_data( obj.pk )
+			import_data.delay( obj.pk )
 				
 			return render_to_response(
 					"admin/contacts/import/import.html", 
