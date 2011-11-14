@@ -361,6 +361,8 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		if 'country' in kwargs:
 			if kwargs['country'] and len( kwargs['country'] ) == 2:
 				ctry = Country.objects.get( iso_code=kwargs['country'].upper() )
+			elif kwargs['country']:
+				ctry = Country.objects.get( name__ieq=kwargs['country'] )
 			self.country = ctry
 			changed = True
 			del kwargs['country']
