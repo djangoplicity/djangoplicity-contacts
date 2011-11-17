@@ -190,11 +190,14 @@ class LabelRender( object ):
 			page_objects[-1] = page_objects[-1] + [None] * ( self.label_paper['labels_no'] - len( page_objects[-1] ) )
 		
 		# Generate context
+		from django.conf import settings
 		extra_context.update( {
 			'filename' : filename,
 			'label_template' : self.label_paper['label_template'],
 			'label_template_style' : self.label_paper['label_template_style'],
 			'objects' : page_objects,
+			'MEDIA_ROOT' : settings.MEDIA_ROOT,
+			'STATIC_ROOT' : settings.STATIC_ROOT, 
 		} )
 		
 		# Generate RML template
