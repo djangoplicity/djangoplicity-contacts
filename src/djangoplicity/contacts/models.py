@@ -171,8 +171,8 @@ class ContactGroup( models.Model ):
 	"""
 	name = models.CharField( max_length=255, blank=True )
 	category = models.ForeignKey( GroupCategory, blank=True, null=True )
-
-
+	order = models.PositiveIntegerField( blank=True, null=True )
+	
 	def get_emails( self ):
 		""" Get all email addresses for contacts in this group """
 		return self.contact_set.exclude( email='' ).values_list( 'email', flat=True )
@@ -182,7 +182,7 @@ class ContactGroup( models.Model ):
 		#return "%s: %s" % (self.category, self.name) if self.category else self.name
 
 	class Meta:
-		ordering = ( 'name', )
+		ordering = ( 'order', 'name', )
 
 class Contact( DirtyFieldsMixin, models.Model ):
 	"""

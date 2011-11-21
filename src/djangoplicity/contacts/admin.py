@@ -214,10 +214,11 @@ class CountryGroupAdmin( admin.ModelAdmin ):
 	list_filter = ['category', ]
 
 class ContactGroupAdmin( admin.ModelAdmin ):
-	list_display = ['id', 'name', 'category' ]
-	list_editable = ['name', 'category' ]
+	list_display = ['id', 'name', 'category', 'order' ]
+	list_editable = ['name', 'category', 'order' ]
 	search_fields = ['name', 'category__name' ]
 	list_filter = ['category', ]
+	ordering = ['name',]
 
 class ContactFieldInlineAdmin( admin.TabularInline ):
 	model = ContactField
