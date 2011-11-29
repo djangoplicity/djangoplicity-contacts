@@ -205,6 +205,8 @@ class Contact( DirtyFieldsMixin, models.Model ):
 	email = models.EmailField( blank=True )
 
 	groups = models.ManyToManyField( ContactGroup, blank=True )
+	group_order = models.PositiveIntegerField( blank=True, null=True ) #
+	
 	extra_fields = models.ManyToManyField( Field, through='ContactField' )
 
 	created = models.DateTimeField( auto_now_add=True )
@@ -465,6 +467,13 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		if instance.email:
 			# All email addresses use lower-case
 			instance.email = instance.email.lower()
+		
+		# Pre-compute the group ordering.
+		try:
+			instance.group_order = instance.groups.all().order_by( 'order' )[0].order
+		except IndexError:
+			instance.group_order = None
+		
 		instance._dirty_fields = instance.get_dirty_fields()
 
 	@classmethod
