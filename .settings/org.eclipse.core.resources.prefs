@@ -1,4 +1,4 @@
-#Tue Nov 29 13:56:37 CET 2011
+#Wed Nov 30 10:09:44 CET 2011
 eclipse.preferences.version=1
 encoding//src/djangoplicity/__init__.py=utf-8
 encoding//src/djangoplicity/contacts/__init__.py=utf-8
@@ -15,7 +15,8 @@ encoding//src/djangoplicity/contacts/migrations/0011_contactgrouporder.py=utf-8
 encoding//src/djangoplicity/contacts/models.py=utf-8
 encoding//src/djangoplicity/contacts/signals.py=utf-8
 encoding//src/djangoplicity/contacts/tasks.py=utf-8
-encoding//src/djangoplicity/contacts/tests.py=utf-8
+encoding//src/djangoplicity/contacts/tests/__init__.py=utf-8
+encoding//src/djangoplicity/contacts/tests/orderpropagation.py=utf-8
 encoding//src/djangoplicity/contacts/utils.py=utf-8
 encoding//src/djangoplicity/contacts/views.py=utf-8
 encoding/setup.py=utf-8

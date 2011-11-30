@@ -165,9 +165,20 @@ class Country( models.Model ):
 		ordering = ['name', ]
 
 
-class ContactGroup( models.Model ):
+class ContactGroup( DirtyFieldsMixin, models.Model ):
 	"""
 	Groups for contacts
+	
+	The order field allows to specify a numerical values
+	by which the groups should be sorted and allows you to 
+	sort contacts by the ordering of groups. Due to the way the django
+	ORM works, it's however difficult to order by a related attribute
+	and at the same time select only distinct contacts. For that reason
+	a minimum group order value is stored on each contact. This value
+	is automatically propagated to all contacts.
+	
+	djangoplicity.contacts.tets.orderpropagation contains tests to validate
+	that the propagation happens correctly.    
 	"""
 	name = models.CharField( max_length=255, blank=True )
 	category = models.ForeignKey( GroupCategory, blank=True, null=True )
@@ -179,8 +190,58 @@ class ContactGroup( models.Model ):
 
 	def __unicode__( self ):
 		return self.name
-		#return "%s: %s" % (self.category, self.name) if self.category else self.name
+	
+	@classmethod
+	def pre_delete_callback( cls, sender, instance=None, **kwargs ):
+		"""
+		"""
+		logger.debug( "%s.pre_delete" % cls.__name__ )
+		
+		# Get a query of contacts to update and make sure it's evaluated
+		instance._cached_contact_set = list( instance.contact_set.filter( group_order__gte=instance.order ).values_list( 'pk', flat=True ) )
+				
+	@classmethod
+	def post_delete_callback( cls, sender, instance=None, **kwargs ):
+		"""
+		"""
+		logger.debug( "%s.post_delete" % cls.__name__ )
+		
+		for c in Contact.objects.filter( pk__in=instance._cached_contact_set ).annotate( min__group_order=models.Min( 'groups__order' ) ):
+			if c.group_order != c.min__group_order:
+				Contact.objects.filter( pk=c.pk ).update( group_order=c.min__group_order )
+		
+	@classmethod
+	def pre_save_callback( cls, sender, instance=None, raw=False, **kwargs ):
+		"""
+		"""
+		logger.debug( "%s.pre_save" % cls.__name__ )
+		instance._dirty_fields = instance.get_dirty_fields()
 
+	@classmethod
+	def post_save_callback( cls, sender, instance=None, raw=False, **kwargs ):
+		"""
+		"""
+		logger.debug( "%s.post_save" % cls.__name__ )
+		
+		dirty_fields = instance._dirty_fields
+		instance._dirty_fields = None
+		
+		if 'order' in dirty_fields:
+			if dirty_fields['order'] is None or dirty_fields['order'] - instance.order > 0:
+				# Order value was changed to a smaller value - hence we must update all contacts
+				# with a group_order greater than instance.order.
+				instance.contact_set.filter( group_order__gt=instance.order ).update( group_order=instance.order )
+			elif instance.order is None or dirty_fields['order'] - instance.order < 0:
+				# Order value was changed to a greater value - hence we must update all contacts
+				# with a group_order greater than the *old* instance.order
+				for c in Contact.objects.filter( pk__in=instance.contact_set.filter( group_order__gte=dirty_fields['order'] ) ).annotate( min__group_order=models.Min( 'groups__order' ) ):
+					if c.group_order != c.min__group_order:
+						Contact.objects.filter( pk=c.pk ).update( group_order=c.min__group_order )
+		
+		# Reset dirty state - DirtyFieldMixin is supposed to do it automatically,
+		# but apparently there's some conflicts with the signals it seems like.
+		instance._original_state = instance._as_dict()
+											
 	class Meta:
 		ordering = ( 'order', 'name', )
 
@@ -442,11 +503,29 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		TODO: Does not take the reverse relation into account - e.g: grp.contact_set.add(..)
 		TODO: When last group is removed via admin, only a pre_clear, post_clear is sent, and not a pre_clear, post_clear, pre_add, post_add  
 		"""
-		logger.debug( "m2m_changed:%s" % action )
+		logger.debug( "%s.m2m_changed:%s" % ( cls.__name__, action ) )
+		
+		# Pre-compute group ordering
+		if action in ['post_add', 'post_remove']:
+			try:
+				min_order = instance.groups.all().aggregate( min_order=models.Min( 'order' ) )['min_order']
+				if min_order != instance.group_order:
+					cls.objects.filter( pk=instance.pk ).update( group_order=min_order )
+					instance.group_order = min_order
+			except KeyError:
+				if min_order is not None:
+					cls.objects.filter( pk=instance.pk ).update( group_order=None )
+					instance.group_order = None
+		if action == 'post_clear':
+			if instance.group_order is not None: 
+				cls.objects.filter( pk=instance.pk ).update( group_order=None )
+				instance.group_order = None
+
 		if action in ['pre_clear', 'pre_remove', 'pre_add']:
 			instance.create_snapshot( action[4:] )
 		elif action in ['post_clear', 'post_remove', 'post_add']:
 			instance.dispatch_signals( action[5:] )
+			
 
 
 	@classmethod
@@ -454,7 +533,7 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		"""
 		Callback is used to send contact_removed, contact_added signals
 		"""
-		logger.debug( "pre_delete" )
+		logger.debug( "%s.pre_delete" % cls.__name__ )
 		for g in instance.groups.all():
 			contact_removed.send_robust( sender=cls, group=g, contact=instance )
 
@@ -463,17 +542,10 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		"""
 		Callback for detecting changes to the model.
 		"""
-		logger.debug( "pre_save" )
+		logger.debug( "%s.pre_save" % cls.__name__ )
 		if instance.email:
 			# All email addresses use lower-case
 			instance.email = instance.email.lower()
-		
-		# Pre-compute the group ordering.
-		try:
-			instance.group_order = instance.groups.all().order_by( 'order' )[0].order
-		except IndexError:
-			instance.group_order = None
-		
 		instance._dirty_fields = instance.get_dirty_fields()
 
 	@classmethod
@@ -481,7 +553,8 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		"""
 		Callback for detecting changes to the model.
 		"""
-		logger.debug( "post_save" )
+		logger.debug( "%s.post_save" % cls.__name__ )
+		
 		dirty_fields = instance._dirty_fields
 		instance._dirty_fields = None
 		if dirty_fields != {}:
@@ -1064,6 +1137,12 @@ m2m_changed.connect( Contact.m2m_changed_callback, sender=Contact.groups.through
 pre_delete.connect( Contact.pre_delete_callback, sender=Contact )
 pre_save.connect( Contact.pre_save_callback, sender=Contact )
 post_save.connect( Contact.post_save_callback, sender=Contact )
+
+# Connect signals to propagate Contact.group_order values 
+pre_delete.connect( ContactGroup.pre_delete_callback, sender=ContactGroup )
+post_delete.connect( ContactGroup.post_delete_callback, sender=ContactGroup )
+pre_save.connect( ContactGroup.pre_save_callback, sender=ContactGroup )
+post_save.connect( ContactGroup.post_save_callback, sender=ContactGroup )
 
 # Connect signals handling the execution of actions
 contact_added.connect( ContactGroupAction.contact_added_callback, sender=Contact )
