@@ -575,10 +575,13 @@ class ContactField( models.Model ):
 	value = models.CharField( max_length=255, blank=True, db_index=True )
 
 	def __unicode__( self ):
-		return "%s: %s" % ( self.field.name, self.value )
+		return self.value 
 
-	def clean( self ):
-		if not self.field.blank and self.value == '':
+	def full_clean( self, exclude=None ):
+		super( ContactField, self ).full_clean( exclude=exclude )
+		# Apparently if field is null (i.e. not set in admin), it's not detected
+		# until validate_unique, so we check it as the last step. 
+		if self.field.blank and self.value == '':
 			raise ValidationError( "Field %s does not allow blank values" % self.field )
 
 	class Meta:
