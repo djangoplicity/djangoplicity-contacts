@@ -907,7 +907,7 @@ class ImportTemplate( models.Model ):
 		else:
 			import_grp = None
 			
-		extra_groups = self.extra_groups.all().values_list( 'name', flat=True )
+		extra_groups = list(self.extra_groups.all().values_list( 'name', flat=True ))
 
 		i = 0
 		for data in self.extract_data( filename ):
