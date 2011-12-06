@@ -847,7 +847,7 @@ class ImportTemplate( models.Model ):
 				if as_list:
 					outgoing_data.append( ", ".join(val) if isinstance( val,list ) and flat else val )
 				else:
-					field = m.get_field()
+					field = str( m.get_field() )
 					if field in outgoing_data:
 						outgoing_data[field] += val
 					else:
