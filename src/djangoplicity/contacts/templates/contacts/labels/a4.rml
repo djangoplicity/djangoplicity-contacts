@@ -2,8 +2,17 @@
 <!DOCTYPE document SYSTEM "rml.dtd">
 <document filename="{{filename}}">
 <docinit>
-	<registerFont fontName="HelveticaNeue" fontFile="HelveticaNeue.ttf" /> 
+	<registerFont fontName="HelveticaNeue" fontFile="HelveticaNeue.ttf" />
+	<registerFont fontName="HelveticaNeueBold" fontFile="HelveticaNeueBold.ttf" />
+	<registerFont fontName="HelveticaNeueBoldItalic" fontFile="HelveticaNeueBoldItalic.ttf" />
+	<registerFont fontName="HelveticaNeueCondensedBlack" fontFile="HelveticaNeueCondensedBlack.ttf" />
+	<registerFont fontName="HelveticaNeueCondensedBold" fontFile="HelveticaNeueCondensedBold.ttf" />
+	<registerFont fontName="HelveticaNeueItalic" fontFile="HelveticaNeueItalic.ttf" />
 	<registerFont fontName="HelveticaNeueLight" fontFile="HelveticaNeueLight.ttf" /> 
+	<registerFont fontName="HelveticaNeueLightItalic" fontFile="HelveticaNeueLightItalic.ttf" />
+	<registerFont fontName="HelveticaNeueMedium" fontFile="HelveticaNeueMedium.ttf" /> 
+	<registerFont fontName="HelveticaNeueUltraLight" fontFile="HelveticaNeueUltraLight.ttf" /> 
+	<registerFont fontName="HelveticaNeueUltraLightItalic" fontFile="HelveticaNeueUltraLightItalic.ttf" />
 </docinit>
 <template pageSize="(21.0cm, 29.7cm)" 
 		  {% if title %}title="{{title}}"{% endif %}
@@ -36,6 +45,12 @@
      <paraStyle name="extra"
      fontName="HelveticaNeue"
      fontSize="14"
+     />
+     
+      <paraStyle name="postal_zone"
+     fontName="HelveticaNeueMedium"
+     fontSize="7"
+     alignment="right"
      />
      
      {% block page_style %}

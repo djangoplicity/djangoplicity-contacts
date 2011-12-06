@@ -4,6 +4,7 @@
 	<tr>
 		<td>
 			{% if obj.first_name or obj.last_name %}<para style="sendto">{% if obj.title %}{{obj.title}} {% endif%}{% if obj.first_name %}{{obj.first_name}} {% endif%}{{obj.last_name}}</para>{% endif %}
+			{% if not obj.first_name and not obj.last_name and obj.position %}<para style="sendto">{{ obj.position }}</para>{% endif %}
 			{% if obj.organisation %}<para style="sendto">{{ obj.organisation }}</para>{% endif %}
 			{% if obj.department %}<para style="sendto">{{ obj.department }}</para>{% endif %}
 			{% if obj.street_1 %}<para style="sendto">{{ obj.street_1 }}</para>{% endif %}
@@ -13,6 +14,6 @@
 		</td>
 	</tr>
 	<tr>
-		<td></td>
+		<td>{% block postal_zone %}{% if obj.country and obj.country.postal_zone %}<para style="postal_zone">{{ obj.country.postal_zone|upper }}</para>{% endif %}{% endblock %}</td>
 	</tr>
 </blockTable>
