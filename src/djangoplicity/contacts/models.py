@@ -198,7 +198,10 @@ class ContactGroup( DirtyFieldsMixin, models.Model ):
 		logger.debug( "%s.pre_delete" % cls.__name__ )
 		
 		# Get a query of contacts to update and make sure it's evaluated
-		instance._cached_contact_set = list( instance.contact_set.filter( group_order__gte=instance.order ).values_list( 'pk', flat=True ) )
+		if instance.order:
+			instance._cached_contact_set = list( instance.contact_set.filter( group_order__gte=instance.order ).values_list( 'pk', flat=True ) )
+		else:
+			instance._cached_contact_set = []
 				
 	@classmethod
 	def post_delete_callback( cls, sender, instance=None, **kwargs ):

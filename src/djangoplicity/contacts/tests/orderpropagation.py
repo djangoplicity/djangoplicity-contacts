@@ -149,11 +149,8 @@ class OrderPropagationTestCase( TestCase ):
 		self._check( self.c1, self.g1.order )
 		self._check( self.c2, self.g2.order )
 		
-		print "g1 0 -> 1"
 		self.g1.order = 1
 		self.g1.save()
-		
-		print self.c1.groups.all().values_list('order')
 		
 		self._check( self.c1, self.g1.order )
 		self._check( self.c2, self.g2.order )
@@ -214,3 +211,10 @@ class OrderPropagationTestCase( TestCase ):
 		self._check( self.c1, None )
 		self._check( self.c2, None )
 		
+		
+	def test_delete_group_null( self ):
+		self._clean()
+		
+		grp = ContactGroup( name='g1', order=None )
+		grp.save()
+		grp.delete()
