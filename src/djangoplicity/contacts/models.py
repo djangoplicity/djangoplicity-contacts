@@ -367,6 +367,12 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		"""
 		Find all matching contacts
 		"""
+		for field in ['pk','id']:
+			if field in kwargs and kwargs[field]:
+				qs = cls.objects.filter( pk=kwargs[field] )
+				if len( qs ) >= 1:
+					return qs
+				
 		for field in ['email']:
 			if field in kwargs and kwargs[field]:
 				qs = cls.objects.filter( email=kwargs[field] )
@@ -954,7 +960,6 @@ class ImportTemplate( models.Model ):
 				logger.info("Creating contact %s" % obj.pk )
 
 
-
 CONTACTS_FIELDS = [
 	('city','City'),
 	('groups','Contact groups'),
@@ -962,6 +967,7 @@ CONTACTS_FIELDS = [
 	('department','Department'),
 	('email','Email'),
 	('first_name','First name'),
+	('pk','Id'),
 	('last_name','Last name'),
 	('organisation','Organisation'),
 	('phone','Phone'),
