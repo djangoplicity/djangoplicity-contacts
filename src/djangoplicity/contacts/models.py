@@ -72,14 +72,61 @@ class Label( models.Model ):
 
 
 class Field( models.Model ):
+	"""
+	Definition of extra fields (i.e. fields not defined on contact model.)
+	
+	This allows users to create an new field, and add data in it. Normally this should
+	only be used to record extra non-essential data, as access to the data (searching etc)
+	is limited and slower than when defined on the contacts models.
+	"""
+	
+	slug = models.SlugField( unique=True )
+	""" Short name used for external applications to pass data to the contacts database. """
+	
 	name = models.CharField( max_length=255, unique=True )
+	""" Human readable name for field. """
+	
 	blank = models.BooleanField( default=True )
+	""" Does field allow blank values """
+
+	_allowed_fields = None
+
+	@classmethod
+	def _get_cache( cls ):
+		"""
+		List of fields are cached for speed efficiency.
+		"""
+		if cls._allowed_fields is None:
+			cls._allowed_fields = list( cls.objects.values_list( 'slug', 'name' ) )
+		return cls._allowed_fields if cls._allowed_fields else []
+
+	@classmethod
+	def field_options( cls ):
+		"""
+		Get a list of field choices (slug,name) for use in form field choices.
+		"""
+		return cls._get_cache()
+
+	@classmethod
+	def allowed_fields( cls ):
+		"""
+		Get a list of field slugs
+		"""
+		return [ x[0] for x in cls._get_cache() ]
+
+	def save( self, *args, **kwargs ):
+		"""
+		Clear field cache if an object is saved.
+		"""
+		super( Field, self ).save( *args, **kwargs )
+		self.__class__._slug_cache = None
 
 	def __unicode__( self ):
 		return self.name
 
 	class Meta:
 		ordering = ['name']
+
 
 class GroupCategory( models.Model ):
 	"""
@@ -97,7 +144,7 @@ class GroupCategory( models.Model ):
 
 class CountryGroup( models.Model ):
 	"""
-	Allow grouping of countries (e.g. EU, member states, postal zones)
+	Allow grouping of countries (e.g. EU, member states)
 	"""
 	name = models.CharField( max_length=255, blank=True, db_index=True )
 	category = models.ForeignKey( GroupCategory, blank=True, null=True )
@@ -107,6 +154,7 @@ class CountryGroup( models.Model ):
 
 	class Meta:
 		ordering = ( 'category__name', 'name' )
+
 
 class PostalZone( models.Model ):
 	"""
@@ -183,39 +231,45 @@ class ContactGroup( DirtyFieldsMixin, models.Model ):
 	name = models.CharField( max_length=255, blank=True )
 	category = models.ForeignKey( GroupCategory, blank=True, null=True )
 	order = models.PositiveIntegerField( blank=True, null=True )
-	
+
 	def get_emails( self ):
 		""" Get all email addresses for contacts in this group """
 		return self.contact_set.exclude( email='' ).values_list( 'email', flat=True )
 
 	def __unicode__( self ):
 		return self.name
-	
+
 	@classmethod
 	def pre_delete_callback( cls, sender, instance=None, **kwargs ):
 		"""
+		Propagate ContactGroup.order to contacts on delete
 		"""
 		logger.debug( "%s.pre_delete" % cls.__name__ )
-		
-		# Get a query of contacts to update and make sure it's evaluated
+
+		# Get a query of contacts to update and make sure it's evaluated (the contacts will be updated in the post_delete_callback)
+		# This cannot be done in post_delete, since then the object have been deleted from the database, and the relationships are 
+		# no longer present in the database.
 		if instance.order:
 			instance._cached_contact_set = list( instance.contact_set.filter( group_order__gte=instance.order ).values_list( 'pk', flat=True ) )
 		else:
 			instance._cached_contact_set = []
-				
+
 	@classmethod
 	def post_delete_callback( cls, sender, instance=None, **kwargs ):
 		"""
+		Propagate ContactGroup.order to contacts on delete
 		"""
 		logger.debug( "%s.post_delete" % cls.__name__ )
 		
+		# See notes in pre_delete_callback
 		for c in Contact.objects.filter( pk__in=instance._cached_contact_set ).annotate( min__group_order=models.Min( 'groups__order' ) ):
 			if c.group_order != c.min__group_order:
 				Contact.objects.filter( pk=c.pk ).update( group_order=c.min__group_order )
-		
+
 	@classmethod
 	def pre_save_callback( cls, sender, instance=None, raw=False, **kwargs ):
 		"""
+		Propagate ContactGroup.order to contacts on save (if order was changed)
 		"""
 		logger.debug( "%s.pre_save" % cls.__name__ )
 		instance._dirty_fields = instance.get_dirty_fields()
@@ -223,12 +277,13 @@ class ContactGroup( DirtyFieldsMixin, models.Model ):
 	@classmethod
 	def post_save_callback( cls, sender, instance=None, raw=False, **kwargs ):
 		"""
+		Propagate ContactGroup.order to contacts on save (if order was changed)
 		"""
 		logger.debug( "%s.post_save" % cls.__name__ )
-		
+
 		dirty_fields = instance._dirty_fields
 		instance._dirty_fields = None
-		
+
 		if 'order' in dirty_fields:
 			if dirty_fields['order'] is None or dirty_fields['order'] - instance.order > 0:
 				# Order value was changed to a smaller value - hence we must update all contacts
@@ -240,11 +295,11 @@ class ContactGroup( DirtyFieldsMixin, models.Model ):
 				for c in Contact.objects.filter( pk__in=instance.contact_set.filter( group_order__gte=dirty_fields['order'] ) ).annotate( min__group_order=models.Min( 'groups__order' ) ):
 					if c.group_order != c.min__group_order:
 						Contact.objects.filter( pk=c.pk ).update( group_order=c.min__group_order )
-		
+
 		# Reset dirty state - DirtyFieldMixin is supposed to do it automatically,
 		# but apparently there's some conflicts with the signals it seems like.
 		instance._original_state = instance._as_dict()
-											
+
 	class Meta:
 		ordering = ( 'order', 'name', )
 
@@ -260,7 +315,7 @@ class Contact( DirtyFieldsMixin, models.Model ):
 	department = models.CharField( max_length=255, blank=True )
 	street_1 = models.CharField( max_length=255, blank=True )
 	street_2 = models.CharField( max_length=255, blank=True )
-	city = models.CharField( max_length=255, blank=True )
+	city = models.CharField( max_length=255, blank=True, help_text="Including postal code, city and state." )
 	country = models.ForeignKey( Country, blank=True, null=True )
 
 	phone = models.CharField( max_length=255, blank=True )
@@ -269,8 +324,8 @@ class Contact( DirtyFieldsMixin, models.Model ):
 	email = models.EmailField( blank=True )
 
 	groups = models.ManyToManyField( ContactGroup, blank=True )
-	group_order = models.PositiveIntegerField( blank=True, null=True ) #
-	
+	group_order = models.PositiveIntegerField( blank=True, null=True )
+
 	extra_fields = models.ManyToManyField( Field, through='ContactField' )
 
 	created = models.DateTimeField( auto_now_add=True )
@@ -304,11 +359,11 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		"""
 		self._snapshot = None
 
-	def set_extra_field( self, field_name, value ):
+	def set_extra_field( self, field_slug, value ):
 		"""
 		Convenience method to set the value of an extra field on a contact
 		"""
-		f = Field.objects.get( name=field_name )
+		f = Field.objects.get( slug=field_slug )
 		try:
 			cf = ContactField.objects.get( field=f, contact=self )
 		except ContactField.DoesNotExist:
@@ -318,11 +373,11 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		cf.save()
 
 
-	def get_extra_field( self, field_name ):
+	def get_extra_field( self, field_slug ):
 		"""
 		Convenience method to get the value of an extra field on a contact
 		"""
-		f = Field.objects.get( name=field_name )
+		f = Field.objects.get( slug=field_slug )
 		try:
 			cf = ContactField.objects.get( field=f, contact=self )
 			return cf.value
@@ -342,7 +397,15 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		data['contact_object'] = self
 		return data
 
-	ALLOWED_FIELDS = ['first_name', 'last_name', 'title', 'position', 'organisation', 'department', 'street_1', 'street_2', 'city', 'zip', 'state', 'country', 'phone', 'website', 'social', 'email',]
+
+	ALLOWED_FIELDS = ['first_name', 'last_name', 'title', 'position', 'organisation', 'department', 'street_1', 'street_2', 'city', 'zip', 'state', 'country', 'phone', 'website', 'social', 'email', ]
+
+	@classmethod
+	def get_allowed_extra_fields( cls ):
+		"""
+		Get list of allowed extra field names ( including extra fields ).
+		"""
+		return Field.allowed_fields()
 
 	@classmethod
 	def find_or_create_object( cls, **kwargs ):
@@ -357,43 +420,43 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		"""
 		"""
 		qsnew = filter( lambda x: 'librarian' in x.last_name.lower(), qs )
-		if len(qsnew) > 0:
+		if len( qsnew ) > 0:
 			return qsnew[0]
 		else:
 			return qs[0]
-	
+
 	@classmethod
 	def find_objects( cls, **kwargs ):
 		"""
 		Find all matching contacts
 		"""
-		for field in ['pk','id']:
+		for field in ['pk', 'id']:
 			if field in kwargs and kwargs[field]:
 				qs = cls.objects.filter( pk=kwargs[field] )
 				if len( qs ) >= 1:
 					return qs
-				
+
 		for field in ['email']:
 			if field in kwargs and kwargs[field]:
 				qs = cls.objects.filter( email=kwargs[field] )
 				if len( qs ) >= 1:
 					return qs
 		return None
-			
+
 	@classmethod
 	def find_object( cls, **kwargs ):
 		"""
 		Find one matching contact
 		"""
 		qs = cls.find_objects( **kwargs )
-		if qs: 
+		if qs:
 			if len( qs ) == 1:
 				return qs[0]
 			elif len( qs ) > 1:
 				return cls._select_contact( qs )
 		return None
-		
-		
+
+
 	@classmethod
 	def create_object( cls, groups=[], **kwargs ):
 		"""
@@ -402,6 +465,7 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		obj = cls()
 		if obj.update_object( **kwargs ):
 			obj.save()
+			obj.update_extra_fields( **kwargs ) 
 			if groups:
 				obj.groups.add( *ContactGroup.objects.filter( name__in=groups ) )
 			return obj
@@ -428,7 +492,7 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		  * email
 		"""
 		changed = False
-		
+
 		ctry = None
 		if 'country' in kwargs:
 			if kwargs['country'] and len( kwargs['country'] ) == 2:
@@ -438,14 +502,13 @@ class Contact( DirtyFieldsMixin, models.Model ):
 			self.country = ctry
 			changed = True
 			del kwargs['country']
-		
+
 		if ctry:
-			
 			zip_code = kwargs.get( 'zip', None )
 			postal_code = kwargs.get( 'postal_code', None )
 			state = kwargs.get( 'state', None )
 			city = kwargs.get( 'city', None )
-			
+
 			if zip_code or postal_code or state or city:
 				if ctry.zip_after_city:
 					self.city = "  ".join( filter( lambda x: x, [city, state, zip_code, postal_code, ] ) )
@@ -455,22 +518,39 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		elif 'city' in kwargs:
 			self.city = kwargs['city']
 			changed = True
-			
+
 		# Delete keys that have already been dealt with.	
 		for k in ['zip', 'postal_code', 'state', 'city']:
 			if k in kwargs:
 				del kwargs[k]
-		
+
 		# The rest is simply settings the fields
 		for field, val in kwargs.items():
 			if field in self.ALLOWED_FIELDS:
 				setattr( self, field, val )
 				changed = True
-		
+				
+		if self.pk:
+			self.update_extra_fields( **kwargs )
+			
 		return changed
 
-
-
+	def update_extra_fields( self, **kwargs ):
+		"""
+		Settings extra fields requires the contact to be saved to the database
+		before being able to set them, hence they are updated separately from the
+		Contact's models fields. 
+		"""
+		extra_fields = self.get_allowed_extra_fields()
+		changed = False
+		
+		for field, val in kwargs.items():
+			if field in extra_fields:
+				self.set_extra_field( field, val )
+				changed = True
+		
+		return changed
+		
 	def __unicode__( self ):
 		if self.first_name or self.last_name:
 			return ( "%s %s %s" % ( self.title, self.first_name, self.last_name ) ).strip()
@@ -513,7 +593,7 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		TODO: When last group is removed via admin, only a pre_clear, post_clear is sent, and not a pre_clear, post_clear, pre_add, post_add  
 		"""
 		logger.debug( "%s.m2m_changed:%s" % ( cls.__name__, action ) )
-		
+
 		# Pre-compute group ordering
 		if action in ['post_add', 'post_remove']:
 			try:
@@ -526,7 +606,7 @@ class Contact( DirtyFieldsMixin, models.Model ):
 					cls.objects.filter( pk=instance.pk ).update( group_order=None )
 					instance.group_order = None
 		if action == 'post_clear':
-			if instance.group_order is not None: 
+			if instance.group_order is not None:
 				cls.objects.filter( pk=instance.pk ).update( group_order=None )
 				instance.group_order = None
 
@@ -534,7 +614,7 @@ class Contact( DirtyFieldsMixin, models.Model ):
 			instance.create_snapshot( action[4:] )
 		elif action in ['post_clear', 'post_remove', 'post_add']:
 			instance.dispatch_signals( action[5:] )
-			
+
 
 
 	@classmethod
@@ -563,7 +643,7 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		Callback for detecting changes to the model.
 		"""
 		logger.debug( "%s.post_save" % cls.__name__ )
-		
+
 		dirty_fields = instance._dirty_fields
 		instance._dirty_fields = None
 		if dirty_fields != {}:
@@ -584,7 +664,7 @@ class ContactField( models.Model ):
 	value = models.CharField( max_length=255, blank=True, db_index=True )
 
 	def __unicode__( self ):
-		return self.value 
+		return self.value
 
 	def full_clean( self, exclude=None ):
 		super( ContactField, self ).full_clean( exclude=exclude )
@@ -766,25 +846,25 @@ class DataImportError( Exception ):
 	pass
 
 ISO_EXPANSION = {
-	'ES' : [u'espana',u'españa'],
-	'IT' : [u'italia',],
-	'GB' : [u'uk',u'england',u'great britan',],
+	'ES' : [u'espana', u'españa'],
+	'IT' : [u'italia', ],
+	'GB' : [u'uk', u'england', u'great britan', ],
 	'US' : [u'united states'],
-	'NL' : [u'netherlands',u'holland'],
+	'NL' : [u'netherlands', u'holland'],
 	'MX' : [u'méxico'],
 }
-		
+
 DUPLICATE_HANDLING = [
-	('none','Import all - no duplicate detection'),
-	('ignore','Import non-duplicates only'),
-	('update','Update existing contact'),
-	('update_groups','Update existing contact (contact groups only)'),
+	( 'none', 'Import all - no duplicate detection' ),
+	( 'ignore', 'Import non-duplicates only' ),
+	( 'update', 'Update existing contact' ),
+	( 'update_groups', 'Update existing contact (contact groups only)' ),
 ]
 
 MULTIPLE_DUPLICATES = [
-	('ignore','None'),
-	('first','First'),
-	('create_new','Create new'),				
+	( 'ignore', 'None' ),
+	( 'first', 'First' ),
+	( 'create_new', 'Create new' ),
 ]
 
 class ImportTemplate( models.Model ):
@@ -798,28 +878,30 @@ class ImportTemplate( models.Model ):
 	Mapping to a country is done in a fuzzy way, to allow for different
 	spellings of a country name.
 	"""
-	
+
 	name = models.CharField( max_length=255, unique=True )
 	duplicate_handling = models.CharField( max_length=20, choices=DUPLICATE_HANDLING, help_text='' )
 	multiple_duplicates = models.CharField( max_length=20, choices=MULTIPLE_DUPLICATES, help_text='Method use to select a duplicate in case multiple possible duplicates are found.' )
-	
-	tag_import = models.BooleanField( default=True, help_text="Create a contact group for this import.")
+	frozen_groups = models.ManyToManyField( ContactGroup, blank=True, help_text='Contacts belonging to these groups will not be updated.', related_name='importtemplate_frozen_set' )
+
+	tag_import = models.BooleanField( default=True, help_text="Create a contact group for this import." )
 	extra_groups = models.ManyToManyField( ContactGroup, blank=True )
-	
+
+
 	_selectors_cache = None
 	_mapping_cache = None
-	
+
 	class Meta:
-		ordering = ['name',]
-	
-	def __unicode__(self):
+		ordering = ['name', ]
+
+	def __unicode__( self ):
 		return self.name
-		
-	def get_selectors(self):
+
+	def get_selectors( self ):
 		if self._selectors_cache is None:
 			self._selectors_cache = [x for x in ImportSelector.objects.filter( template=self )]
 		return self._selectors_cache
-	
+
 	def is_selected( self, data ):
 		"""
 		Determine if a data row should be imported or not.
@@ -828,18 +910,18 @@ class ImportTemplate( models.Model ):
 
 		if not selectors:
 			return True
-		
+
 		for s in selectors:
 			if s.is_selected( data ):
 				return True
 		return False
-	
+
 	def get_mapping( self ):
 		if self._mapping_cache is None:
 			self._mapping_cache = [x for x in ImportMapping.objects.filter( template=self )]
 		return self._mapping_cache
 
-	
+
 	def parse_row( self, incoming_data, as_list=False, flat=False ):
 		"""
 		Transform the incoming data according to 
@@ -851,7 +933,7 @@ class ImportTemplate( models.Model ):
 				val = m.get_value( incoming_data )
 
 				if as_list:
-					outgoing_data.append( ", ".join(val) if isinstance( val,list ) and flat else val )
+					outgoing_data.append( ", ".join( val ) if isinstance( val, list ) and flat else val )
 				else:
 					field = str( m.get_field() )
 					if field in outgoing_data:
@@ -860,12 +942,12 @@ class ImportTemplate( models.Model ):
 						outgoing_data[field] = val
 			return outgoing_data
 		return None
-	
+
 	def get_importer( self, filename ):
 		"""
 		"""
 		from djangoplicity.contacts.importer import CSVImporter, ExcelImporter
-		
+
 		base, ext = os.path.splitext( filename )
 		extmap = {
 			'.xls' : ExcelImporter,
@@ -875,10 +957,10 @@ class ImportTemplate( models.Model ):
 		try:
 			importercls = extmap[ext.lower()]
 		except KeyError:
-			raise DataImportError("Unsupported file format '%s'." % ext)
-		
+			raise DataImportError( "Unsupported file format '%s'." % ext )
+
 		return importercls( filename=filename )
-		
+
 	def extract_data( self, filename ):
 		"""
 		Extract data from an import file. Supported formats
@@ -886,8 +968,8 @@ class ImportTemplate( models.Model ):
 		"""
 		importer = self.get_importer( filename )
 		return ( self.parse_row( row ) for row in importer )
-		
-	
+
+
 	def preview_data( self, filename ):
 		"""
 		Preview the data file according to the defined
@@ -902,7 +984,7 @@ class ImportTemplate( models.Model ):
 				data.insert( 0, i )
 				data_table.append( data )
 		return ( ["Row"] + self.get_mapping(), data_table )
-		
+
 	def import_data( self, filename ):
 		"""
 		Import the data file according to the defined
@@ -912,8 +994,9 @@ class ImportTemplate( models.Model ):
 			import_grp, created = ContactGroup.objects.get_or_create( name='Import %s at %s' % ( self.name, datetime.now().replace( microsecond=0 ) ) )
 		else:
 			import_grp = None
-			
-		extra_groups = list(self.extra_groups.all().values_list( 'name', flat=True ))
+
+		extra_groups = list( self.extra_groups.all().values_list( 'name', flat=True ) )
+		frozen_set = set( self.frozen_groups.all().values_list( 'pk', flat=True ) )
 
 		i = 0
 		for data in self.extract_data( filename ):
@@ -923,11 +1006,14 @@ class ImportTemplate( models.Model ):
 					data['groups'] += extra_groups
 				else:
 					data['groups'] = extra_groups
-				
+
 				# Add import group if needed
 				if import_grp:
 					data['groups'].append( import_grp.name )
-			
+					
+				if 'second_email' in data:
+					print data
+
 				if self.duplicate_handling != 'none':
 					#
 					# Duplicate handling
@@ -943,13 +1029,16 @@ class ImportTemplate( models.Model ):
 							existing_obj = None # Create new object instead
 					elif qs and len( qs ) == 1:
 						existing_obj = qs[0]
-						
+
 					# Check if existing object was found
 					if existing_obj:
 						if self.duplicate_handling == 'ignore':
 							continue
 						elif self.duplicate_handling == 'update':
-							existing_obj.update_object( **data )
+							# Intersect frozen groups with contacts groups (if non-empty result,
+							# then contact is in one of the frozen groups and should not be updated. 
+							if not frozen_set & set( existing_obj.groups.values_list( 'pk', flat=True ) ):
+								existing_obj.update_object( **data )
 
 						if 'groups' in data and data['groups']:
 							grps = ContactGroup.objects.filter( name__in=data['groups'] )
@@ -957,27 +1046,31 @@ class ImportTemplate( models.Model ):
 								existing_obj.groups.add( *grps )
 						continue
 				obj = Contact.create_object( **data )
-				logger.info("Creating contact %s" % obj.pk )
+				logger.info( "Creating contact %s" % obj.pk )
 
 
 CONTACTS_FIELDS = [
-	('city','City'),
-	('groups','Contact groups'),
-	('country','Country'),
-	('department','Department'),
-	('email','Email'),
-	('first_name','First name'),
-	('pk','Id'),
-	('last_name','Last name'),
-	('organisation','Organisation'),
-	('phone','Phone'),
-	('position','Position'),
-	('social','Social'),
-	('street_1','Street 1'),
-	('street_2','Street 2'),
-	('title','Title'),
-	('website','Website'),
+	( 'city', 'City' ),
+	( 'groups', 'Contact groups' ),
+	( 'country', 'Country' ),
+	( 'department', 'Department' ),
+	( 'email', 'Email' ),
+	( 'first_name', 'First name' ),
+	( 'pk', 'Id' ),
+	( 'last_name', 'Last name' ),
+	( 'organisation', 'Organisation' ),
+	( 'phone', 'Phone' ),
+	( 'position', 'Position' ),
+	( 'social', 'Social' ),
+	( 'street_1', 'Street 1' ),
+	( 'street_2', 'Street 2' ),
+	( 'title', 'Title' ),
+	( 'website', 'Website' ),
 ]
+# + Field.field_options() # Todo: needs to be dynamic since if extra field is added, then it will require server restart to have the list updated.
+#	CONTACTS_FIELDS.sort( key=lambda x: x[1] )
+#	return CONTACTS_FIELDS 
+
 
 class ImportMapping( models.Model ):
 	"""
@@ -985,46 +1078,46 @@ class ImportMapping( models.Model ):
 	"""
 	template = models.ForeignKey( ImportTemplate )
 	header = models.CharField( max_length=255 )
-	field = models.SlugField( max_length=255, choices=CONTACTS_FIELDS )
+	field = models.SlugField( max_length=255 )
 	group_separator = models.CharField( max_length=20, default='', blank=True )
-	
+
 	_country_cache = None
 	_groupmap_cache = None
 
 	def get_field( self ):
 		"""
 		"""
-		trail = self.field.split("__")
+		trail = self.field.split( "__" )
 		return trail[0]
-	
+
 	def get_country_value( self, value ):
 		"""
 		"""
 		from djangoplicity.contacts.deduplication import similar_text
-		
+
 		if ImportMapping._country_cache is None:
 			ImportMapping._country_cache = { 'iso' : {}, 'name' : {} }
 			for c in Country.objects.all():
 				ImportMapping._country_cache['iso'][c.iso_code.lower()] = c.iso_code
 				ImportMapping._country_cache['name'][c.name.lower()] = c.iso_code
-		
+
 		value = value.lower().strip()
-		if len(value) == 2 and value in ImportMapping._country_cache['iso']: 
+		if len( value ) == 2 and value in ImportMapping._country_cache['iso']:
 			return ImportMapping._country_cache['iso']['value'].upper()
 		elif value in ImportMapping._country_cache['name']:
 			return ImportMapping._country_cache['name'][value].upper()
 		else:
-			for k,v in ImportMapping._country_cache['name'].items():
+			for k, v in ImportMapping._country_cache['name'].items():
 				if similar_text( k, value ):
-					logger.info( "similar %s = %s" % (k,value) )
+					logger.info( "similar %s = %s" % ( k, value ) )
 					return v.upper()
 
-			for iso,exps in ISO_EXPANSION.items():
+			for iso, exps in ISO_EXPANSION.items():
 				for e in exps:
-					if similar_text( unicode(value), e ):
+					if similar_text( unicode( value ), e ):
 						return iso.upper()
 			return None
-	
+
 	def get_groups_value( self, value ):
 		"""
 		"""
@@ -1032,13 +1125,13 @@ class ImportMapping( models.Model ):
 			values = [x.strip() for x in value.split( self.group_separator )]
 		else:
 			values = [value.strip()]
-		
+
 		# Cache the mapping from values to contact groups so future queries are fast. 	
 		if self._groupmap_cache is None:
 			self._groupmap_cache = dict( ImportGroupMapping.objects.filter( mapping=self ).values_list( 'value', 'group__name' ) )
-				
-		return filter( lambda x: x, map( lambda x: self._groupmap_cache.get(x,None), values ) )
-		
+
+		return filter( lambda x: x, map( lambda x: self._groupmap_cache.get( x, None ), values ) )
+
 	def get_value( self, data ):
 		"""
 		Get the value for the model field. For most fields, this is just
@@ -1048,7 +1141,7 @@ class ImportMapping( models.Model ):
 		try:
 			val = data[self.header]
 			if self.field:
-				trail = self.field.split("__")
+				trail = self.field.split( "__" )
 				if trail[0] == 'groups':
 					return self.get_groups_value( val )
 				if trail[0] == 'country':
@@ -1056,8 +1149,8 @@ class ImportMapping( models.Model ):
 			return val
 		except KeyError:
 			return None
-	
-	
+
+
 class ImportSelector( models.Model ):
 	"""
 	Defines a selector for an import template. This allows
@@ -1068,71 +1161,89 @@ class ImportSelector( models.Model ):
 	header = models.CharField( max_length=255 )
 	value = models.CharField( max_length=255 )
 	case_sensitive = models.BooleanField( default=False )
-	
+
 	def get_value( self, data ):
 		try:
 			return data[self.header]
 		except KeyError:
 			return None
-	
+
 	def is_selected( self, data ):
 		val = self.get_value( data )
 		if val:
 			val = unicode( val ).strip() if self.case_sensitive else unicode( val ).strip().lower()
 		return val == self.value
-	
+
 
 class ImportGroupMapping( models.Model ):
 	""" 
-	Defines a mapping for values to a group
+	Defines a mapping from values to groups.
 	"""
 	mapping = models.ForeignKey( ImportMapping, limit_choices_to={ 'field' : 'groups' } )
 	value = models.CharField( max_length=255 )
 	group = models.ForeignKey( ContactGroup )
-	
+
 
 upload_dir = os.path.join( settings.TMP_DIR, 'contacts_import' )
 upload_fs = FileSystemStorage( location=upload_dir, base_url=None )
 
 def handle_uploaded_file( instance, filename ):
 	"""
+	Generate a new name for an uploaded filed.
+	
+	Pattern used: <template name>-<uuid>.<original extension>
 	"""
 	base, ext = os.path.splitext( filename )
-	
+
 	import uuid
 	name = "%s%s%s" % ( "%s_" % instance.template.name if instance.template else '', str( uuid.uuid1() ), ext.lower() )
-	
+
 	return name
-	
+
 class Import( models.Model ):
+	"""
+	Import job - stores an excel file and selects which import template to use when importing
+	the data.
+	
+	Allow for previewing of the data mapping and executing the import. An import can only be run once
+	to prevent it from accidentally be imported twice.  
+	"""
 	template = models.ForeignKey( ImportTemplate )
 	data_file = models.FileField( upload_to=handle_uploaded_file, storage=upload_fs )
 	imported = models.BooleanField( default=False )
 	created = models.DateTimeField( auto_now_add=True )
 	last_modified = models.DateTimeField( auto_now=True )
-	
+
 	def preview_data( self ):
 		"""
+		Generate a preview of the data mapping for this import. The data
+		will be used as the basis for the import. 
 		"""
 		return self.template.preview_data( self.data_file.path )
-	
+
 	def import_data( self ):
 		"""
+		Run the data import. Normally this should be executed in a background task
+		as it might be a long running task.
+		
+		Also, the user is resposnsible to save the import object afterwards to ensure
+		that it's marked as done.
 		"""
 		if not self.imported:
 			self.template.import_data( self.data_file.path )
 			self.imported = True
 			return True
 		return False
-	
+
 	@classmethod
 	def pre_delete_callback( cls, sender, instance=None, **kwargs ):
 		"""
+		Delete any file stored on the object, when the object is being deleted.
 		"""
 		try:
 			instance.data_file.delete()
 		except Exception:
-			pass	
+			pass
 
 pre_delete.connect( Import.pre_delete_callback, sender=Import )
 

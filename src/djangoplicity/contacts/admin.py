@@ -36,6 +36,7 @@ Admin interfaces for contact models.
 
 from django.conf.urls.defaults import patterns
 from django.contrib import admin
+from django import forms
 from django.shortcuts import get_object_or_404, render_to_response
 from django.template import RequestContext
 from django.template.defaultfilters import slugify
@@ -45,7 +46,7 @@ from djangoplicity.admincomments.admin import AdminCommentInline, \
 from djangoplicity.contacts.models import ContactGroup, Contact, Country, \
 	CountryGroup, GroupCategory, ContactField, Field, Label, PostalZone, \
 	ContactGroupAction, ImportTemplate, ImportMapping, ImportSelector, \
-	ImportGroupMapping, Import
+	ImportGroupMapping, Import, CONTACTS_FIELDS
 from djangoplicity.contacts.signals import contact_added, contact_removed
 from django.shortcuts import get_object_or_404
 
@@ -54,8 +55,22 @@ class ImportSelectorInlineAdmin( admin.TabularInline ):
 	model = ImportSelector
 	extra = 0
 
+class ImportMappingForm( forms.ModelForm ):
+	"""
+	Form to dynamically set the field choices for an import mapping.
+	"""
+	field = forms.TypedChoiceField()
+	
+	def __init__( self, *args, **kwargs ):
+		super( ImportMappingForm, self ).__init__( *args, **kwargs )
+		self.fields['field'].choices = [( '', '---------' )] + CONTACTS_FIELDS + Field.field_options()
+	
+	class Meta:
+		model = ImportMapping
+
 class ImportMappingInlineAdmin( admin.TabularInline ):
 	model = ImportMapping
+	form = ImportMappingForm
 	extra = 0
 	
 class ImportGroupMappingInlineAdmin( admin.TabularInline ):
@@ -146,13 +161,13 @@ class ImportTemplateAdmin( admin.ModelAdmin ):
 	list_display = ['name', 'duplicate_handling', 'multiple_duplicates', 'tag_import', ]
 	list_editable = ['duplicate_handling', 'multiple_duplicates', 'tag_import', ]
 	search_fields = ['name',  ]
-	filter_horizontal = ['extra_groups']
+	filter_horizontal = ['extra_groups', 'frozen_groups']
 	fieldsets = ( 
 		( None, {
 			'fields': ( 'name', 'tag_import' , 'extra_groups' )
 		} ),
 		( 'Duplicate handling', {
-			'fields': ( 'duplicate_handling', 'multiple_duplicates', )
+			'fields': ( 'duplicate_handling', 'multiple_duplicates', 'frozen_groups' )
 		} ),
 	)
 	inlines = [ImportSelectorInlineAdmin,ImportMappingInlineAdmin]
@@ -191,8 +206,8 @@ class PostalZoneAdmin( admin.ModelAdmin ):
 	search_fields = ['name', ]
 
 class FieldAdmin( admin.ModelAdmin ):
-	list_display = ['name', ]
-	search_fields = ['name', ]
+	list_display = ['slug','name', 'blank' ]
+	search_fields = ['slug','name', ]
 
 class LabelAdmin( admin.ModelAdmin ):
 	list_display = ['name', 'paper', 'repeat', 'enabled' ]
