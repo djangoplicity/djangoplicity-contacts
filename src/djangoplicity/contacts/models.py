@@ -511,9 +511,9 @@ class Contact( DirtyFieldsMixin, models.Model ):
 
 			if zip_code or postal_code or state or city:
 				if ctry.zip_after_city:
-					self.city = "  ".join( filter( lambda x: x, [city, state, zip_code, postal_code, ] ) )
+					self.city = "  ".join( [unicode(x) for x in filter( lambda x: x, [city, state, zip_code, postal_code, ] ) ] )
 				else:
-					self.city = "  ".join( filter( lambda x: x, [zip_code, postal_code, city, state] ) )
+					self.city = "  ".join( [unicode(x) for x in filter( lambda x: x, [zip_code, postal_code, city, state, ] ) ] )
 				changed = True
 		elif 'city' in kwargs:
 			self.city = kwargs['city']
@@ -1037,7 +1037,7 @@ class ImportTemplate( models.Model ):
 						elif self.duplicate_handling == 'update':
 							# Intersect frozen groups with contacts groups (if non-empty result,
 							# then contact is in one of the frozen groups and should not be updated. 
-							if not frozen_set & set( existing_obj.groups.values_list( 'pk', flat=True ) ):
+							if not ( frozen_set & set( existing_obj.groups.values_list( 'pk', flat=True ) ) ):
 								existing_obj.update_object( **data )
 
 						if 'groups' in data and data['groups']:
@@ -1149,6 +1149,9 @@ class ImportMapping( models.Model ):
 					return self.get_groups_value( val )
 				if trail[0] == 'country':
 					return self.get_country_value( val )
+			# Excel uses float for many numbers.
+			if isinstance( val, float ) and val - int( val ) == 0.0:
+				return int(val)
 			return val
 		except KeyError:
 			return None
