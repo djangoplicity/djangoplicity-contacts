@@ -1002,7 +1002,7 @@ class ImportTemplate( models.Model ):
 		for data in self.extract_data( filename ):
 			if data:
 				i += 1
-				if 'groups' in data:
+				if 'groups' in data and data['groups']:
 					data['groups'] += extra_groups
 				else:
 					data['groups'] = extra_groups
