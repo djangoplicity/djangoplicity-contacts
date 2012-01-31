@@ -31,7 +31,7 @@
 #
 
 from django.test import TestCase
-from djangoplicity.contacts.models import Field, Country, ContactGroup, Contact, ImportTemplate ,\
+from djangoplicity.contacts.models import ContactGroup, Contact, ImportTemplate ,\
 	ImportSelector, ImportMapping, ImportGroupMapping, Import
 from djangoplicity.contacts.tests.testdata import ContactSetupMixin, ImporterMixin
 import os
@@ -53,7 +53,7 @@ class ImportTemplateTestCase( ImporterMixin, ContactSetupMixin, TestCase ):
 			template.import_data( filename )
 		return ( template, filename )
 	
-	def test_bad_template( self ):
+	def test_missing_column( self ):
 		"""
 		Test importing an excel sheet without a column specified
 		"""
@@ -84,6 +84,37 @@ class ImportTemplateTestCase( ImporterMixin, ContactSetupMixin, TestCase ):
 		c = Contact.objects.get( id=4 )
 		self.assertEqual( c.position, "" )
 		self.assertIsNotNone( c.country )
+		
+	
+	def test_multiple_columns( self ):
+		"""
+		Test importing an excel sheet with multiple groups columns
+		"""
+		# Clean contacts
+		self._contacts_setup()
+		self._clear_templates()
+		
+		rows_data = [
+			self.create_contact( 1, extra={ 'groups' : 'G2,G3 ', 'position'  : 'G4, G5'} ),
+		]
+		
+		template, filename = self._import_data( rows_data, run_import=False )
+		template.duplicate_handling = 'update'
+		template.multiple_duplicates = 'first'
+		
+		# Change position column into a groups column
+		mapping = ImportMapping.objects.get( template=template, field='position' )
+		mapping.field = 'groups'
+		mapping.group_separator = ','
+		mapping.save()
+		
+		for grp in ContactGroup.objects.all().order_by( 'name' ):
+			ImportGroupMapping( mapping=mapping, value=grp.name, group=grp ).save()
+		
+		template.import_data( filename )
+		
+		c = Contact.objects.get( id=1 )
+		self.assertEqual( [x.name for x in c.groups.all()], ['G1', 'G2', 'G3', 'G4', 'G5'] )
 		
 	
 	def test_import( self ):

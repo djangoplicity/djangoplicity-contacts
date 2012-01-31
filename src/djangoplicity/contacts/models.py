@@ -926,7 +926,7 @@ class ImportTemplate( models.Model ):
 		return self._mapping_cache
 
 
-	def parse_row( self, incoming_data, as_list=False, flat=False ):
+	def parse_row( self, incoming_data, as_list=False, flat=False, include_missing=False ):
 		"""
 		Transform the incoming data according to 
 		the defined data mapping.
@@ -934,19 +934,24 @@ class ImportTemplate( models.Model ):
 		if self.is_selected( incoming_data ):
 			outgoing_data = [] if as_list else {}
 			for m in self.get_mapping():
+				field = str( m.get_field() )
 				try:
 					val = m.get_value( incoming_data )
-	
+					
 					if as_list:
 						outgoing_data.append( ", ".join( val ) if isinstance( val, list ) and flat else val )
 					else:
-						field = str( m.get_field() )
 						if field in outgoing_data:
 							outgoing_data[field] += val
 						else:
 							outgoing_data[field] = val
 				except ColumnDoesNotExists:
-					pass
+					if include_missing:
+						if as_list:
+							outgoing_data.append( 'ERROR' )
+						else:
+							if field not in outgoing_data:
+								outgoing_data[field] = 'ERROR'
 			return outgoing_data
 		return None
 
@@ -986,7 +991,7 @@ class ImportTemplate( models.Model ):
 		i = 1 # Excel start with header at row 1
 		for row in self.get_importer( filename ):
 			i += 1
-			data = self.parse_row( row, as_list=True, flat=True )
+			data = self.parse_row( row, as_list=True, flat=True, include_missing=True )
 			if data:
 				data.insert( 0, i )
 				data_table.append( data )
