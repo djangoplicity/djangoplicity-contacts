@@ -845,6 +845,10 @@ class ContactGroupAction( models.Model ):
 class DataImportError( Exception ):
 	pass
 
+class ColumnDoesNotExists( Exception ):
+	pass
+
+
 ISO_EXPANSION = {
 	'ES' : [u'espana', u'españa'],
 	'IT' : [u'italia', ],
@@ -930,16 +934,19 @@ class ImportTemplate( models.Model ):
 		if self.is_selected( incoming_data ):
 			outgoing_data = [] if as_list else {}
 			for m in self.get_mapping():
-				val = m.get_value( incoming_data )
-
-				if as_list:
-					outgoing_data.append( ", ".join( val ) if isinstance( val, list ) and flat else val )
-				else:
-					field = str( m.get_field() )
-					if field in outgoing_data:
-						outgoing_data[field] += val
+				try:
+					val = m.get_value( incoming_data )
+	
+					if as_list:
+						outgoing_data.append( ", ".join( val ) if isinstance( val, list ) and flat else val )
 					else:
-						outgoing_data[field] = val
+						field = str( m.get_field() )
+						if field in outgoing_data:
+							outgoing_data[field] += val
+						else:
+							outgoing_data[field] = val
+				except ColumnDoesNotExists:
+					pass
 			return outgoing_data
 		return None
 
@@ -1157,7 +1164,7 @@ class ImportMapping( models.Model ):
 				return int(val)
 			return val
 		except KeyError:
-			return None
+			raise ColumnDoesNotExists( self.header )
 
 
 class ImportSelector( models.Model ):
@@ -1175,15 +1182,18 @@ class ImportSelector( models.Model ):
 		try:
 			return data[self.header]
 		except KeyError:
-			return None
+			raise ColumnDoesNotExists( self.header )
 
 	def is_selected( self, data ):
-		val = self.get_value( data )
-		compare_val = self.value.strip() if self.case_sensitive else self.value.strip().lower()
-		if val:
-			val = unicode( val ).strip() if self.case_sensitive else unicode( val ).strip().lower()
-		
-		return val == compare_val
+		try:
+			val = self.get_value( data )
+			compare_val = self.value.strip() if self.case_sensitive else self.value.strip().lower()
+			if val:
+				val = unicode( val ).strip() if self.case_sensitive else unicode( val ).strip().lower()
+			
+			return val == compare_val
+		except ColumnDoesNotExists:
+			return False
 
 
 class ImportGroupMapping( models.Model ):

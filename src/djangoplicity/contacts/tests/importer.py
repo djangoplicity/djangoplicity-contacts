@@ -53,6 +53,39 @@ class ImportTemplateTestCase( ImporterMixin, ContactSetupMixin, TestCase ):
 			template.import_data( filename )
 		return ( template, filename )
 	
+	def test_bad_template( self ):
+		"""
+		Test importing an excel sheet without a column specified
+		"""
+		# Clean contacts
+		self._contacts_setup()
+		self._clear_templates()
+		
+		rows_data = [
+			self.create_contact( 1, extra={ 'country' : 'Misspelled' } ),
+			self.create_contact( 4, extra={ 'country' : 'US' } ),
+		]
+		del rows_data[0]['position']
+		del rows_data[1]['position']
+		
+		template, filename = self._import_data( rows_data, run_import=False )
+		template.duplicate_handling = 'update'
+		template.multiple_duplicates = 'first'
+		
+		# Mapping for non existing column
+		mapping = ImportMapping( template=template, header='Position', field='position' )
+		mapping.save()
+		
+		template.import_data( filename )
+		
+		c = Contact.objects.get( id=1 )
+		self.assertEqual( c.position, "c1.position" )
+		self.assertIsNone( c.country ) # Country is specified (so it will be overwritten)
+		c = Contact.objects.get( id=4 )
+		self.assertEqual( c.position, "" )
+		self.assertIsNotNone( c.country )
+		
+	
 	def test_import( self ):
 		"""
 		Test simple import with no duplicate handling etc.
