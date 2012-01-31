@@ -1176,9 +1176,11 @@ class ImportSelector( models.Model ):
 
 	def is_selected( self, data ):
 		val = self.get_value( data )
+		compare_val = self.value.strip() if self.case_sensitive else self.value.strip().lower()
 		if val:
 			val = unicode( val ).strip() if self.case_sensitive else unicode( val ).strip().lower()
-		return val == self.value
+		
+		return val == compare_val
 
 
 class ImportGroupMapping( models.Model ):
