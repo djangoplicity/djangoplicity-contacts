@@ -852,6 +852,7 @@ ISO_EXPANSION = {
 	'US' : [u'united states'],
 	'NL' : [u'netherlands', u'holland'],
 	'MX' : [u'méxico'],
+	'DE' : [u'deutschland'],
 }
 
 DUPLICATE_HANDLING = [
