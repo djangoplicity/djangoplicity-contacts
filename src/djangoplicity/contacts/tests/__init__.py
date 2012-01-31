@@ -30,4 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE
 #
 
-from djangoplicity.contacts.tests.orderpropagation import *  
+from djangoplicity.contacts.tests.orderpropagation import *
+from djangoplicity.contacts.tests.contacts import *
+from djangoplicity.contacts.tests.importer import *

@@ -498,19 +498,19 @@ class Contact( DirtyFieldsMixin, models.Model ):
 			if kwargs['country'] and len( kwargs['country'] ) == 2:
 				ctry = Country.objects.get( iso_code=kwargs['country'].upper() )
 			elif kwargs['country']:
-				ctry = Country.objects.get( name__ieq=kwargs['country'] )
+				ctry = Country.objects.get( name__iexact=kwargs['country'] )
 			self.country = ctry
 			changed = True
 			del kwargs['country']
 
-		if ctry:
+		if self.country:
 			zip_code = kwargs.get( 'zip', None )
 			postal_code = kwargs.get( 'postal_code', None )
 			state = kwargs.get( 'state', None )
 			city = kwargs.get( 'city', None )
 
 			if zip_code or postal_code or state or city:
-				if ctry.zip_after_city:
+				if self.country.zip_after_city:
 					self.city = "  ".join( [unicode(x) for x in filter( lambda x: x, [city, state, zip_code, postal_code, ] ) ] )
 				else:
 					self.city = "  ".join( [unicode(x) for x in filter( lambda x: x, [zip_code, postal_code, city, state, ] ) ] )
@@ -524,7 +524,7 @@ class Contact( DirtyFieldsMixin, models.Model ):
 			if k in kwargs:
 				del kwargs[k]
 
-		# The rest is simply settings the fields
+		# The rest is simply setting the fields
 		for field, val in kwargs.items():
 			if field in self.ALLOWED_FIELDS:
 				setattr( self, field, val )
@@ -879,7 +879,6 @@ class ImportTemplate( models.Model ):
 	Mapping to a country is done in a fuzzy way, to allow for different
 	spellings of a country name.
 	"""
-
 	name = models.CharField( max_length=255, unique=True )
 	duplicate_handling = models.CharField( max_length=20, choices=DUPLICATE_HANDLING, help_text='' )
 	multiple_duplicates = models.CharField( max_length=20, choices=MULTIPLE_DUPLICATES, help_text='Method use to select a duplicate in case multiple possible duplicates are found.' )
@@ -986,6 +985,7 @@ class ImportTemplate( models.Model ):
 				data_table.append( data )
 		return ( ["Row"] + self.get_mapping(), data_table )
 
+
 	def import_data( self, filename ):
 		"""
 		Import the data file according to the defined
@@ -1021,7 +1021,7 @@ class ImportTemplate( models.Model ):
 					#
 					existing_obj = None
 					qs = Contact.find_objects( **data )
-					if qs and len( qs ) >= 1:
+					if qs and len( qs ) > 1:
 						if self.multiple_duplicates == 'first':
 							existing_obj = qs[0] # Select first duplicate
 						elif self.multiple_duplicates == 'ignore':
@@ -1030,7 +1030,7 @@ class ImportTemplate( models.Model ):
 							existing_obj = None # Create new object instead
 					elif qs and len( qs ) == 1:
 						existing_obj = qs[0]
-
+					
 					# Check if existing object was found
 					if existing_obj:
 						if self.duplicate_handling == 'ignore':
@@ -1040,7 +1040,8 @@ class ImportTemplate( models.Model ):
 							# then contact is in one of the frozen groups and should not be updated. 
 							if not ( frozen_set & set( existing_obj.groups.values_list( 'pk', flat=True ) ) ):
 								existing_obj.update_object( **data )
-
+								existing_obj.save()
+						
 						if 'groups' in data and data['groups']:
 							grps = ContactGroup.objects.filter( name__in=data['groups'] )
 							if grps:
@@ -1098,7 +1099,8 @@ class ImportMapping( models.Model ):
 		"""
 		"""
 		from djangoplicity.contacts.deduplication import similar_text
-
+		
+		# Make country cache if it doesn't exists
 		if ImportMapping._country_cache is None:
 			ImportMapping._country_cache = { 'iso' : {}, 'name' : {} }
 			for c in Country.objects.all():
@@ -1107,7 +1109,7 @@ class ImportMapping( models.Model ):
 
 		value = value.lower().strip()
 		if len( value ) == 2 and value in ImportMapping._country_cache['iso']:
-			return ImportMapping._country_cache['iso']['value'].upper()
+			return ImportMapping._country_cache['iso'][value].upper()
 		elif value in ImportMapping._country_cache['name']:
 			return ImportMapping._country_cache['name'][value].upper()
 		else:
