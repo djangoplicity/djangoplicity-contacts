@@ -317,7 +317,7 @@ class ImportTemplateTestCase( ImporterMixin, ContactSetupMixin, TestCase ):
 		
 	def test_frozen_groups( self ):
 		"""
-		Test simple import with no duplicate handling etc.
+		Test of frozen groups
 		"""
 		# Clean contacts
 		self._contacts_setup()
@@ -345,7 +345,68 @@ class ImportTemplateTestCase( ImporterMixin, ContactSetupMixin, TestCase ):
 		self.assertRaises( Contact.DoesNotExist, Contact.objects.get, id=4 )
 		
 		
+	def test_selector( self ):
+		"""
+		Test of selectors
+		"""
+		# Clean contacts
+		self._contacts_setup()
+		self._clear_templates()
 		
+		rows_data = [
+			self.create_contact( 4, extra={ 'selector' : 'x' } ),
+			self.create_contact( 5, extra={ 'selector' : 'X', } ),
+		]
+		
+		template, filename = self._import_data( rows_data, run_import=False, name='test_import1' )
+		
+		# Mapping is automatically created by test setup, so remove it for selector
+		ImportMapping.objects.get( template=template, header=self._field2header( 'selector' ) ).delete()
+		
+		# Add as selector instead.
+		selector = ImportSelector( template=template, header=self._field2header( 'selector' ), value='x', case_sensitive=True )
+		selector.save()
+		
+		# Check case-sensitive (lower case)
+		template.import_data( filename )
+		
+		c = Contact.objects.get( id=4 )
+		self.assertContact( c, rows_data[0], excludes=[ 'id', 'selector', ] )
+		self.assertRaises( Contact.DoesNotExist, Contact.objects.get, id=5 )
+		
+		# Check case-sensitive (upper case)
+		selector.case_sensitive = True
+		selector.value = 'X'
+		selector.save()
+		template.import_data( filename )
+		
+		c = Contact.objects.get( id=5 )
+		self.assertContact( c, rows_data[1], excludes=[ 'id', 'selector', ] )
+		self.assertRaises( Contact.DoesNotExist, Contact.objects.get, id=6 )
+			
+		# Check case-insensitive (upper case)
+		selector.case_sensitive = False
+		selector.value = 'X'
+		selector.save()
+		template.import_data( filename )
+		
+		c = Contact.objects.get( id=6 )
+		self.assertContact( c, rows_data[0], excludes=[ 'id', 'selector', ] )
+		c = Contact.objects.get( id=7 )
+		self.assertContact( c, rows_data[1], excludes=[ 'id', 'selector', ] )
+		self.assertRaises( Contact.DoesNotExist, Contact.objects.get, id=8 )
+		
+		# Check case-insensitive (upper case)
+		selector.case_sensitive = False
+		selector.value = 'x'
+		selector.save()
+		template.import_data( filename )
+		
+		c = Contact.objects.get( id=8 )
+		self.assertContact( c, rows_data[0], excludes=[ 'id', 'selector', ] )
+		c = Contact.objects.get( id=9 )
+		self.assertContact( c, rows_data[1], excludes=[ 'id', 'selector', ] )
+		self.assertRaises( Contact.DoesNotExist, Contact.objects.get, id=10 )			
 		
 		
 	

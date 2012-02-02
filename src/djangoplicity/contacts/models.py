@@ -882,6 +882,19 @@ class ImportTemplate( models.Model ):
 	
 	Mapping to a country is done in a fuzzy way, to allow for different
 	spellings of a country name.
+	
+	Caching Notes
+	-------------
+	An ImportTemplate and ImportMapping caches selectors/mappings/group mappings
+	and countries inside the instance of the object. If you change (and save) a 
+	selector, mapping or group mapping, this cache will be cleared for the 
+	instance in this thread. However, other threads may have cached the data
+	and also the country cache is not cleared automatically. 
+	
+	In practice this is however not a problem, since usually an ImportTemplate is 
+	loaded and used to run an import once. If an loaded ImportTemplate, however is
+	used several times and selectors or mappings are changed during those imports
+	be sure to test that the import is actually doing what you want it to do. 
 	"""
 	name = models.CharField( max_length=255, unique=True )
 	duplicate_handling = models.CharField( max_length=20, choices=DUPLICATE_HANDLING, help_text='' )
@@ -900,8 +913,25 @@ class ImportTemplate( models.Model ):
 
 	def __unicode__( self ):
 		return self.name
-
+	
+	def clear_selector_cache( self ):
+		"""
+		Called from ImportSelector, to clear the selector cache on a template
+		if a selector is changed.
+		"""
+		self._selectors_cache = None
+		
+	def clear_mapping_cache( self ):
+		"""
+		Called from ImportMapping, to clear the selector cache on a template
+		if a mapping is changed.
+		"""
+		self._mapping_cache = None
+	
 	def get_selectors( self ):
+		"""
+		Get selectors for this template. Selectors are being cached, to make retrieval faster.
+		"""
 		if self._selectors_cache is None:
 			self._selectors_cache = [x for x in ImportSelector.objects.filter( template=self )]
 		return self._selectors_cache
@@ -1023,10 +1053,7 @@ class ImportTemplate( models.Model ):
 				# Add import group if needed
 				if import_grp:
 					data['groups'].append( import_grp.name )
-					
-				if 'second_email' in data:
-					print data
-
+				
 				if self.duplicate_handling != 'none':
 					#
 					# Duplicate handling
@@ -1100,6 +1127,17 @@ class ImportMapping( models.Model ):
 
 	_country_cache = None
 	_groupmap_cache = None
+	
+	def save( self, *args, **kwargs ):
+		# Clear mapping cache on import template
+		super( ImportMapping, self ).save( *args, **kwargs )
+		self.template.clear_mapping_cache()
+		
+	def clear_groupmap_cache( self ):
+		"""
+		Clear group map cache if requested/
+		"""
+		self._groupmap_cache = None
 
 	def get_field( self ):
 		"""
@@ -1182,6 +1220,11 @@ class ImportSelector( models.Model ):
 	header = models.CharField( max_length=255 )
 	value = models.CharField( max_length=255 )
 	case_sensitive = models.BooleanField( default=False )
+	
+	def save( self, *args, **kwargs ):
+		# Clear selector cache on import template
+		super( ImportSelector, self ).save( *args, **kwargs )
+		self.template.clear_selector_cache()
 
 	def get_value( self, data ):
 		try:
@@ -1192,7 +1235,7 @@ class ImportSelector( models.Model ):
 	def is_selected( self, data ):
 		try:
 			val = self.get_value( data )
-			compare_val = self.value.strip() if self.case_sensitive else self.value.strip().lower()
+			compare_val = unicode( self.value ).strip() if self.case_sensitive else unicode( self.value ).strip().lower()
 			if val:
 				val = unicode( val ).strip() if self.case_sensitive else unicode( val ).strip().lower()
 			
@@ -1208,6 +1251,11 @@ class ImportGroupMapping( models.Model ):
 	mapping = models.ForeignKey( ImportMapping, limit_choices_to={ 'field' : 'groups' } )
 	value = models.CharField( max_length=255 )
 	group = models.ForeignKey( ContactGroup )
+	
+	def save( self, *args, **kwargs ):
+		# Clear group map cache on import mapping
+		super( ImportGroupMapping, self ).save( *args, **kwargs )
+		self.mapping.clear_groupmap_cache()
 
 
 upload_dir = os.path.join( settings.TMP_DIR, 'contacts_import' )
