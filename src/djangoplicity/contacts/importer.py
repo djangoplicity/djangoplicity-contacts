@@ -146,6 +146,8 @@ class ExcelImporter( Importer ):
 		self._header = []
 		self.cols = {}
 		for c in self.sheet.row_values( 0 ):
+			if isinstance(c, basestring):
+				c = c.strip()
 			self.cols[c] = i
 			self._header.append( ( c, None ) )
 			i += 1
@@ -227,6 +229,8 @@ class CSVImporter( Importer ):
 		self.cols = {}
 		header = self.csvreader.next()
 		for c in header:
+			if isinstance(c, basestring):
+				c = c.strip()
 			self.cols[c] = i
 			i += 1
 			
