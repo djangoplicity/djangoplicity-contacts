@@ -1,0 +1,1 @@
+{% extends "contacts/labels/cap_label_base.rml"%}{% block postal_zone %}{% endblock %}
