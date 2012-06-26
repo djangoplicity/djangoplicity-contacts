@@ -199,7 +199,7 @@ class SetContactGroupAction( ContactAction ):
 
 	def run( self, conf, model_identifier=None, pk=None ):
 		"""
-		Remove from a group from a contact. 
+		Add a contact to a group
 		"""
 		from djangoplicity.contacts.models import Contact
 
