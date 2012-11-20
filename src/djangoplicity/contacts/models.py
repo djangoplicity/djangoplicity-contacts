@@ -47,6 +47,7 @@ from djangoplicity.actions.models import Action
 from djangoplicity.contacts.labels import LabelRender, LABEL_PAPER_CHOICES
 from djangoplicity.contacts.signals import contact_added, contact_removed, \
 	contact_updated
+import deduplication
 import logging
 import os
 
@@ -390,9 +391,15 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		"""
 		data = {}
 		data['name'] = ( "%s %s %s" % ( self.title, self.first_name, self.last_name ) ).strip()
+		data['first_name'] = self.first_name.strip()
+		data['last_name'] = self.last_name.strip()
 		data['address_lines'] = [x.strip() for x in self.organisation, self.department, self.street_1, self.street_2]
+		data['street_1'] = self.street_1.strip()
+		data['street_2'] = self.street_2.strip()
 		data['city'] = self.city.strip()
 		data['email'] = self.email.strip()
+		data['organisation'] = self.organisation.strip()
+		data['department'] = self.department.strip()
 		data['country'] = self.country.iso_code.upper() if self.country else ''
 		data['contact_object'] = self
 		return data
@@ -864,6 +871,7 @@ DUPLICATE_HANDLING = [
 	( 'ignore', 'Import non-duplicates only' ),
 	( 'update', 'Update existing contact' ),
 	( 'update_groups', 'Update existing contact (contact groups only)' ),
+	( 'smart', 'Detect duplicates and wait for review' ),
 ]
 
 MULTIPLE_DUPLICATES = [
@@ -1040,6 +1048,7 @@ class ImportTemplate( models.Model ):
 
 		extra_groups = list( self.extra_groups.all().values_list( 'name', flat=True ) )
 		frozen_set = set( self.frozen_groups.all().values_list( 'pk', flat=True ) )
+		search_space = deduplication.contacts_search_space()
 
 		i = 0
 		for data in self.extract_data( filename ):
@@ -1054,7 +1063,16 @@ class ImportTemplate( models.Model ):
 				if import_grp:
 					data['groups'].append( import_grp.name )
 				
-				if self.duplicate_handling != 'none':
+				if self.duplicate_handling == 'smart':
+					dups = deduplication.find_duplicates(data, search_space)
+					if not dups :
+						print 'nodup', data
+					elif len(dups) > 1:
+						print 'dups', data
+						for dup in dups:
+							print '** dup!: http://squid.ads.eso.org:8000/public/djangoplicity/admin/contacts/contact/%d (%f)' % (dup[1]['contact_object'].pk, dup[0])
+					continue
+				elif self.duplicate_handling != 'none':
 					#
 					# Duplicate handling
 					#
