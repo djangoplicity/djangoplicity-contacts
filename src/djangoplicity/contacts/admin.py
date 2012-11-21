@@ -34,8 +34,10 @@
 Admin interfaces for contact models.
 """
 
-from django.conf.urls.defaults import patterns
+from django.conf.urls.defaults import patterns, url
 from django.contrib import admin
+from django.contrib.auth.models import User
+from django.contrib.sessions.models import Session
 from django import forms
 from django.shortcuts import get_object_or_404, render_to_response
 from django.template import RequestContext
@@ -78,23 +80,24 @@ class ImportGroupMappingInlineAdmin( admin.TabularInline ):
 	extra = 0
 
 class ImportAdmin( admin.ModelAdmin ):
-	list_display = ['template', 'imported', 'last_modified', 'created' ]
-	list_filter = ['imported', 'last_modified', 'created' ]
-	readonly_fields = ['imported', 'last_modified', 'created' ]
+	list_display = [ 'template', 'last_modified', 'created' ]
+	list_filter = [ 'last_modified', 'created' ]
+	readonly_fields = ['status', 'last_modified', 'created' ]
 	fieldsets = ( 
 		( None, {
 			'fields': ( 'template', 'data_file' , )
 		} ),
 		( 'Status', {
-			'fields': ( 'imported', 'last_modified', 'created' )
+			'fields': ( 'status', 'last_modified', 'created' )
 		} ),
 	)
 	
 	def get_urls( self ):
 		urls = super( ImportAdmin, self ).get_urls()
 		extra_urls = patterns( '',
-			( r'^(?P<pk>[0-9]+)/preview/$', self.admin_site.admin_view( self.preview_view ) ),
-			( r'^(?P<pk>[0-9]+)/import/$', self.admin_site.admin_view( self.import_view ) ),
+				url( r'^(?P<pk>[0-9]+)/preview/$', self.admin_site.admin_view( self.preview_view ), name='contacts_import_preview' ),
+			url( r'^(?P<pk>[0-9]+)/import/$', self.admin_site.admin_view( self.import_view ), name='contacts_import' ),
+			url( r'^(?P<pk>[0-9]+)/review/$', self.admin_site.admin_view( self.review_view ), name='contacts_import_review' ),
 		)
 		return extra_urls + urls
 	
@@ -136,11 +139,19 @@ class ImportAdmin( admin.ModelAdmin ):
 		Generate labels or show list of available labels
 		"""
 		obj = get_object_or_404( Import, pk=pk )
-		
+
 		# Import in background
 		if request.method == "POST":
+
+			# This will only be set if contacts are manually selected for
+			# a "smart" import
+			import_contacts = request.POST.getlist('_selected_import')
+			# Convert the list from unicode to int, remove -1 as Excel
+			# data starts at 2, and we expect 1 based array
+			import_contacts = [ int(x) -1 for x in import_contacts ]
+
 			from djangoplicity.contacts.tasks import import_data
-			import_data.delay( obj.pk )
+			import_data.delay( obj.pk, import_contacts )
 				
 			return render_to_response(
 					"admin/contacts/import/import.html", 
@@ -154,12 +165,41 @@ class ImportAdmin( admin.ModelAdmin ):
 				)
 		else:
 			raise Http404
+
+	def review_view( self, request, pk=None ):
+		"""
+		Generate labels or show list of available labels
+		"""
+		obj = get_object_or_404( Import, pk=pk )
 		
-		
+		# Prepare the smart import in the background
+		if request.method == "POST":
+
+			if obj.status != 'processing':
+				obj.status = 'processing'
+				obj.save()
+
+			from djangoplicity.contacts.tasks import prepare_import
+			prepare_import( obj.pk, request.user.email )
+
+		mapping, rows = obj.review_data()
+				
+		return render_to_response(
+				"admin/contacts/import/review.html", 
+				{
+					'columns' : mapping,
+					'rows' : rows,
+					'object' : obj,
+					'messages': [],
+					'app_label' : obj._meta.app_label,
+					'opts' : obj._meta,
+				}, 
+				context_instance=RequestContext( request )
+			)
 
 class ImportTemplateAdmin( admin.ModelAdmin ):
-	list_display = ['name', 'duplicate_handling', 'multiple_duplicates', 'tag_import', ]
-	list_editable = ['duplicate_handling', 'multiple_duplicates', 'tag_import', ]
+	list_display = ['name', 'duplicate_handling', 'tag_import', ]
+	list_editable = ['duplicate_handling', 'tag_import', ]
 	search_fields = ['name',  ]
 	filter_horizontal = ['extra_groups', 'frozen_groups']
 	fieldsets = ( 
@@ -167,7 +207,7 @@ class ImportTemplateAdmin( admin.ModelAdmin ):
 			'fields': ( 'name', 'tag_import' , 'extra_groups' )
 		} ),
 		( 'Duplicate handling', {
-			'fields': ( 'duplicate_handling', 'multiple_duplicates', 'frozen_groups' )
+			'fields': ( 'duplicate_handling', 'frozen_groups' )
 		} ),
 	)
 	inlines = [ImportSelectorInlineAdmin,ImportMappingInlineAdmin]

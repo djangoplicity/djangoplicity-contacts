@@ -573,6 +573,7 @@ def find_duplicates( obj, search_space, ratio_limit=0.75 ):
 
 	for s in search_space:
 		ratio = similar( obj, s )
+		ratio = round(ratio, 2)
 		if ratio > ratio_limit:
 			dups.append( (ratio,s) )
 			

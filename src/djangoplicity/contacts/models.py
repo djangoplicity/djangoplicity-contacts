@@ -868,16 +868,7 @@ ISO_EXPANSION = {
 
 DUPLICATE_HANDLING = [
 	( 'none', 'Import all - no duplicate detection' ),
-	( 'ignore', 'Import non-duplicates only' ),
-	( 'update', 'Update existing contact' ),
-	( 'update_groups', 'Update existing contact (contact groups only)' ),
 	( 'smart', 'Detect duplicates and wait for review' ),
-]
-
-MULTIPLE_DUPLICATES = [
-	( 'ignore', 'None' ),
-	( 'first', 'First' ),
-	( 'create_new', 'Create new' ),
 ]
 
 class ImportTemplate( models.Model ):
@@ -905,8 +896,7 @@ class ImportTemplate( models.Model ):
 	be sure to test that the import is actually doing what you want it to do. 
 	"""
 	name = models.CharField( max_length=255, unique=True )
-	duplicate_handling = models.CharField( max_length=20, choices=DUPLICATE_HANDLING, help_text='' )
-	multiple_duplicates = models.CharField( max_length=20, choices=MULTIPLE_DUPLICATES, help_text='Method use to select a duplicate in case multiple possible duplicates are found.' )
+	duplicate_handling = models.CharField( max_length=20, choices=DUPLICATE_HANDLING, help_text='', default='smart' )
 	frozen_groups = models.ManyToManyField( ContactGroup, blank=True, help_text='Contacts belonging to these groups will not be updated.', related_name='importtemplate_frozen_set' )
 
 	tag_import = models.BooleanField( default=True, help_text="Create a contact group for this import." )
@@ -1036,7 +1026,36 @@ class ImportTemplate( models.Model ):
 		return ( ["Row"] + self.get_mapping(), data_table )
 
 
-	def import_data( self, filename ):
+	def review_data( self, filename, duplicate_contacts, imported_contacts):
+		"""
+		Review the data file according to the defined import template,
+		displaying the potential duplicates
+		"""
+		data_table = []
+		i = 1 # Excel start with header at row 1
+		for row in self.get_importer( filename ):
+			i += 1
+			data = self.parse_row( row, as_list=True, flat=True, include_missing=True )
+			if data:
+				dups = ''
+				#  Duplicates dict is using 0 based arrays
+				# FIXME: find out why the index are unicode, should be int
+				if unicode(i - 1) in duplicate_contacts:
+					dups = ' '.join([ '<a href="/public/djangoplicity/admin/contacts/contact/%s">%s (%.2f)' 
+						% (x[0], x[0], x[1]) for x in duplicate_contacts[unicode(i-1)].items() ])
+
+				if unicode(i -1) in imported_contacts:
+					status = 'imported'
+				elif len(dups):
+					status = 'duplicate'
+				else:
+					status = 'new'
+				data = [ status, i, dups ] + data
+				data_table.append( data )
+		return ( ["Import", "Row", "Potential duplicates"] + self.get_mapping(), data_table )
+
+
+	def import_data( self, filename, import_contacts ):
 		"""
 		Import the data file according to the defined
 		import template.
@@ -1049,6 +1068,7 @@ class ImportTemplate( models.Model ):
 		extra_groups = list( self.extra_groups.all().values_list( 'name', flat=True ) )
 		frozen_set = set( self.frozen_groups.all().values_list( 'pk', flat=True ) )
 		search_space = deduplication.contacts_search_space()
+		imported_contacts = {}
 
 		i = 0
 		for data in self.extract_data( filename ):
@@ -1064,49 +1084,44 @@ class ImportTemplate( models.Model ):
 					data['groups'].append( import_grp.name )
 				
 				if self.duplicate_handling == 'smart':
-					dups = deduplication.find_duplicates(data, search_space)
-					if not dups :
-						print 'nodup', data
-					elif len(dups) > 1:
-						print 'dups', data
-						for dup in dups:
-							print '** dup!: http://squid.ads.eso.org:8000/public/djangoplicity/admin/contacts/contact/%d (%f)' % (dup[1]['contact_object'].pk, dup[0])
-					continue
-				elif self.duplicate_handling != 'none':
-					#
-					# Duplicate handling
-					#
-					existing_obj = None
-					qs = Contact.find_objects( **data )
-					if qs and len( qs ) > 1:
-						if self.multiple_duplicates == 'first':
-							existing_obj = qs[0] # Select first duplicate
-						elif self.multiple_duplicates == 'ignore':
-							continue # Ignore row
-						elif  self.multiple_duplicates == 'create_new':
-							existing_obj = None # Create new object instead
-					elif qs and len( qs ) == 1:
-						existing_obj = qs[0]
-					
-					# Check if existing object was found
-					if existing_obj:
-						if self.duplicate_handling == 'ignore':
-							continue
-						elif self.duplicate_handling == 'update':
-							# Intersect frozen groups with contacts groups (if non-empty result,
-							# then contact is in one of the frozen groups and should not be updated. 
-							if not ( frozen_set & set( existing_obj.groups.values_list( 'pk', flat=True ) ) ):
-								existing_obj.update_object( **data )
-								existing_obj.save()
-						
-						if 'groups' in data and data['groups']:
-							grps = ContactGroup.objects.filter( name__in=data['groups'] )
-							if grps:
-								existing_obj.groups.add( *grps )
+					# We only import manually selected contacts
+					if not i in import_contacts:
 						continue
+
 				obj = Contact.create_object( **data )
 				logger.info( "Creating contact %s" % obj.pk )
+				imported_contacts[i] = obj.pk
 
+		return imported_contacts
+
+	def prepare_import( self, filename ):
+		"""
+		Search for a and returns a list of potential duplicates in the file.
+		"""
+
+		if self.duplicate_handling != 'smart':
+			return
+
+		duplicate_contacts = {}
+		search_space = deduplication.contacts_search_space()
+
+		i = 0
+		for data in self.extract_data( filename ):
+			if data:
+				i += 1
+				
+				dups = deduplication.find_duplicates(data, search_space)
+				if not dups :
+					continue
+
+				# Create a dict of duplicate score with Contact id as key
+				keys = {}
+				for dup in dups:
+					keys[dup[1]['contact_object'].pk] = dup[0]
+
+				duplicate_contacts[i] = keys
+
+		return duplicate_contacts
 
 CONTACTS_FIELDS = [
 	( 'city', 'City' ),
@@ -1292,6 +1307,13 @@ def handle_uploaded_file( instance, filename ):
 
 	return name
 
+
+IMPORT_STATUS = [
+	( 'new', 'New' ),
+	( 'processing', 'Processing' ),
+	( 'review', 'Review' ),
+]
+
 class Import( models.Model ):
 	"""
 	Import job - stores an excel file and selects which import template to use when importing
@@ -1302,9 +1324,11 @@ class Import( models.Model ):
 	"""
 	template = models.ForeignKey( ImportTemplate )
 	data_file = models.FileField( upload_to=handle_uploaded_file, storage=upload_fs )
-	imported = models.BooleanField( default=False )
+	status = models.CharField( max_length=20, choices=IMPORT_STATUS, help_text='', default='new' )
 	created = models.DateTimeField( auto_now_add=True )
 	last_modified = models.DateTimeField( auto_now=True )
+	imported_contacts = models.TextField( blank=True )
+	duplicate_contacts = models.TextField( blank=True )
 
 	def preview_data( self ):
 		"""
@@ -1313,19 +1337,50 @@ class Import( models.Model ):
 		"""
 		return self.template.preview_data( self.data_file.path )
 
-	def import_data( self ):
+	def review_data( self ):
+		"""
+		Generate a preview of the data mapping for this import including the
+		poential duplicates. The data will be used as the basis for the import. 
+		"""
+		import simplejson as json
+		duplicate_contacts = json.loads(self.duplicate_contacts)
+		imported_contacts = json.loads(self.imported_contacts)
+		return self.template.review_data( self.data_file.path, duplicate_contacts, imported_contacts )
+
+	def import_data( self, import_contacts ):
 		"""
 		Run the data import. Normally this should be executed in a background task
 		as it might be a long running task.
 		
-		Also, the user is resposnsible to save the import object afterwards to ensure
+		Also, the user is responsible to save the import object afterwards to ensure
 		that it's marked as done.
 		"""
-		if not self.imported:
-			self.template.import_data( self.data_file.path )
-			self.imported = True
-			return True
-		return False
+		imported_contacts = self.template.import_data( self.data_file.path, import_contacts )
+
+		# Save the dict of imported contacts
+		import simplejson as json
+		if self.imported_contacts:
+			tmp = json.loads(self.imported_contacts)
+		else:
+			tmp = {}
+		tmp.update(imported_contacts)
+		self.imported_contacts = json.dumps(tmp)
+		return True
+
+	def prepare_import( self ):
+		"""
+		Look for potential duplicates in the import. Normally this should be
+		executed in a background task as it might be a long running task.
+		
+		Also, the user is responsible to set the import status and save it
+		afterwards to ensure that it's marked as done.
+		"""
+		dups = self.template.prepare_import( self.data_file.path )
+		if dups:
+			import simplejson as json
+			self.duplicate_contacts = json.dumps(dups)
+			self.save()
+		return True
 
 	@classmethod
 	def pre_delete_callback( cls, sender, instance=None, **kwargs ):

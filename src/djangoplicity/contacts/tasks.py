@@ -33,14 +33,19 @@
 from celery.schedules import crontab
 from celery.task import PeriodicTask, task
 from datetime import timedelta
+from django.contrib.sites.models import Site
 from django.core.exceptions import ImproperlyConfigured
+from django.core.mail import send_mail
+from django.core.urlresolvers import reverse
 from django.db import models
 from djangoplicity.actions.plugins import ActionPlugin
 
 
 @task( ignore_result=True )
-def import_data( import_pk ):
+def import_data( import_pk, import_contacts ):
 	"""
+	Run contacts import in the background, import_contacts
+	is a list of contacts to import (row numbers)
 	"""
 	logger = import_data.get_logger()
 	
@@ -48,12 +53,41 @@ def import_data( import_pk ):
 	
 	obj = Import.objects.get( pk=import_pk )
 	
-	if obj.import_data():
+	if obj.import_data(import_contacts):
 		obj.save()
 		logger.warning( "File was imported (pk=%s)" % obj.pk )
 	else:
 		logger.warning( "File has already been imported (pk=%s)" % obj.pk )
 
+
+@task( ignore_result=True )
+def prepare_import( import_pk, email ):
+	"""
+	Look for potential duplicates in import
+	"""
+	logger = prepare_import.get_logger()
+	
+	from djangoplicity.contacts.models import Import
+	
+	obj = Import.objects.get( pk=import_pk )
+	
+	if obj.prepare_import():
+		obj.status = 'review'
+		obj.save()
+		logger.warning( "Import was preparred(pk=%s)" % obj.pk )
+
+		# Send email to user:
+		site = Site.objects.get_current()
+		message = '''Dear User, 
+
+The import from file "%s" has been prepared and potential duplicates identified. 
+You can review the results and import the contacts at:
+http://%s%s
+
+''' % (obj.data_file, site.domain, reverse('admin:contacts_import_review', args=[obj.pk]))
+
+		send_mail('Import %s (%s) ready for review' % (obj.pk, obj.data_file),
+				message, 'no-reply@eso.org', [email, 'mandre@eso.org'])
 
 
 class PeriodicAction( PeriodicTask ):

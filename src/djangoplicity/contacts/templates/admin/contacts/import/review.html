@@ -23,17 +23,23 @@
      <a href="../../../">{{ app_label|capfirst|escape }}</a> &rsaquo;
      <a href="../../">{{ opts.verbose_name_plural|capfirst }}</a> &rsaquo;
      <a href="../">{{ object|truncatewords:"18" }}</a> &rsaquo;
-     {% trans "Results" %}
+     {% trans "Review" %}
 </div>
 {% endwith %}
 {% endblock %}
 
 
 {% block coltype %}flex{% endblock %}
-{% block site_title %}Contacts Import Preview{% endblock %}
+{% block site_title %}Contacts Import Review{% endblock %}
 
 {% block content %}
-<h1>Contacts Import Preview</h1>
+
+{% if object.status == "processing" %}
+<h1>The import is being preparred, please come back later</h1>
+{% else %}
+
+<h1>Contacts Import Review</h1>
+
 <p>
 	<strong>Template:</strong> <a href="{% url admin:contacts_importtemplate_change object.template.pk %}">{{object.template}}</a><br />
 	<strong>Tag import:</strong> {{object.template.tag_import|yesno}}<br />
@@ -50,7 +56,7 @@
     <div class="module{% if filtered %} filtered{% endif %}" id="changelist">
       {% block filters %}
       {% endblock %}
-	  <form id="changelist-form" action="{% if object.template.duplicate_handling == "smart" %}../review/{% else %}../import/{% endif %}" method="post"{% if cl.formset.is_multipart %} enctype="multipart/form-data"{% endif %}>{% csrf_token %}
+	  <form id="changelist-form" action="../import/" method="post"{% if cl.formset.is_multipart %} enctype="multipart/form-data"{% endif %}>{% csrf_token %}
       {% block result_list %}
           	{% if rows %}
 			<table cellspacing="0" id="result_list">
@@ -59,7 +65,23 @@
 			</thead>
 			<tbody>
 			{% for row in rows %}
-			<tr class="{% cycle 'row1' 'row2' %}">{% for cell in row %}<td>{{ cell }}</td>{% endfor %}</tr>
+			<tr class="{% cycle 'row1' 'row2' %}">
+				{% for cell in row %}
+					{% if forloop.first %}
+						{% if cell == "duplicate" %}
+							<td style="background: orange;"><input type="checkbox" class="action-select" value="{{row.1}}" name="_selected_import"></td>
+						{% else %}
+							{% if cell == "imported" %}
+								<td></td>
+							{% else %}
+								<td style="background: green;"><input type="checkbox" class="action-select" value="{{row.1}}" name="_selected_import" checked="checked"></td>
+							{% endif %}
+						{% endif %}
+					{% else %}
+						<td>{{ cell|safe }}</td>
+					{% endif %}
+				{% endfor %}
+			</tr>
 			{% endfor %}
 			</tbody>
 			</table>
@@ -68,10 +90,11 @@
       {% endblock %}
 		<p class="paginator">
 			{{rows|length}} rows
-			<input type="submit" name="_import" class="default" value="{% if object.template.duplicate_handling == "smart" %}Prepare {% endif %}Import">
+			<input type="submit" name="_import" class="default" value="Import">
 		</p>
       </form>
     </div>
     
   </div>
+{% endif %}
 {% endblock %}
