@@ -46,6 +46,10 @@
 	<strong>Extra groups:</strong> {% for g in object.template.extra_groups.all%}{% if not forloop.first%}, {%endif%}{{ g }}{% endfor %}<br />
 	<strong>Duplicate handling:</strong> {{object.template.get_duplicate_handling_display}}<br /> 
 	<strong>Selector columns:</strong> {% for s in object.template.get_selectors %}{{s.header}} ("{{s.value}}"){% endfor%}<br /> 
+	<strong>Last deduplication:</strong> {{ object.last_deduplication }}
+	<form id="rerun-dedup-form" action="../review/" method="post"{% if cl.formset.is_multipart %} enctype="multipart/form-data"{% endif %}>{% csrf_token %}
+		<input type="submit" name="_deduplicate" value="Re-run deduplication">
+	</form><br /> 
 </p>
 <div id="content-main">
     {% if error %}
@@ -65,21 +69,18 @@
 			</thead>
 			<tbody>
 			{% for row in rows %}
-			<tr class="{% cycle 'row1' 'row2' %}">
-				{% for cell in row %}
-					{% if forloop.first %}
-						{% if cell == "duplicate" %}
-							<td style="background: orange;"><input type="checkbox" class="action-select" value="{{row.1}}" name="_selected_import"></td>
-						{% else %}
-							{% if cell == "imported" %}
-								<td></td>
-							{% else %}
-								<td style="background: green;"><input type="checkbox" class="action-select" value="{{row.1}}" name="_selected_import" checked="checked"></td>
-							{% endif %}
-						{% endif %}
-					{% else %}
-						<td>{{ cell|safe }}</td>
-					{% endif %}
+			<tr class="{% cycle 'row1' 'row2' %}" {% if row.status == "imported" %} style="background:white;color:grey"{% endif %} >
+				{% if row.status == "has_duplicate" %}
+					<td style="background: orange;"><input type="checkbox" class="action-select" value="{{row.data.0}}" name="_selected_import"></td>
+				{% endif %}
+				{% if row.status == "imported" or row.status == "is_duplicate" %}
+					<td></td>
+				{% endif %}
+				{% if row.status == "new" %}
+					<td style="background: green;"><input type="checkbox" class="action-select" value="{{row.data.0}}" name="_selected_import" checked="checked"></td>
+				{% endif %}
+				{% for cell in row.data %}
+					<td>{{ cell|safe }}</td>
 				{% endfor %}
 			</tr>
 			{% endfor %}

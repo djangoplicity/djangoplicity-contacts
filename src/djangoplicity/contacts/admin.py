@@ -51,6 +51,7 @@ from djangoplicity.contacts.models import ContactGroup, Contact, Country, \
 	ImportGroupMapping, Import, CONTACTS_FIELDS
 from djangoplicity.contacts.signals import contact_added, contact_removed
 from django.shortcuts import get_object_or_404
+from datetime import datetime
 
 
 class ImportSelectorInlineAdmin( admin.TabularInline ):
@@ -173,14 +174,14 @@ class ImportAdmin( admin.ModelAdmin ):
 		obj = get_object_or_404( Import, pk=pk )
 		
 		# Prepare the smart import in the background
-		if request.method == "POST":
-
+		if not obj.last_deduplication or request.method == "POST":
 			if obj.status != 'processing':
 				obj.status = 'processing'
+				obj.last_deduplication = datetime.now()
 				obj.save()
 
 			from djangoplicity.contacts.tasks import prepare_import
-			prepare_import( obj.pk, request.user.email )
+			prepare_import.delay( obj.pk, request.user.email )
 
 		mapping, rows = obj.review_data()
 				

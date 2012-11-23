@@ -36,6 +36,7 @@ from dirtyfields import DirtyFieldsMixin
 from django.conf import settings
 from django.core.cache import cache
 from django.core.files.storage import FileSystemStorage
+from django.core.urlresolvers import reverse
 from django.db import models
 from django.db.models.signals import m2m_changed, pre_delete, post_delete, \
 	post_save, pre_save
@@ -1032,27 +1033,50 @@ class ImportTemplate( models.Model ):
 		displaying the potential duplicates
 		"""
 		data_table = []
+		mapping = self.get_mapping()
+
 		i = 1 # Excel start with header at row 1
 		for row in self.get_importer( filename ):
 			i += 1
 			data = self.parse_row( row, as_list=True, flat=True, include_missing=True )
+			dups = []
 			if data:
-				dups = ''
-				#  Duplicates dict is using 0 based arrays
 				# FIXME: find out why the index are unicode, should be int
-				if unicode(i - 1) in duplicate_contacts:
-					dups = ' '.join([ '<a href="/public/djangoplicity/admin/contacts/contact/%s">%s (%.2f)' 
-						% (x[0], x[0], x[1]) for x in duplicate_contacts[unicode(i-1)].items() ])
-
 				if unicode(i -1) in imported_contacts:
 					status = 'imported'
-				elif len(dups):
-					status = 'duplicate'
+				elif unicode(i - 1) in duplicate_contacts:
+					status = 'has_duplicate'
+					#  Duplicates dict is using 0 based arrays
+					for id, score in duplicate_contacts[unicode(i-1)].items():
+						try:
+							contact = Contact.objects.get(id=id)
+						except Contact.DoesNotExist:
+							# The contact identified as a duplicate has dispappeared
+							# user should re-run deduplication
+							dups.append({
+								'status': 'is_duplicate',	
+								'data': ['<span style="color: red">Contact disappeared! Please re-run deduplication</span>'],
+							})
+							continue
+						#  create a dict with status (is_duplicate), and data:
+						#  row(none), link to contact and score, and all the
+						#  attributes given by mapping
+						dups.append({
+							'status': 'is_duplicate',	
+							'data': ['', '<a href="%s">%s</a>(%.2f)' % (reverse('admin:contacts_contact_change', 
+								args=[id]), id, score)] + 
+								[ getattr(contact, field.field) for field in mapping ]
+						})
 				else:
 					status = 'new'
-				data = [ status, i, dups ] + data
+
+				data = {
+					'status': status,
+					'data': [i, '' ] + data
+				}
 				data_table.append( data )
-		return ( ["Import", "Row", "Potential duplicates"] + self.get_mapping(), data_table )
+				data_table += dups
+		return ( ["Import", "Row", "Duplicate (score)"] + self.get_mapping(), data_table )
 
 
 	def import_data( self, filename, import_contacts ):
@@ -1327,6 +1351,7 @@ class Import( models.Model ):
 	status = models.CharField( max_length=20, choices=IMPORT_STATUS, help_text='', default='new' )
 	created = models.DateTimeField( auto_now_add=True )
 	last_modified = models.DateTimeField( auto_now=True )
+	last_deduplication = models.DateTimeField( null=True )
 	imported_contacts = models.TextField( blank=True )
 	duplicate_contacts = models.TextField( blank=True )
 
@@ -1343,8 +1368,8 @@ class Import( models.Model ):
 		poential duplicates. The data will be used as the basis for the import. 
 		"""
 		import simplejson as json
-		duplicate_contacts = json.loads(self.duplicate_contacts)
-		imported_contacts = json.loads(self.imported_contacts)
+		duplicate_contacts = json.loads(self.duplicate_contacts) if self.duplicate_contacts else []
+		imported_contacts = json.loads(self.imported_contacts) if self.imported_contacts else []
 		return self.template.review_data( self.data_file.path, duplicate_contacts, imported_contacts )
 
 	def import_data( self, import_contacts ):
