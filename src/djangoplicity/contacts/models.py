@@ -1047,7 +1047,9 @@ class ImportTemplate( models.Model ):
 				elif unicode(i - 1) in duplicate_contacts:
 					status = 'has_duplicate'
 					#  Duplicates dict is using 0 based arrays
-					for id, score in duplicate_contacts[unicode(i-1)].items():
+					#  We loop over the IDs, stored in reverse score order:
+					for id, score in sorted(duplicate_contacts[unicode(i-1)].iteritems(), 
+							key=lambda(k,v):(v,k), reverse=True):
 						try:
 							contact = Contact.objects.get(id=id)
 						except Contact.DoesNotExist:
@@ -1063,7 +1065,7 @@ class ImportTemplate( models.Model ):
 						#  attributes given by mapping
 						dups.append({
 							'status': 'is_duplicate',	
-							'data': ['', '<a href="%s">%s</a>(%.2f)' % (reverse('admin:contacts_contact_change', 
+							'data': ['', '<a href="%s">%s</a> (%.2f)' % (reverse('admin:contacts_contact_change', 
 								args=[id]), id, score)] + 
 								[ getattr(contact, m.field) if hasattr(contact, m.field) else '' for m in mapping ]
 						})

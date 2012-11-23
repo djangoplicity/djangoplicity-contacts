@@ -71,7 +71,7 @@
 			{% for row in rows %}
 			<tr class="{% cycle 'row1' 'row2' %}" {% if row.status == "imported" %} style="background:white;color:grey"{% endif %} >
 				{% if row.status == "has_duplicate" %}
-					<td style="background: orange;"><input type="checkbox" class="action-select" value="{{row.data.0}}" name="_selected_import"></td>
+					<td style="background: orange;text-align:center;vertical-align:middle;"><input type="checkbox" class="action-select" value="{{row.data.0}}" name="_selected_import"></td>
 				{% endif %}
 				{% if row.status == "imported" or row.status == "is_duplicate" %}
 					<td></td>
