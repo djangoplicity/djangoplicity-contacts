@@ -1065,7 +1065,7 @@ class ImportTemplate( models.Model ):
 							'status': 'is_duplicate',	
 							'data': ['', '<a href="%s">%s</a>(%.2f)' % (reverse('admin:contacts_contact_change', 
 								args=[id]), id, score)] + 
-								[ getattr(contact, field.field) for field in mapping ]
+								[ getattr(contact, m.field) if hasattr(contact, m.field) else '' for m in mapping ]
 						})
 				else:
 					status = 'new'
