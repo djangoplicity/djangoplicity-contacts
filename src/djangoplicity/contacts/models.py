@@ -1042,13 +1042,13 @@ class ImportTemplate( models.Model ):
 			dups = []
 			if data:
 				# FIXME: find out why the index are unicode, should be int
-				if unicode(i -1) in imported_contacts:
+				if unicode(i) in imported_contacts:
 					status = 'imported'
-				elif unicode(i - 1) in duplicate_contacts:
+				elif unicode(i) in duplicate_contacts:
 					status = 'has_duplicate'
 					#  Duplicates dict is using 0 based arrays
 					#  We loop over the IDs, stored in reverse score order:
-					for id, score in sorted(duplicate_contacts[unicode(i-1)].iteritems(), 
+					for id, score in sorted(duplicate_contacts[unicode(i)].iteritems(), 
 							key=lambda(k,v):(v,k), reverse=True):
 						try:
 							contact = Contact.objects.get(id=id)
@@ -1131,11 +1131,10 @@ class ImportTemplate( models.Model ):
 		duplicate_contacts = {}
 		search_space = deduplication.contacts_search_space()
 
-		i = 0
+		i = 1 # Excel start with header at row 1
 		for data in self.extract_data( filename ):
+			i += 1
 			if data:
-				i += 1
-				
 				dups = deduplication.find_duplicates(data, search_space)
 				if not dups :
 					continue
