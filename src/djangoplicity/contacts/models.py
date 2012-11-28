@@ -1096,10 +1096,10 @@ class ImportTemplate( models.Model ):
 		search_space = deduplication.contacts_search_space()
 		imported_contacts = {}
 
-		i = 0
+		i = 1 # Excel start with header at row 1
 		for data in self.extract_data( filename ):
+			i += 1
 			if data:
-				i += 1
 				if 'groups' in data and data['groups']:
 					data['groups'] += extra_groups
 				else:

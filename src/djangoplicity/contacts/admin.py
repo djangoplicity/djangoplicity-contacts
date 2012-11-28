@@ -147,9 +147,8 @@ class ImportAdmin( admin.ModelAdmin ):
 			# This will only be set if contacts are manually selected for
 			# a "smart" import
 			import_contacts = request.POST.getlist('_selected_import')
-			# Convert the list from unicode to int, remove -1 as Excel
-			# data starts at 2, and we expect 1 based array
-			import_contacts = [ int(x) -1 for x in import_contacts ]
+			# Convert the list from unicode to int			
+			import_contacts = [ int(x) for x in import_contacts ]
 
 			from djangoplicity.contacts.tasks import import_data
 			import_data.delay( obj.pk, import_contacts )
