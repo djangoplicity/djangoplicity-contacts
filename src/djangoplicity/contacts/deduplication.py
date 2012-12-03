@@ -356,6 +356,14 @@ def _preprocess_city( city, isocode ):
 	else:
 		return city
 	
+
+def _prepare_str(s):
+	'''
+	Strip whitespaces chars and remove duplicates from string
+	'''
+	s = s.strip().lower()
+	return re.sub(r'\s+', ' ', s)
+
 	
 #def similar_name( a, b, ratio_limit=0.90 ):
 #	"""
@@ -452,10 +460,10 @@ def similar_name(a, b, ratio_limit=0.8):
 	Compare first name and last name, returns 0.8 if both match,
 	0.5 if only last name, 0.1 if only first name
 	"""
-	a_first = a['first_name'].lower() if 'first_name' in a else ''
-	b_first = b['first_name'].lower() if 'first_name' in b else ''
-	a_last = a['last_name'].lower() if 'last_name' in a else ''
-	b_last = b['last_name'].lower() if 'last_name' in b else ''
+	a_first = _prepare_str(a['first_name']) if 'first_name' in a else ''
+	b_first = _prepare_str(b['first_name']) if 'first_name' in b else ''
+	a_last = _prepare_str(a['last_name']) if 'last_name' in a else ''
+	b_last = _prepare_str(b['last_name']) if 'last_name' in b else ''
 
 	# Compare first and last name if we have all the information
 	if a_first and b_first and a_last and a_last:
@@ -500,6 +508,9 @@ def similar_address(a, b, ratio_limit=0.8):
 		if 'street_2' in b:
 			address_b += b['street_2']
 
+	address_a = _prepare_str(address_a)
+	address_b = _prepare_str(address_b)
+
 	if address_a and address_b:
 		seq = difflib.SequenceMatcher(None, address_a, address_b)
 		if seq.ratio() > ratio_limit:
@@ -514,15 +525,18 @@ def similar(a, b):
 	# Name
 	r = similar_name(a, b)
 
-	# Email
-	try:
-		if a['email'] and b['email'] and \
-				similar_text(a['email'],
-						b['email'],
-						ratio_limit=0.95):
-			r += 0.8
-	except KeyError:
-		pass 
+	# Email, compares basic email fields as well as potential
+	# optional fields defined as Field
+	emails = ['email', 'second_email', 'third_email']
+	for email_a in emails:
+		if not email_a in a or a[email_a].strip() == '':
+			continue
+		for email_b in emails or b[email_b].strip() == '':
+			if not email_b in b:
+				continue
+			if similar_text(a[email_a], b[email_b],
+							ratio_limit=0.95):
+				r += 0.8
 
 	# Country
 	try:
@@ -544,19 +558,21 @@ def similar(a, b):
 
 	# Organisation
 	try:
-		if a['organisation'] and b['organisation'] and \
-				similar_text(a['organisation'],
-						b['organisation']):
-			r += 0.2
+		if a['organisation'] and b['organisation']:
+			organisation_a = _prepare_str(a['organisation'])
+			organisation_b = _prepare_str(b['organisation'])
+			if similar_text(organisation_a, organisation_b):
+				r += 0.2
 	except KeyError:
 		pass 
 
 	# Department
 	try:
-		if a['department'] and b['department'] and \
-				similar_text(a['department'],
-						b['department']):
-			r += 0.2
+		if a['department'] and b['department']:
+			department_a = _prepare_str(a['department'])
+			department_b = _prepare_str(b['department'])
+			if similar_text(department_a, department_b):
+				r += 0.2
 	except KeyError:
 		pass 
 
