@@ -14,7 +14,7 @@
 #	  notice, this list of conditions and the following disclaimer in the
 #	  documentation and/or other materials provided with the distribution.
 #
-#	* Neither the name of the European Southern Observatory nor the names 
+#	* Neither the name of the European Southern Observatory nor the names
 #	  of its contributors may be used to endorse or promote products derived
 #	  from this software without specific prior written permission.
 #
@@ -40,9 +40,7 @@ from django.core.urlresolvers import reverse
 from django.db import models
 from django.db.models.signals import m2m_changed, pre_delete, post_delete, \
 	post_save, pre_save
-from django.forms import ValidationError
-from django.template import loader, Context, Template
-from django.utils.encoding import smart_str
+from django.forms import ValidationError, ModelForm
 from django.utils.translation import ugettext as _
 from djangoplicity.actions.models import Action
 from djangoplicity.contacts.labels import LabelRender, LABEL_PAPER_CHOICES
@@ -54,6 +52,7 @@ import os
 
 
 logger = logging.getLogger( 'djangoplicity' )
+
 
 class Label( models.Model ):
 	"""
@@ -76,20 +75,20 @@ class Label( models.Model ):
 class Field( models.Model ):
 	"""
 	Definition of extra fields (i.e. fields not defined on contact model.)
-	
+
 	This allows users to create an new field, and add data in it. Normally this should
 	only be used to record extra non-essential data, as access to the data (searching etc)
 	is limited and slower than when defined on the contacts models.
 	"""
-	
+
 	slug = models.SlugField( unique=True )
-	""" Short name used for external applications to pass data to the contacts database. """
-	
+	# Short name used for external applications to pass data to the contacts database.
+
 	name = models.CharField( max_length=255, unique=True )
-	""" Human readable name for field. """
-	
+	# Human readable name for field.
+
 	blank = models.BooleanField( default=True )
-	""" Does field allow blank values """
+	# Does field allow blank values
 
 	_allowed_fields = None
 
@@ -218,17 +217,17 @@ class Country( models.Model ):
 class ContactGroup( DirtyFieldsMixin, models.Model ):
 	"""
 	Groups for contacts
-	
+
 	The order field allows to specify a numerical values
-	by which the groups should be sorted and allows you to 
+	by which the groups should be sorted and allows you to
 	sort contacts by the ordering of groups. Due to the way the django
 	ORM works, it's however difficult to order by a related attribute
 	and at the same time select only distinct contacts. For that reason
 	a minimum group order value is stored on each contact. This value
 	is automatically propagated to all contacts.
-	
+
 	djangoplicity.contacts.tets.orderpropagation contains tests to validate
-	that the propagation happens correctly.    
+	that the propagation happens correctly.
 	"""
 	name = models.CharField( max_length=255, blank=True )
 	category = models.ForeignKey( GroupCategory, blank=True, null=True )
@@ -249,7 +248,7 @@ class ContactGroup( DirtyFieldsMixin, models.Model ):
 		logger.debug( "%s.pre_delete" % cls.__name__ )
 
 		# Get a query of contacts to update and make sure it's evaluated (the contacts will be updated in the post_delete_callback)
-		# This cannot be done in post_delete, since then the object have been deleted from the database, and the relationships are 
+		# This cannot be done in post_delete, since then the object have been deleted from the database, and the relationships are
 		# no longer present in the database.
 		if instance.order:
 			instance._cached_contact_set = list( instance.contact_set.filter( group_order__gte=instance.order ).values_list( 'pk', flat=True ) )
@@ -262,7 +261,7 @@ class ContactGroup( DirtyFieldsMixin, models.Model ):
 		Propagate ContactGroup.order to contacts on delete
 		"""
 		logger.debug( "%s.post_delete" % cls.__name__ )
-		
+
 		# See notes in pre_delete_callback
 		for c in Contact.objects.filter( pk__in=instance._cached_contact_set ).annotate( min__group_order=models.Min( 'groups__order' ) ):
 			if c.group_order != c.min__group_order:
@@ -305,6 +304,7 @@ class ContactGroup( DirtyFieldsMixin, models.Model ):
 	class Meta:
 		ordering = ( 'order', 'name', )
 
+
 class Contact( DirtyFieldsMixin, models.Model ):
 	"""
 	Contacts model
@@ -335,7 +335,7 @@ class Contact( DirtyFieldsMixin, models.Model ):
 
 	def create_snapshot( self, action=None ):
 		"""
-		Take a snapshot of the groups for this contact. The snapshot 
+		Take a snapshot of the groups for this contact. The snapshot
 		is used to detect added/removed groups.
 		"""
 		if not hasattr( self, '_snapshot' ):
@@ -344,7 +344,6 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		logger.debug( "create_snapshot:%s" % action )
 		if self._snapshot is None:
 			self._snapshot = ( action, set( self.groups.all() ) )
-
 
 	def get_snapshot( self, action ):
 		"""
@@ -373,7 +372,6 @@ class Contact( DirtyFieldsMixin, models.Model ):
 
 		cf.value = value
 		cf.save()
-
 
 	def get_extra_field( self, field_slug ):
 		"""
@@ -404,7 +402,6 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		data['country'] = self.country.iso_code.upper() if self.country else ''
 		data['contact_object'] = self
 		return data
-
 
 	ALLOWED_FIELDS = ['first_name', 'last_name', 'title', 'position', 'organisation', 'department', 'street_1', 'street_2', 'city', 'zip', 'state', 'country', 'phone', 'website', 'social', 'email', ]
 
@@ -464,7 +461,6 @@ class Contact( DirtyFieldsMixin, models.Model ):
 				return cls._select_contact( qs )
 		return None
 
-
 	@classmethod
 	def create_object( cls, groups=[], **kwargs ):
 		"""
@@ -473,7 +469,7 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		obj = cls()
 		if obj.update_object( **kwargs ):
 			obj.save()
-			obj.update_extra_fields( **kwargs ) 
+			obj.update_extra_fields( **kwargs )
 			if groups:
 				obj.groups.add( *ContactGroup.objects.filter( name__in=groups ) )
 			return obj
@@ -483,21 +479,21 @@ class Contact( DirtyFieldsMixin, models.Model ):
 	def update_object( self, **kwargs ):
 		"""
 		Update a contact with new information from a dictionary. Following keys are supported:
-		  * first_name
-		  * last_name
-		  * title
-		  * position
-		  * organisation
-		  * department
-		  * street_1
-		  * street_2
-		  * city 
-		  * zip, postal_code, state, city - since the contacts only have a city field, these will be concatenated, also country must be set 
-		  * country (2 letter ISO code)
-		  * phone
-		  * website
-		  * social
-		  * email
+			* first_name
+			* last_name
+			* title
+			* position
+			* organisation
+			* department
+			* street_1
+			* street_2
+			* city
+			* zip, postal_code, state, city - since the contacts only have a city field, these will be concatenated, also country must be set
+			* country (2 letter ISO code)
+			* phone
+			* website
+			* social
+			* email
 		"""
 		changed = False
 
@@ -527,7 +523,7 @@ class Contact( DirtyFieldsMixin, models.Model ):
 			self.city = kwargs['city']
 			changed = True
 
-		# Delete keys that have already been dealt with.	
+		# Delete keys that have already been dealt with.
 		for k in ['zip', 'postal_code', 'state', 'city']:
 			if k in kwargs:
 				del kwargs[k]
@@ -537,28 +533,28 @@ class Contact( DirtyFieldsMixin, models.Model ):
 			if field in self.ALLOWED_FIELDS:
 				setattr( self, field, val )
 				changed = True
-				
+
 		if self.pk:
 			self.update_extra_fields( **kwargs )
-			
+
 		return changed
 
 	def update_extra_fields( self, **kwargs ):
 		"""
 		Settings extra fields requires the contact to be saved to the database
 		before being able to set them, hence they are updated separately from the
-		Contact's models fields. 
+		Contact's models fields.
 		"""
 		extra_fields = self.get_allowed_extra_fields()
 		changed = False
-		
+
 		for field, val in kwargs.items():
 			if field in extra_fields:
 				self.set_extra_field( field, val )
 				changed = True
-		
+
 		return changed
-		
+
 	def __unicode__( self ):
 		if self.first_name or self.last_name:
 			return ( "%s %s %s" % ( self.title, self.first_name, self.last_name ) ).strip()
@@ -585,7 +581,6 @@ class Contact( DirtyFieldsMixin, models.Model ):
 				logger.debug( "send contact_removed" )
 				contact_removed.send( sender=self.__class__, group=g, contact=self )
 
-
 			self.reset_snapshot()
 
 	@classmethod
@@ -594,11 +589,11 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		m2m_changed signal callback handler. Note, due to strange implementation of
 		c.groups = [...] feature (used by admin) it's overly complex to figure out
 		which groups was added/removed for a contact.
-		
+
 		Callback is used to send contact_removed, contact_added signals
-		
+
 		TODO: Does not take the reverse relation into account - e.g: grp.contact_set.add(..)
-		TODO: When last group is removed via admin, only a pre_clear, post_clear is sent, and not a pre_clear, post_clear, pre_add, post_add  
+		TODO: When last group is removed via admin, only a pre_clear, post_clear is sent, and not a pre_clear, post_clear, pre_add, post_add
 		"""
 		logger.debug( "%s.m2m_changed:%s" % ( cls.__name__, action ) )
 
@@ -622,8 +617,6 @@ class Contact( DirtyFieldsMixin, models.Model ):
 			instance.create_snapshot( action[4:] )
 		elif action in ['post_clear', 'post_remove', 'post_add']:
 			instance.dispatch_signals( action[5:] )
-
-
 
 	@classmethod
 	def pre_delete_callback( cls, sender, instance=None, **kwargs ):
@@ -658,7 +651,6 @@ class Contact( DirtyFieldsMixin, models.Model ):
 			logger.debug( "send contact_updated" )
 			contact_updated.send( sender=cls, instance=instance, dirty_fields=dirty_fields )
 
-
 	class Meta:
 		ordering = ['last_name']
 
@@ -677,7 +669,7 @@ class ContactField( models.Model ):
 	def full_clean( self, exclude=None ):
 		super( ContactField, self ).full_clean( exclude=exclude )
 		# Apparently if field is null (i.e. not set in admin), it's not detected
-		# until validate_unique, so we check it as the last step. 
+		# until validate_unique, so we check it as the last step.
 		if self.field.blank and self.value == '':
 			raise ValidationError( "Field %s does not allow blank values" % self.field )
 
@@ -688,7 +680,7 @@ class ContactField( models.Model ):
 # More advanced stuff - configurable actions to be execute once
 # contacts are added/removed from groups (e.g subscribe to mailman).
 #
-ACTION_EVENTS = ( 
+ACTION_EVENTS = (
 	( 'contact_added', 'Contact added to group' ),
 	( 'contact_removed', 'Contact removed from group' ),
 	( 'contact_updated', 'Contact updated' ),
@@ -697,7 +689,8 @@ ACTION_EVENTS = (
 	( 'periodic_1hr', 'Every hour' ),
 	( 'periodic_6hr', 'Every 6 hours' ),
 	( 'periodic_24hr', 'Every day' ),
- )
+)
+
 
 class ContactGroupAction( models.Model ):
 	"""
@@ -722,14 +715,14 @@ class ContactGroupAction( models.Model ):
 	def create_cache( cls, *args, **kwargs ):
 		"""
 		Generate new action cache.
-		
+
 		The cache has two ways of indexing:
 			* by group then event
 			* or, event then group
-			
-		Since ``group_pk'' are always numbers, and ``on_event'' is 
-		always characters, the keys will not collide. 
-		
+
+		Since ``group_pk'' are always numbers, and ``on_event'' is
+		always characters, the keys will not collide.
+
 		cache = {
 			'<group_pk>' : {
 				'<on_event>' : [ <action>, ... ],
@@ -739,7 +732,7 @@ class ContactGroupAction( models.Model ):
 			'<on_event>' : {
 				'<group_pk>' : [ <action>, ... ],
 				'<group_pk>' : [ <action>, ... ],
-			}, 
+			},
 			...
 		}
 		"""
@@ -770,7 +763,7 @@ class ContactGroupAction( models.Model ):
 	def get_cache( cls, ):
 		"""
 		Get the action cache - generate it if necessary.
-		
+
 		Caches results to prevent many queries to the database. Currently the entire
 		table is cached, however in case of issues, this caching strategy can be improved.
 		"""
@@ -794,7 +787,6 @@ class ContactGroupAction( models.Model ):
 		except:
 			return {} if group_pk is None else []
 
-
 	@classmethod
 	def get_actions( cls, group, on_event=None ):
 		"""
@@ -802,13 +794,12 @@ class ContactGroupAction( models.Model ):
 		"""
 		action_cache = cls.get_cache()
 
-		# Find actions for this group 
+		# Find actions for this group
 		try:
 			actions = action_cache[ str( group.pk ) ]
 			return actions if on_event is None else actions[on_event]
 		except KeyError:
 			return {} if on_event is None else []
-
 
 	@classmethod
 	def contact_added_callback( cls, sender=None, group=None, contact=None, **kwargs ):
@@ -846,6 +837,7 @@ class ContactGroupAction( models.Model ):
 				for a in cls.get_actions( group, on_event='contact_updated' ):
 					a.dispatch( changes=updates )
 
+
 # ====================================================================
 # Import-related models
 # ====================================================================
@@ -853,18 +845,19 @@ class ContactGroupAction( models.Model ):
 class DataImportError( Exception ):
 	pass
 
+
 class ColumnDoesNotExists( Exception ):
 	pass
 
 
 ISO_EXPANSION = {
-	'ES' : [u'espana', u'españa'],
-	'IT' : [u'italia', ],
-	'GB' : [u'uk', u'england', u'great britan', ],
-	'US' : [u'united states'],
-	'NL' : [u'netherlands', u'holland'],
-	'MX' : [u'méxico'],
-	'DE' : [u'deutschland'],
+	'ES': [u'espana', u'españa'],
+	'IT': [u'italia', ],
+	'GB': [u'uk', u'england', u'great britan', ],
+	'US': [u'united states'],
+	'NL': [u'netherlands', u'holland'],
+	'MX': [u'méxico'],
+	'DE': [u'deutschland'],
 }
 
 DUPLICATE_HANDLING = [
@@ -872,29 +865,30 @@ DUPLICATE_HANDLING = [
 	( 'smart', 'Detect duplicates and wait for review' ),
 ]
 
+
 class ImportTemplate( models.Model ):
 	"""
 	An import template defines how a CSV or Excel file should be
 	imported into the contacts model. It supports mapping columns
 	to contacts fields.
-	
+
 	It also supports mapping columns to country and groups models.
-	
+
 	Mapping to a country is done in a fuzzy way, to allow for different
 	spellings of a country name.
-	
+
 	Caching Notes
 	-------------
 	An ImportTemplate and ImportMapping caches selectors/mappings/group mappings
-	and countries inside the instance of the object. If you change (and save) a 
-	selector, mapping or group mapping, this cache will be cleared for the 
+	and countries inside the instance of the object. If you change (and save) a
+	selector, mapping or group mapping, this cache will be cleared for the
 	instance in this thread. However, other threads may have cached the data
-	and also the country cache is not cleared automatically. 
-	
-	In practice this is however not a problem, since usually an ImportTemplate is 
+	and also the country cache is not cleared automatically.
+
+	In practice this is however not a problem, since usually an ImportTemplate is
 	loaded and used to run an import once. If an loaded ImportTemplate, however is
 	used several times and selectors or mappings are changed during those imports
-	be sure to test that the import is actually doing what you want it to do. 
+	be sure to test that the import is actually doing what you want it to do.
 	"""
 	name = models.CharField( max_length=255, unique=True )
 	duplicate_handling = models.CharField( max_length=20, choices=DUPLICATE_HANDLING, help_text='', default='smart' )
@@ -902,7 +896,6 @@ class ImportTemplate( models.Model ):
 
 	tag_import = models.BooleanField( default=True, help_text="Create a contact group for this import." )
 	extra_groups = models.ManyToManyField( ContactGroup, blank=True )
-
 
 	_selectors_cache = None
 	_mapping_cache = None
@@ -912,21 +905,21 @@ class ImportTemplate( models.Model ):
 
 	def __unicode__( self ):
 		return self.name
-	
+
 	def clear_selector_cache( self ):
 		"""
 		Called from ImportSelector, to clear the selector cache on a template
 		if a selector is changed.
 		"""
 		self._selectors_cache = None
-		
+
 	def clear_mapping_cache( self ):
 		"""
 		Called from ImportMapping, to clear the selector cache on a template
 		if a mapping is changed.
 		"""
 		self._mapping_cache = None
-	
+
 	def get_selectors( self ):
 		"""
 		Get selectors for this template. Selectors are being cached, to make retrieval faster.
@@ -954,10 +947,9 @@ class ImportTemplate( models.Model ):
 			self._mapping_cache = [x for x in ImportMapping.objects.filter( template=self )]
 		return self._mapping_cache
 
-
 	def parse_row( self, incoming_data, as_list=False, flat=False, include_missing=False ):
 		"""
-		Transform the incoming data according to 
+		Transform the incoming data according to
 		the defined data mapping.
 		"""
 		if self.is_selected( incoming_data ):
@@ -966,7 +958,7 @@ class ImportTemplate( models.Model ):
 				field = str( m.get_field() )
 				try:
 					val = m.get_value( incoming_data )
-					
+
 					if as_list:
 						outgoing_data.append( ", ".join( val ) if isinstance( val, list ) and flat else val )
 					else:
@@ -989,10 +981,10 @@ class ImportTemplate( models.Model ):
 		"""
 		from djangoplicity.contacts.importer import CSVImporter, ExcelImporter
 
-		base, ext = os.path.splitext( filename )
+		dummy_base, ext = os.path.splitext( filename )
 		extmap = {
-			'.xls' : ExcelImporter,
-			'.csv' : CSVImporter,
+			'.xls': ExcelImporter,
+			'.csv': CSVImporter,
 		}
 
 		try:
@@ -1010,7 +1002,6 @@ class ImportTemplate( models.Model ):
 		importer = self.get_importer( filename )
 		return ( self.parse_row( row ) for row in importer )
 
-
 	def preview_data( self, filename ):
 		"""
 		Preview the data file according to the defined
@@ -1026,97 +1017,120 @@ class ImportTemplate( models.Model ):
 				data_table.append( data )
 		return ( ["Row"] + self.get_mapping(), data_table )
 
+	def _get_review_form_data(self, mapping, contact=None):
+		'''
+		Return a dict with 'type', 'id' and 'value' based on
+		the type of the given field name (from the mapping)
+		'''
+		django_field = mapping.get_django_field()
+
+		if contact and hasattr(contact, mapping.field):
+			value = getattr(contact, mapping.field)
+		else:
+			value = None
+
+		if django_field[0].__class__ == models.fields.CharField:
+			type_ = 'textinput'
+		else:
+			type_ = 'text'
+
+		return {
+			'type': type_,
+			'id': '%s_%s' % (id, mapping.field),
+			'value': value,
+			'name': mapping.field,
+			}
 
 	def review_data( self, filename, duplicate_contacts, imported_contacts):
 		"""
 		Review the data file according to the defined import template,
 		displaying the potential duplicates
 		"""
-		data_table = []
+		imported = []
+		new = []
+		duplicates = []
 		mapping = self.get_mapping()
-
-		i = 1 # Excel start with header at row 1
-		for row in self.get_importer( filename ):
-			i += 1
-			data = self.parse_row( row, as_list=True, flat=True, include_missing=True )
-			dups = []
-			if data:
-				# FIXME: find out why the index are unicode, should be int
-				if unicode(i) in imported_contacts:
-					status = 'imported'
-				elif unicode(i) in duplicate_contacts:
-					status = 'has_duplicate'
-					#  Duplicates dict is using 0 based arrays
-					#  We loop over the IDs, stored in reverse score order:
-					for id, score in sorted(duplicate_contacts[unicode(i)].iteritems(), 
-							key=lambda(k,v):(v,k), reverse=True):
-						try:
-							contact = Contact.objects.get(id=id)
-						except Contact.DoesNotExist:
-							# The contact identified as a duplicate has dispappeared
-							# user should re-run deduplication
-							dups.append({
-								'status': 'is_duplicate',	
-								'data': ['<span style="color: red">Contact disappeared! Please re-run deduplication</span>'],
-							})
-							continue
-						#  create a dict with status (is_duplicate), and data:
-						#  row(none), link to contact and score, and all the
-						#  attributes given by mapping
-						dups.append({
-							'status': 'is_duplicate',	
-							'data': ['', '<a href="%s">%s</a> (%.2f)' % (reverse('admin:contacts_contact_change', 
-								args=[id]), id, score)] + 
-								[ getattr(contact, m.field) if hasattr(contact, m.field) else '' for m in mapping ]
-						})
-				else:
-					status = 'new'
-
-				data = {
-					'status': status,
-					'data': [i, '' ] + data
-				}
-				data_table.append( data )
-				data_table += dups
-		return ( ["Import", "Row", "Duplicate (score)"] + self.get_mapping(), data_table )
-
-
-	def import_data( self, filename, import_contacts ):
-		"""
-		Import the data file according to the defined
-		import template.
-		"""
-		if self.tag_import:
-			import_grp, created = ContactGroup.objects.get_or_create( name='Import %s at %s' % ( self.name, datetime.now().replace( microsecond=0 ) ) )
-		else:
-			import_grp = None
-
-		extra_groups = list( self.extra_groups.all().values_list( 'name', flat=True ) )
-		frozen_set = set( self.frozen_groups.all().values_list( 'pk', flat=True ) )
-		search_space = deduplication.contacts_search_space()
-		imported_contacts = {}
 
 		i = 1 # Excel start with header at row 1
 		for data in self.extract_data( filename ):
 			i += 1
 			if data:
-				if 'groups' in data and data['groups']:
-					data['groups'] += extra_groups
+				# FIXME: find out why the index are unicode, should be int
+				if unicode(i) in imported_contacts:
+					imported.append(data)
 				else:
-					data['groups'] = extra_groups
+					# Create a new contact (without saving it)
+					# to generate the form
+					contact = Contact()
+					contact.update_object(**data)
+					record = {'row': i, 'form': ContactForm(instance=contact, prefix='%d_new' % i)}
 
-				# Add import group if needed
-				if import_grp:
-					data['groups'].append( import_grp.name )
-				
-				if self.duplicate_handling == 'smart':
-					# We only import manually selected contacts
-					if not i in import_contacts:
-						continue
+					if unicode(i) in duplicate_contacts:
+						dups = []
+						#  Duplicates dict is using 0 based arrays
+						#  We loop over the IDs, stored in reverse score order:
+						for id, score in sorted(duplicate_contacts[unicode(i)].iteritems(),
+								key=lambda(k, v): (v, k), reverse=True):
+							try:
+								contact = Contact.objects.get(id=id)
+							except Contact.DoesNotExist:
+								pass
+								# TODO
+								# # The contact identified as a duplicate has dispappeared
+								# # user should re-run deduplication
+								# dups.append({
+									# 'status': 'is_duplicate',
+									# 'data': ['<span style="color: red">Contact disappeared! Please re-run deduplication</span>'],
+								# })
+								# continue
 
-				obj = Contact.create_object( **data )
-				logger.info( "Creating contact %s" % obj.pk )
-				imported_contacts[i] = obj.pk
+							# Create a list of extra fields to display in the form
+							fields = (
+								'<a href="%s">%s</a> (%.2f)' % (reverse('admin:contacts_contact_change',
+											args=[id]), id, score),
+							)
+
+							dups.append({
+								'fields': fields,
+								'contact_id': id,
+								'form': ContactForm(instance=contact, prefix='%d_update_%s' % (i, id)),
+							})
+						record['duplicates'] = dups
+						duplicates.append(record)
+					else:
+						# New contact
+						new.append(record)
+
+		return (mapping, imported, new, duplicates)
+#		return ( ["Import", "Row", "Duplicate (score)"] + self.get_mapping(), data_table )
+
+	def import_data( self, import_contacts ):
+		"""
+		Import the give data according to the given import template
+		import contact is a dict:
+		{'line_number ': {
+			'target: 'new' or 'id'	# Create new contact or update 'id'
+			'form': {}				# form for give contact
+		}, }
+		"""
+		if self.tag_import:
+			import_grp, dummy_created = ContactGroup.objects.get_or_create( name='Import %s at %s' % ( self.name, datetime.now().replace( microsecond=0 ) ) )
+		else:
+			import_grp = None
+
+		extra_groups = list( self.extra_groups.all().values_list( 'name', flat=True ) )
+		# Add import group if needed
+		if import_grp:
+			extra_groups.append( import_grp.name )
+
+		imported_contacts = {}
+
+		for line_number, contact_data in import_contacts.iteritems():
+			form = contact_data['form']
+			contact = form.save()
+			if extra_groups:
+				contact.groups.add( *ContactGroup.objects.filter( name__in=extra_groups ) )
+			imported_contacts[line_number] = contact.pk
 
 		return imported_contacts
 
@@ -1136,7 +1150,7 @@ class ImportTemplate( models.Model ):
 			i += 1
 			if data:
 				dups = deduplication.find_duplicates(data, search_space)
-				if not dups :
+				if not dups:
 					continue
 
 				# Create a dict of duplicate score with Contact id as key
@@ -1171,7 +1185,7 @@ CONTACTS_FIELDS = [
 ]
 # + Field.field_options() # Todo: needs to be dynamic since if extra field is added, then it will require server restart to have the list updated.
 CONTACTS_FIELDS.sort( key=lambda x: x[1] )
-#	return CONTACTS_FIELDS 
+#	return CONTACTS_FIELDS
 
 
 class ImportMapping( models.Model ):
@@ -1185,12 +1199,12 @@ class ImportMapping( models.Model ):
 
 	_country_cache = None
 	_groupmap_cache = None
-	
+
 	def save( self, *args, **kwargs ):
 		# Clear mapping cache on import template
 		super( ImportMapping, self ).save( *args, **kwargs )
 		self.template.clear_mapping_cache()
-		
+
 	def clear_groupmap_cache( self ):
 		"""
 		Clear group map cache if requested/
@@ -1203,14 +1217,21 @@ class ImportMapping( models.Model ):
 		trail = self.field.split( "__" )
 		return trail[0]
 
+	def get_django_field(self):
+		'''
+		Returns the actual field used in the Contact model
+		matching the ImportMapping field
+		'''
+		return Contact._meta.get_field_by_name(self.field)
+
 	def get_country_value( self, value ):
 		"""
 		"""
 		from djangoplicity.contacts.deduplication import similar_text
-		
+
 		# Make country cache if it doesn't exists
 		if ImportMapping._country_cache is None:
-			ImportMapping._country_cache = { 'iso' : {}, 'name' : {} }
+			ImportMapping._country_cache = { 'iso': {}, 'name': {} }
 			for c in Country.objects.all():
 				ImportMapping._country_cache['iso'][c.iso_code.lower()] = c.iso_code
 				ImportMapping._country_cache['name'][c.name.lower()] = c.iso_code
@@ -1240,7 +1261,7 @@ class ImportMapping( models.Model ):
 		else:
 			values = [value.strip()]
 
-		# Cache the mapping from values to contact groups so future queries are fast. 	
+		# Cache the mapping from values to contact groups so future queries are fast.
 		if self._groupmap_cache is None:
 			self._groupmap_cache = dict( ImportGroupMapping.objects.filter( mapping=self ).values_list( 'value', 'group__name' ) )
 
@@ -1250,7 +1271,7 @@ class ImportMapping( models.Model ):
 		"""
 		Get the value for the model field. For most fields, this is just
 		the direct value, however for groups and country there are special
-		processing going on. 
+		processing going on.
 		"""
 		try:
 			val = data[self.header]
@@ -1278,7 +1299,7 @@ class ImportSelector( models.Model ):
 	header = models.CharField( max_length=255 )
 	value = models.CharField( max_length=255 )
 	case_sensitive = models.BooleanField( default=False )
-	
+
 	def save( self, *args, **kwargs ):
 		# Clear selector cache on import template
 		super( ImportSelector, self ).save( *args, **kwargs )
@@ -1296,20 +1317,20 @@ class ImportSelector( models.Model ):
 			compare_val = unicode( self.value ).strip() if self.case_sensitive else unicode( self.value ).strip().lower()
 			if val:
 				val = unicode( val ).strip() if self.case_sensitive else unicode( val ).strip().lower()
-			
+
 			return val == compare_val
 		except ColumnDoesNotExists:
 			return False
 
 
 class ImportGroupMapping( models.Model ):
-	""" 
+	"""
 	Defines a mapping from values to groups.
 	"""
-	mapping = models.ForeignKey( ImportMapping, limit_choices_to={ 'field' : 'groups' } )
+	mapping = models.ForeignKey( ImportMapping, limit_choices_to={ 'field': 'groups' } )
 	value = models.CharField( max_length=255 )
 	group = models.ForeignKey( ContactGroup )
-	
+
 	def save( self, *args, **kwargs ):
 		# Clear group map cache on import mapping
 		super( ImportGroupMapping, self ).save( *args, **kwargs )
@@ -1319,13 +1340,14 @@ class ImportGroupMapping( models.Model ):
 upload_dir = os.path.join( settings.TMP_DIR, 'contacts_import' )
 upload_fs = FileSystemStorage( location=upload_dir, base_url=None )
 
+
 def handle_uploaded_file( instance, filename ):
 	"""
 	Generate a new name for an uploaded filed.
-	
+
 	Pattern used: <template name>-<uuid>.<original extension>
 	"""
-	base, ext = os.path.splitext( filename )
+	dummy_base, ext = os.path.splitext( filename )
 
 	import uuid
 	name = "%s%s%s" % ( "%s_" % instance.template.name if instance.template else '', str( uuid.uuid1() ), ext.lower() )
@@ -1339,13 +1361,14 @@ IMPORT_STATUS = [
 	( 'review', 'Review' ),
 ]
 
+
 class Import( models.Model ):
 	"""
 	Import job - stores an excel file and selects which import template to use when importing
 	the data.
-	
+
 	Allow for previewing of the data mapping and executing the import. An import can only be run once
-	to prevent it from accidentally be imported twice.  
+	to prevent it from accidentally be imported twice.
 	"""
 	template = models.ForeignKey( ImportTemplate )
 	data_file = models.FileField( upload_to=handle_uploaded_file, storage=upload_fs )
@@ -1359,14 +1382,14 @@ class Import( models.Model ):
 	def preview_data( self ):
 		"""
 		Generate a preview of the data mapping for this import. The data
-		will be used as the basis for the import. 
+		will be used as the basis for the import.
 		"""
 		return self.template.preview_data( self.data_file.path )
 
 	def review_data( self ):
 		"""
 		Generate a preview of the data mapping for this import including the
-		poential duplicates. The data will be used as the basis for the import. 
+		poential duplicates. The data will be used as the basis for the import.
 		"""
 		import simplejson as json
 		duplicate_contacts = json.loads(self.duplicate_contacts) if self.duplicate_contacts else []
@@ -1377,11 +1400,11 @@ class Import( models.Model ):
 		"""
 		Run the data import. Normally this should be executed in a background task
 		as it might be a long running task.
-		
+
 		Also, the user is responsible to save the import object afterwards to ensure
 		that it's marked as done.
 		"""
-		imported_contacts = self.template.import_data( self.data_file.path, import_contacts )
+		imported_contacts = self.template.import_data( import_contacts )
 
 		# Save the dict of imported contacts
 		import simplejson as json
@@ -1397,7 +1420,7 @@ class Import( models.Model ):
 		"""
 		Look for potential duplicates in the import. Normally this should be
 		executed in a background task as it might be a long running task.
-		
+
 		Also, the user is responsible to set the import status and save it
 		afterwards to ensure that it's marked as done.
 		"""
@@ -1418,6 +1441,13 @@ class Import( models.Model ):
 		except Exception:
 			pass
 
+
+class ContactForm(ModelForm):
+	class Meta:
+		model = Contact
+		exclude = ('extra_fields', )
+
+
 pre_delete.connect( Import.pre_delete_callback, sender=Import )
 
 # Connect signals to clear the action cache
@@ -1434,7 +1464,7 @@ pre_delete.connect( Contact.pre_delete_callback, sender=Contact )
 pre_save.connect( Contact.pre_save_callback, sender=Contact )
 post_save.connect( Contact.post_save_callback, sender=Contact )
 
-# Connect signals to propagate Contact.group_order values 
+# Connect signals to propagate Contact.group_order values
 pre_delete.connect( ContactGroup.pre_delete_callback, sender=ContactGroup )
 post_delete.connect( ContactGroup.post_delete_callback, sender=ContactGroup )
 pre_save.connect( ContactGroup.pre_save_callback, sender=ContactGroup )

@@ -1,0 +1,78 @@
+
+Deduplication
+=============
+
+When a new import is uploaded, it can be reviewed in /preview/ this will call
+ImportAdmin.preview_view, which will parse the file according to the import
+template.  From the /preview/ page it is possible to prepare the import which
+will send a POST to /review/.
+
+/review/ in turn calls ImportAdmin.review_view, which will call
+tasks.prepart_import if it hasn't run yet, or if called with POST.  The task
+will in turn call Import.prepart_import, which calls
+ImportTemplate.prepare_import. This will make use of contacts' deduplication
+module, and found potentail duplicates will be stored as json in the Import
+object, e.g.:
+	{"96": {"19620": 0.80000000000000004}, "99": {"19612": 0.80000000000000004}
+This indicates that line 96 of the file is a potentatil duplicate of contact 
+19620 (probabiliity is 0.8).
+
+Once the import has been prepared, the /review/ page will display up to three tables:
+- Contacts for which no duplicates have been found
+- Contacts for which one or more duplicates have been found
+- Contacts previously imported
+
+As opposed to the /preview/ page, the /review/ page offers fully editable fields.
+This is done as follow:
+- For each entry for the file a Contact object is created (though not saved),
+  and updated with Contact.update_object(). A ContactForm is then created with
+  a special prefix: '%d_new' with %d being the line number in the import file. 
+- If any potential duplicates have been found the Contact is fetched from the
+  DB, a ContactForm is created with prefix '%d_updated_%d % (line_number,
+  contact_id).
+- The entry for the file along with potential duplicates are then stored in a
+  a dict:
+	{
+		'row': line_number,
+		'form': ContactForm(current_entry_from_file),
+		'duplicates': [ # array of potential duplicates:
+			{
+				'fields': []	# List of optional text fields, used to generate
+								# link to the original contact and duplicate score
+
+				'contact_id': xxx	# ID of the contact in the DB
+				'form': ContactForm(contact_from_db)
+			}
+		]
+	}
+
+	The ContactForm are created with unique prefixes to avoid duplicate fields'
+	names in the final page.
+
+When the form is submitted (/import/) all the fields are passed as POST data.
+The view then calls ImportAdmin._clean_import_data.
+This method start by identifying which "lines" should be imported, it does so
+by looking for checkboxes with name starting by '_selected_import_' (e.g.:
+_selected_import_87). From the key it can then get a list of lines to import as
+the line is containted in the name.
+It then creates a dict of the following data structure for each line to import:
+line_number(AKA import_id): {
+	'target': value of the checkbox '_selected_merge_contact_%s' % import_id
+	'post': a copy of the current request POST data
+}
+
+For each of the entries in this dictionary the method will then identify the
+prefix for the actual entry to import (e.g.: '87_new' or '87_updated_21686),
+and delete from the POST data copies all the entries whose key do *NOT* start
+with this prefix.
+Once this is done a ContactForm is created with this data. In the case of the
+update of an existing contact the Contact object is fetched before creating the
+form.
+This data is then passed to a Celery tasks which will call
+ImportTemplate.import_data, which will then create/update the contacts
+accordingly, and update the Import's "imported_contacts" field.
+
+
+
+
+

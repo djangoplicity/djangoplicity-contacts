@@ -14,7 +14,7 @@
 #	  notice, this list of conditions and the following disclaimer in the
 #	  documentation and/or other materials provided with the distribution.
 #
-#	* Neither the name of the European Southern Observatory nor the names 
+#	* Neither the name of the European Southern Observatory nor the names
 #	  of its contributors may be used to endorse or promote products derived
 #	  from this software without specific prior written permission.
 #
@@ -30,7 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE
 #
 
-from celery.schedules import crontab
 from celery.task import PeriodicTask, task
 from datetime import timedelta
 from django.contrib.sites.models import Site
@@ -44,15 +43,19 @@ from djangoplicity.actions.plugins import ActionPlugin
 @task( ignore_result=True )
 def import_data( import_pk, import_contacts ):
 	"""
-	Run contacts import in the background, import_contacts
-	is a list of contacts to import (row numbers)
+	Run contacts import in the background, import_contacts is a dict:
+	{'line_number ': {
+			'target: 'new' or 'id'	# Create new contact or update 'id'
+			'form': {}				# form for contact
+		}, }
+	of contact to import/create or update
 	"""
 	logger = import_data.get_logger()
-	
+
 	from djangoplicity.contacts.models import Import
-	
+
 	obj = Import.objects.get( pk=import_pk )
-	
+
 	if obj.import_data(import_contacts):
 		obj.save()
 		logger.warning( "File was imported (pk=%s)" % obj.pk )
@@ -66,11 +69,11 @@ def prepare_import( import_pk, email ):
 	Look for potential duplicates in import
 	"""
 	logger = prepare_import.get_logger()
-	
+
 	from djangoplicity.contacts.models import Import
-	
+
 	obj = Import.objects.get( pk=import_pk )
-	
+
 	if obj.prepare_import():
 		obj.status = 'review'
 		obj.save()
@@ -78,9 +81,9 @@ def prepare_import( import_pk, email ):
 
 		# Send email to user:
 		site = Site.objects.get_current()
-		message = '''Dear User, 
+		message = '''Dear User,
 
-The import from file "%s" has been prepared and potential duplicates identified. 
+The import from file "%s" has been prepared and potential duplicates identified.
 You can review the results and import the contacts at:
 http://%s%s
 
@@ -122,25 +125,30 @@ class Every5minAction( PeriodicAction ):
 	run_every = timedelta( minutes=5 )
 	on_event_name = 'periodic_5min'
 
+
 class Every30minAction( PeriodicAction ):
 	run_every = timedelta( minutes=30 )
 	on_event_name = 'periodic_30min'
+
 
 class EveryHourAction( PeriodicAction ):
 	run_every = timedelta( hours=1 )
 	on_event_name = 'periodic_1hr'
 
+
 class Every6HourAction( PeriodicAction ):
 	run_every = timedelta( hours=6 )
 	on_event_name = 'periodic_6hr'
+
 
 class EveryDayAction( PeriodicAction ):
 	run_every = timedelta( hours=24 )
 	on_event_name = 'periodic_1day'
 
+
 #
 # Contact actions
-#	
+#
 class ContactAction( ActionPlugin ):
 	"""
 	An action plugin is a configurable celery task,
@@ -168,7 +176,7 @@ class UpdateContactAction( ContactAction ):
 	action_parameters = [
 		#( 'group', 'Name of group to assign to/remove from contact.', 'str' ),
 	]
-	
+
 	@classmethod
 	def get_arguments( cls, conf, *args, **kwargs ):
 		"""
@@ -181,9 +189,9 @@ class UpdateContactAction( ContactAction ):
 		except KeyError:
 			model_identifier = None
 			pk = None
-					
-		defaults = { 'model_identifier' : model_identifier, 'pk' : pk }
-	
+
+		defaults = { 'model_identifier': model_identifier, 'pk': pk }
+
 		for k, v in kwargs.items():
 			if k in Contact.ALLOWED_FIELDS:
 				defaults[k] = v
@@ -196,15 +204,14 @@ class UpdateContactAction( ContactAction ):
 		"""
 		from djangoplicity.contacts.models import Contact
 
-		
 		if model_identifier == 'contacts.contact' and pk:
 			contact = self._get_object( model_identifier, pk )
-			
+
 			defaults = {}
 			for k, v in kwargs.items():
 				if k in Contact.ALLOWED_FIELDS:
 					defaults[k] = v
-			
+
 			if contact.update_object( **defaults ):
 				contact.save()
 				self.get_logger().info( "Contact %s was updated." % ( contact.pk ) )
@@ -217,7 +224,7 @@ class SetContactGroupAction( ContactAction ):
 	action_parameters = [
 		( 'group', 'Name of group to assign to contact.', 'str' ),
 	]
-	
+
 	@classmethod
 	def get_arguments( cls, conf, *args, **kwargs ):
 		"""
@@ -229,14 +236,12 @@ class SetContactGroupAction( ContactAction ):
 			model_identifier = None
 			pk = None
 
-		return ( [], { 'model_identifier' : model_identifier, 'pk' : pk } )
+		return ( [], { 'model_identifier': model_identifier, 'pk': pk } )
 
 	def run( self, conf, model_identifier=None, pk=None ):
 		"""
 		Add a contact to a group
 		"""
-		from djangoplicity.contacts.models import Contact
-
 		if model_identifier == 'contacts.contact' and pk:
 			contact = self._get_object( model_identifier, pk )
 			group = self._get_group( conf['group'] )
@@ -250,7 +255,7 @@ class UnsetContactGroupAction( ContactAction ):
 	action_parameters = [
 		( 'group', 'Name of group to remove from contact.', 'str' ),
 	]
-	
+
 	@classmethod
 	def get_arguments( cls, conf, *args, **kwargs ):
 		"""
@@ -262,14 +267,12 @@ class UnsetContactGroupAction( ContactAction ):
 			model_identifier = None
 			pk = None
 
-		return ( [], { 'model_identifier' : model_identifier, 'pk' : pk } )
+		return ( [], { 'model_identifier': model_identifier, 'pk': pk } )
 
 	def run( self, conf, model_identifier=None, pk=None ):
 		"""
-		Remove from a group from a contact. 
+		Remove from a group from a contact.
 		"""
-		from djangoplicity.contacts.models import Contact
-
 		if model_identifier == 'contacts.contact' and pk:
 			contact = self._get_object( model_identifier, pk )
 			group = self._get_group( conf['group'] )
@@ -294,11 +297,11 @@ class RemoveEmailAction( ContactAction ):
 		except KeyError:
 			email = None
 
-		return ( [], { 'email' : email } )
+		return ( [], { 'email': email } )
 
 	def run( self, conf, email=None ):
 		"""
-		Remove from a group from a contact. 
+		Remove from a group from a contact.
 		"""
 		from djangoplicity.contacts.models import Contact
 

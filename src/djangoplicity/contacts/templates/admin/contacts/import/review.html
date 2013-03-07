@@ -7,6 +7,12 @@
   {{ media.css }}
     <style>
       #changelist table thead th:first-child {width: inherit}
+	  input[type=text] {
+		  width: 20em;
+	  }
+	  #changelist table {
+		  margin-bottom: 20px;
+		  }
     </style>
 {% endblock %}
 
@@ -61,38 +67,105 @@
       {% block filters %}
       {% endblock %}
 	  <form id="changelist-form" action="../import/" method="post"{% if cl.formset.is_multipart %} enctype="multipart/form-data"{% endif %}>{% csrf_token %}
-      {% block result_list %}
-          	{% if rows %}
-			<table cellspacing="0" id="result_list">
-			<thead>
-			<tr>{% for col in columns %}<th>{% if col.field %}{{ col.field }}{% else %}{{col}}{% endif%}</th>{% endfor %}</tr>
-			</thead>
-			<tbody>
-			{% for row in rows %}
-			<tr class="{% cycle 'row1' 'row2' %}" {% if row.status == "imported" %} style="background:white;color:grey"{% endif %} >
-				{% if row.status == "has_duplicate" %}
-					<td style="background: orange;text-align:center;vertical-align:middle;"><input type="checkbox" class="action-select" value="{{row.data.0}}" name="_selected_import"></td>
-				{% endif %}
-				{% if row.status == "imported" or row.status == "is_duplicate" %}
-					<td></td>
-				{% endif %}
-				{% if row.status == "new" %}
-					<td style="background: green;text-align:center;vertical-align:middle;"><input type="checkbox" class="action-select" value="{{row.data.0}}" name="_selected_import" checked="checked"></td>
-				{% endif %}
-				{% for cell in row.data %}
-					<td>{{ cell|safe }}</td>
-				{% endfor %}
-			</tr>
-			{% endfor %}
-			</tbody>
-			</table>
-			{% endif %}
+	  {% if new %}
+	  <h2>New Contacts</h2>
+	  <table cellspacing="0">
+		  <thead>
+			  <tr>
+				  <th>Import</th>
+				  {% for field in new.0.form %}
+					<th>{{ field.label_tag }}</th>
+				  {% endfor %}
+			  </tr>
+		  </thead>
+		  <tbody>
+			  {% for record in new %}
+				  <tr style="background: #bcbcbc">
+					  <td rowspan="{{ record.duplicates|length|add:"1" }}" style="vertical-align: middle; text-align: center;">
+						  <input type="checkbox" class="action-select" name="_selected_import_{{ record.row }}" checked="checked" />
+					  </td>
+					  <input type="hidden" name="_selected_merge_contact_{{ record.row }}" value="new" />
+					  {% for field in record.form %}
+						  <td>{{ field }}</td>
+					  {% endfor %}
+				  </tr>
+				  <tr><td colspan="{{ columns|length|add:"2" }}"></td><tr/>
+			  {% endfor %}
+		  </tbody>
+	  </table>
+	  {% endif %}
 
-      {% endblock %}
-		<p class="paginator">
-			{{rows|length}} rows
-			<input type="submit" name="_import" class="default" value="Import">
-		</p>
+	  {% if duplicates %}
+	  <h2>Potential duplicates</h2>
+	  <table cellspacing="0">
+		  <thead>
+			  <tr>
+				  <th>Import</th>
+				  <th>Merge with:</th>
+				  <th></th>
+				  {% for field in duplicates.0.form %}
+					<th>{{ field.label_tag }}</th>
+				  {% endfor %}
+			  </tr>
+		  </thead>
+		  <tbody>
+			  {% for record in duplicates %}
+				  <tr style="background: #bcbcbc">
+					  <td rowspan="{{ record.duplicates|length|add:"1" }}" style="vertical-align: middle; text-align: center;">
+						  <input type="checkbox" class="action-select" name="_selected_import_{{ record.row }}">
+					  </td>
+					  <td style="vertical-align: middle; text-align: center;">
+						  <input type="radio" class="action-select" value="new" name="_selected_merge_contact_{{ record.row }}">
+					  </td>
+					  <td></td>
+					  {% for field in record.form %}
+						  <td>{{ field }}</td>
+					  {% endfor %}
+				  </tr>
+				  {% for duplicate in record.duplicates %}
+				  <tr>
+					  <td style="vertical-align: middle; text-align: center;">
+						  <input type="radio" class="action-select" value="update_{{ duplicate.contact_id }}" name="_selected_merge_contact_{{ record.row }}">
+					  </td>
+					  {% for field in duplicate.fields %}
+						  <td>{{ field|safe }}</td>
+					  {% endfor %}
+					  {% for field in duplicate.form %}
+						  <td>{{ field }}</td>
+					  {% endfor %}
+				  </tr>
+				  {% endfor %}
+				  <tr><td colspan="{{ columns|length|add:"2" }}"></td><tr/>
+			  {% endfor %}
+		  </tbody>
+	  </table>
+	  {% endif %}
+
+	  {% if new or duplicates %}
+	  <p class="paginator">
+	  <input type="submit" name="_import" class="default" value="Import">
+	  </p>
+
+	  {% endif %}
+
+	  {% if imported %}
+	  <h2>Imported contacts</h2>
+	  <table cellspacing="0" id="imported_list">
+		  <thead>
+			  <tr>{% for col in imported.0.keys %}<th>{{ col }}</th>{% endfor %}</tr>
+		  </thead>
+		  <tbody>
+			  {% for row in imported %}
+			  <tr class="{% cycle 'row1' 'row2' %}" style="background:white;color:grey">
+				  {% for key, value in row.items %}
+				  <td>{{ value|safe }}</td>
+				  {% endfor %}
+			  </tr>
+			  {% endfor %}
+		  </tbody>
+	  </table>
+	  {% endif %}
+
       </form>
     </div>
     
