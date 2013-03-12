@@ -861,7 +861,10 @@ ISO_EXPANSION = {
 }
 
 DUPLICATE_HANDLING = [
-	( 'none', 'Import all - no duplicate detection' ),
+# Tue Mar 12 18:50:35 CET 2013 - Mathias Andre
+# Disabled "simple" import for now as it was broken by
+# the updated duplicate merging changes
+#	( 'none', 'Import all - no duplicate detection' ),
 	( 'smart', 'Detect duplicates and wait for review' ),
 ]
 
