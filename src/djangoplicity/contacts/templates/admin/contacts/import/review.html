@@ -81,7 +81,7 @@
 		  <tbody>
 			  {% for record in new %}
 				  <tr style="background: #bcbcbc">
-					  <td rowspan="{{ record.duplicates|length|add:"1" }}" style="vertical-align: middle; text-align: center;">
+					  <td class="js_select" rowspan="{{ record.duplicates|length|add:"1" }}" style="vertical-align: middle; text-align: center;">
 						  <input type="checkbox" class="action-select" name="_selected_import_{{ record.row }}" checked="checked" />
 					  </td>
 					  <input type="hidden" name="_selected_merge_contact_{{ record.row }}" value="new" />
@@ -111,10 +111,10 @@
 		  <tbody>
 			  {% for record in duplicates %}
 				  <tr style="background: #bcbcbc">
-					  <td rowspan="{{ record.duplicates|length|add:"1" }}" style="vertical-align: middle; text-align: center;">
+					  <td class="js_select" rowspan="{{ record.duplicates|length|add:"1" }}" style="vertical-align: middle; text-align: center;">
 						  <input type="checkbox" class="action-select" name="_selected_import_{{ record.row }}">
 					  </td>
-					  <td style="vertical-align: middle; text-align: center;">
+					  <td class="js_select" style="vertical-align: middle; text-align: center;">
 						  <input type="radio" class="action-select" value="new" name="_selected_merge_contact_{{ record.row }}">
 					  </td>
 					  <td></td>
@@ -124,7 +124,7 @@
 				  </tr>
 				  {% for duplicate in record.duplicates %}
 				  <tr>
-					  <td style="vertical-align: middle; text-align: center;">
+					  <td class="js_select" style="vertical-align: middle; text-align: center;">
 						  <input type="radio" class="action-select" value="update_{{ duplicate.contact_id }}" name="_selected_merge_contact_{{ record.row }}">
 					  </td>
 					  {% for field in duplicate.fields %}
@@ -171,4 +171,17 @@
     
   </div>
 {% endif %}
+
+<script type="text/javascript" src="{{STATIC_URL}}djangoplicity/js/jquery-1.7.1.min.js"></script>
+<script type="text/javascript">
+$('td.js_select').click(function(event){
+	event.stopPropagation();
+	var r = $(this).find('input');
+	r.prop("checked", !r.prop("checked"));
+});
+$('input[type=radio], input[type=checkbox]').click(function(e){
+    e.stopPropagation();
+});
+</script>
+
 {% endblock %}
