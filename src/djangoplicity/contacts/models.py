@@ -1130,6 +1130,8 @@ class ImportTemplate( models.Model ):
 
 		for line_number, contact_data in import_contacts.iteritems():
 			form = contact_data['form']
+			if not form:
+				continue
 			contact = form.save()
 			if extra_groups:
 				contact.groups.add( *ContactGroup.objects.filter( name__in=extra_groups ) )

@@ -165,6 +165,9 @@ class ImportAdmin( admin.ModelAdmin ):
 
 		for contact in contacts:
 			target = contacts[contact]['target']
+			if not target:
+				contacts[contact]['form'] = None
+				continue
 
 			# Generate prefix to be used in form:
 			prefix = '%s_%s' % (contact, target)

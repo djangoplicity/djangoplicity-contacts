@@ -6,13 +6,18 @@
   <link rel="stylesheet" type="text/css" href="{{STATIC_URL}}admin/css/changelists.css" />
   {{ media.css }}
     <style>
-      #changelist table thead th:first-child {width: inherit}
-	  input[type=text] {
-		  width: 20em;
-	  }
-	  #changelist table {
-		  margin-bottom: 20px;
-		  }
+		input[type=text] {
+			width: 20em;
+		}
+		#changelist table {
+			margin-bottom: 20px;
+		}
+		#changelist table thead th {
+			padding: 2px;
+		}
+		#changelist table td {
+			vertical-align: middle;
+		}
     </style>
 {% endblock %}
 
@@ -80,8 +85,8 @@
 		  </thead>
 		  <tbody>
 			  {% for record in new %}
-				  <tr style="background: #bcbcbc">
-					  <td class="js_select" rowspan="{{ record.duplicates|length|add:"1" }}" style="vertical-align: middle; text-align: center;">
+				  <tr>
+					  <td class="js_select" rowspan="{{ record.duplicates|length|add:"1" }}" style="vertical-align: middle; text-align: center; background-color: #fcaf3e">
 						  <input type="checkbox" class="action-select" name="_selected_import_{{ record.row }}" checked="checked" />
 					  </td>
 					  <input type="hidden" name="_selected_merge_contact_{{ record.row }}" value="new" />
@@ -110,22 +115,22 @@
 		  </thead>
 		  <tbody>
 			  {% for record in duplicates %}
-				  <tr style="background: #bcbcbc">
-					  <td class="js_select" rowspan="{{ record.duplicates|length|add:"1" }}" style="vertical-align: middle; text-align: center;">
+				  <tr>
+					  <td class="js_select" rowspan="{{ record.duplicates|length|add:"1" }}" style="vertical-align: middle; text-align: center">
 						  <input type="checkbox" class="action-select" name="_selected_import_{{ record.row }}">
 					  </td>
 					  <td class="js_select" style="vertical-align: middle; text-align: center;">
-						  <input type="radio" class="action-select" value="new" name="_selected_merge_contact_{{ record.row }}">
+						  <input type="radio" id="_selected_merge_contact_{{ record.row }}_new" class="action-select" value="new" name="_selected_merge_contact_{{ record.row }}">
 					  </td>
-					  <td></td>
+					  <td style="background-color: #d3d7cf;"></td>
 					  {% for field in record.form %}
-						  <td>{{ field }}</td>
+						  <td style="background-color: #d3d7cf;">{{ field }}</td>
 					  {% endfor %}
 				  </tr>
 				  {% for duplicate in record.duplicates %}
 				  <tr>
 					  <td class="js_select" style="vertical-align: middle; text-align: center;">
-						  <input type="radio" class="action-select" value="update_{{ duplicate.contact_id }}" name="_selected_merge_contact_{{ record.row }}">
+						  <input type="radio" id="_selected_merge_contact_{{ record.row }}_{{ duplicate.contact_id }}" class="action-select" value="update_{{ duplicate.contact_id }}" name="_selected_merge_contact_{{ record.row }}">
 					  </td>
 					  {% for field in duplicate.fields %}
 						  <td>{{ field|safe }}</td>
@@ -174,13 +179,41 @@
 
 <script type="text/javascript" src="{{STATIC_URL}}djangoplicity/js/jquery-1.7.1.min.js"></script>
 <script type="text/javascript">
-$('td.js_select').click(function(event){
-	event.stopPropagation();
-	var r = $(this).find('input');
-	r.prop("checked", !r.prop("checked"));
-});
-$('input[type=radio], input[type=checkbox]').click(function(e){
-    e.stopPropagation();
+function toggle_background(td){
+	// This functions toggles the background color for checkboxes tds,
+	// it expect the td as parameter
+}
+//$('td.js_select').click(function(event){
+//	toggle_background($(this));
+//});
+$('td.js_select, input[type=radio], input[type=checkbox]').click(function(e){
+	e.stopPropagation();
+	if ($(e.target).is('input')) {
+		var td = $(this).parent();	
+		var input = $(this);
+	} else {
+		var td = $(this);	
+		var input = $(td).find('input');
+		// Toggle the input
+		input.prop("checked", !input.prop("checked"));
+	}
+
+	if (input.prop("checked")) {
+		// If this is a radio (i.e. "Merge with" column" we need to unset the 
+		// background color of other radios' tds with same name
+		if (input.prop('type') == 'radio') {
+			$('input[name=' + input.prop('name') + ']').each(
+				function() {
+					$(this).parent().css('background-color', '');
+				}
+			)
+		}
+		$(td).css('background-color', '#fcaf3e');
+	} else
+		$(td).css('background-color', '');
+
+//	toggle_background($(this).parent());
+ //   e.stopPropagation();
 });
 </script>
 
