@@ -1401,8 +1401,8 @@ class Import( models.Model ):
 		poential duplicates. The data will be used as the basis for the import.
 		"""
 		import simplejson as json
-		duplicate_contacts = json.loads(self.duplicate_contacts) if self.duplicate_contacts else []
-		imported_contacts = json.loads(self.imported_contacts) if self.imported_contacts else []
+		duplicate_contacts = json.loads(self.duplicate_contacts) if self.duplicate_contacts else {}
+		imported_contacts = json.loads(self.imported_contacts) if self.imported_contacts else {}
 		return self.template.review_data( self.data_file.path, duplicate_contacts, imported_contacts )
 
 	def import_data( self, import_contacts ):
