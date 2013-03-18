@@ -1066,7 +1066,7 @@ class ImportTemplate( models.Model ):
 					# to generate the form
 					contact = Contact()
 					contact.update_object(**data)
-					record = {'row': i, 'form': ContactForm(instance=contact, prefix='%d_new' % i)}
+					record = {'row': unicode(i), 'form': ContactForm(instance=contact, prefix='%d_new' % i)}
 
 					if unicode(i) in duplicate_contacts:
 						dups = []
@@ -1105,7 +1105,6 @@ class ImportTemplate( models.Model ):
 						new.append(record)
 
 		return (mapping, imported, new, duplicates)
-#		return ( ["Import", "Row", "Duplicate (score)"] + self.get_mapping(), data_table )
 
 	def import_data( self, import_contacts ):
 		"""

@@ -46,6 +46,7 @@ from djangoplicity.contacts.models import ContactGroup, Contact, Country, \
 	CountryGroup, GroupCategory, ContactField, Field, Label, PostalZone, \
 	ContactGroupAction, ImportTemplate, ImportMapping, ImportSelector, \
 	ImportGroupMapping, Import, CONTACTS_FIELDS, ContactForm
+from djangoplicity.contacts.tasks import import_data
 from django.shortcuts import get_object_or_404
 from datetime import datetime
 
@@ -189,7 +190,6 @@ class ImportAdmin( admin.ModelAdmin ):
 			else:
 				form = ContactForm(contacts[contact]['post'], prefix=prefix)
 
-			form.is_valid()
 			contacts[contact]['form'] = form
 
 		return contacts
@@ -205,13 +205,34 @@ class ImportAdmin( admin.ModelAdmin ):
 
 			import_contacts = self._clean_import_data(request)
 
-			from djangoplicity.contacts.tasks import import_data
-			import_data( obj.pk, import_contacts )
+			# Check if the all the forms are valid, if not create
+			# a list of error messages
+			errorlist = []
+			for line, contact in import_contacts.iteritems():
+				if not contact['form'].is_valid():
+					# Convert the ErrorList to a dict including the field value for the template:
+					errors = []
+					for field, error in contact['form']._errors.iteritems():
+						errors.append({
+							'field': field,
+							'error': error,
+							'value': contact['form'][field].value,
+						})
+
+					errorlist.append({
+						'line': line,
+						'errors': errors,
+						'value': contact['form']
+					})
+
+			if not errorlist:
+				import_data( obj.pk, import_contacts )
 
 			return render_to_response(
 					"admin/contacts/import/import.html",
 					{
 						'object': obj,
+						'errorlist': errorlist,
 						'messages': [],
 						'app_label': obj._meta.app_label,
 						'opts': obj._meta,
