@@ -141,9 +141,11 @@
 					  {% for field in duplicate.fields %}
 						  <td>{{ field|safe }}</td>
 					  {% endfor %}
-					  {% for field in duplicate.form %}
-						  <td>{{ field }}</td>
-					  {% endfor %}
+					  {% if duplicate.form %}
+						{% for field in duplicate.form %}
+							<td>{{ field }}</td>
+						{% endfor %}
+					  {% endif %}
 				  </tr>
 				  {% endfor %}
 				  <tr><td colspan="{{ columns|length|add:"2" }}"></td><tr/>
@@ -163,12 +165,18 @@
 	  <h2>Imported contacts</h2>
 	  <table cellspacing="0" id="imported_list">
 		  <thead>
-			  <tr>{% for col in imported.0.keys %}<th>{{ col }}</th>{% endfor %}</tr>
+			  <tr>
+				  <th>Row</th>
+				  <th>Contact</th>
+				  {% for col in imported.0.data.keys %}<th>{{ col }}</th>{% endfor %}
+			  </tr>
 		  </thead>
 		  <tbody>
-			  {% for row in imported %}
+			  {% for contact in imported %}
 			  <tr class="{% cycle 'row1' 'row2' %}" style="background:white;color:grey">
-				  {% for key, value in row.items %}
+				  <td style="text-align: center;">{{ contact.row }}</td>
+				  <td style="text-align: center;">{{ contact.contact_link|safe }}</td>
+				  {% for key, value in contact.data.items %}
 				  <td>{{ value|safe }}</td>
 				  {% endfor %}
 			  </tr>

@@ -1058,10 +1058,23 @@ class ImportTemplate( models.Model ):
 		for data in self.extract_data( filename ):
 			i += 1
 			if data:
-				# FIXME: find out why the index are unicode, should be int
-				if unicode(i) in imported_contacts:
-					imported.append(data)
-				else:
+				try:
+					id = imported_contacts[unicode(i)]
+					contact = {
+						'row': unicode(i),
+						'contact_link':  '<a href="%s">%s</a>' %
+								(reverse('admin:contacts_contact_change', args=[id]), id),
+						'data': data,
+					}
+					# Check that the contact still exists:
+					try:
+						Contact.objects.get(id=id)
+					except Contact.DoesNotExist:
+						contact['contact_link'] = '<span style="color: red;">Contact %d disappeared!</span>' % id
+
+					imported.append(contact)
+
+				except KeyError:
 					# Create a new contact (without saving it)
 					# to generate the form
 					contact = Contact()
@@ -1074,29 +1087,21 @@ class ImportTemplate( models.Model ):
 						#  We loop over the IDs, stored in reverse score order:
 						for id, score in sorted(duplicate_contacts[unicode(i)].iteritems(),
 								key=lambda(k, v): (v, k), reverse=True):
-							try:
-								contact = Contact.objects.get(id=id)
-							except Contact.DoesNotExist:
-								pass
-								# TODO
-								# # The contact identified as a duplicate has dispappeared
-								# # user should re-run deduplication
-								# dups.append({
-									# 'status': 'is_duplicate',
-									# 'data': ['<span style="color: red">Contact disappeared! Please re-run deduplication</span>'],
-								# })
-								# continue
 
 							# Create a list of extra fields to display in the form
-							fields = (
-								'<a href="%s">%s</a> (%.2f)' % (reverse('admin:contacts_contact_change',
-											args=[id]), id, score),
-							)
+							try:
+								contact = Contact.objects.get(id=id)
+								fields = ('<a href="%s">%s</a> (%.2f)' % (reverse('admin:contacts_contact_change',
+												args=[id]), id, score),)
+								form = ContactForm(instance=contact, prefix='%d_update_%s' % (i, id))
+							except Contact.DoesNotExist:
+								fields = ('<span style="color: red">Contact %s disappeared! Please re-run deduplication</span>' % id,)
+								form = None
 
 							dups.append({
 								'fields': fields,
 								'contact_id': id,
-								'form': ContactForm(instance=contact, prefix='%d_update_%s' % (i, id)),
+								'form': form,
 							})
 						record['duplicates'] = dups
 						duplicates.append(record)
