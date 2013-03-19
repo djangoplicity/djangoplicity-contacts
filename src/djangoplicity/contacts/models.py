@@ -1586,7 +1586,7 @@ class Deduplication(models.Model):
 			if not skip:
 				duplicates.append(record)
 				i += 1
-				if i > self.max_display:
+				if i >= self.max_display:
 					break
 
 		return duplicates

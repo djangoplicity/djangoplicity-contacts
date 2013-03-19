@@ -22,6 +22,12 @@
 		td.js_select {
 			min-width: 65px;
 		}
+		td.hoveractive {
+			background-color: #729fcf !important;
+		}
+		td.ui-draggable-dragging {
+			background-color: #3465a4 !important;
+		}
     </style>
 {% endblock %}
 
@@ -56,7 +62,8 @@
 <h1>Contacts Deduplication Review</h1>
 
 <p>
-	<strong>Last deduplication:</strong> {{ object.last_deduplication }}
+	<strong>Last deduplication:</strong> {{ object.last_deduplication }}<br />
+	<strong>Showing first {{ object.max_display }} potential duplicates.</strong>
 </p>
 <div id="content-main">
     {% if error %}
@@ -107,7 +114,7 @@
 						{% if field.label == 'Groups' %}
 							<td style="background-color: #d3d7cf;">{% for group in record.contact.groups.all %}{{ group }}<br />{% endfor %}</td>
 						{% endif %}
-						  <td style="background-color: #d3d7cf;">{{ field }}</td>
+						  <td class="draggable" style="background-color: #d3d7cf;">{{ field }}</td>
 					  {% endfor %}
 				  </tr>
 				  {% endif %}
@@ -131,7 +138,7 @@
 						{% if field.label == 'Groups' %}
 							<td>{% for group in record.contact.groups.all %}{{ group|sp2nbsp }}<br />{% endfor %}</td>
 						{% endif %}
-							<td>{{ field }}</td>
+							<td class="draggable">{{ field }}</td>
 						{% endfor %}
 					  {% endif %}
 				  </tr>
@@ -155,15 +162,28 @@
   </div>
 {% endif %}
 
-<script type="text/javascript" src="{{STATIC_URL}}djangoplicity/js/jquery-1.7.1.min.js"></script>
+<script src="http://code.jquery.com/jquery-1.9.1.js"></script>
+<script src="http://code.jquery.com/ui/1.10.2/jquery-ui.js"></script>
 <script type="text/javascript">
-function toggle_background(td){
-	// This functions toggles the background color for checkboxes tds,
-	// it expect the td as parameter
-}
-//$('td.js_select').click(function(event){
-//	toggle_background($(this));
-//});
+
+$(function() {
+	$( ".draggable" ).draggable({
+		addClasses: false,
+		revert: true, 
+		opacity: 0.7, 
+		helper: 'clone', 
+		cursor: 'move'
+	});
+	$( ".draggable" ).droppable({
+		addClasses: false,
+		hoverClass: "hoveractive",
+		drop: function( event, ui ) {
+			$( this )
+			.find( "input" ).prop('value', ui.draggable.find('input').prop('value'));
+		}
+	});
+});
+
 $('td.js_select, input[type=radio], input[type=checkbox]').click(function(e){
 	e.stopPropagation();
 	if ($(e.target).is('input')) {
@@ -175,7 +195,7 @@ $('td.js_select, input[type=radio], input[type=checkbox]').click(function(e){
 		// Toggle the input
 		input.prop("checked", !input.prop("checked"));
 	}
-
+ 
 	if (input.prop("checked")) {
 		// If this is a radio  we need to unset the 
 		// background color of other radios' tds with same name
@@ -204,10 +224,7 @@ $('td.js_select, input[type=radio], input[type=checkbox]').click(function(e){
 		$(td).css('background-color', color);
 	} else
 		$(td).css('background-color', '');
-
-//	toggle_background($(this).parent());
- //   e.stopPropagation();
 });
-</script>
 
+</script>
 {% endblock %}
