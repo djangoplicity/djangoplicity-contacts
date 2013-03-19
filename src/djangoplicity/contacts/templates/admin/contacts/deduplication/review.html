@@ -1,0 +1,212 @@
+{% extends "admin/base_site.html" %}
+{% load admin_list i18n %}
+{% load djangoplicity_text_utils %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <link rel="stylesheet" type="text/css" href="{{STATIC_URL}}admin/css/changelists.css" />
+  {{ media.css }}
+    <style>
+		input[type=text] {
+			width: 20em;
+		}
+		#changelist table {
+			margin-bottom: 20px;
+		}
+		#changelist table thead th {
+			padding: 2px;
+		}
+		#changelist table td {
+			vertical-align: middle;
+		}
+		td.js_select {
+			min-width: 65px;
+		}
+    </style>
+{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+{{ media.js }}
+{% endblock %}
+
+{% block bodyclass %}change-list{% endblock %}
+
+{% block breadcrumbs %}{% with search as original %}
+<div class="breadcrumbs">
+     <a href="../../../../">{% trans "Home" %}</a> &rsaquo;
+     <a href="../../../">{{ app_label|capfirst|escape }}</a> &rsaquo;
+     <a href="../../">{{ opts.verbose_name_plural|capfirst }}</a> &rsaquo;
+     <a href="../">{{ object|truncatewords:"18" }}</a> &rsaquo;
+     {% trans "Review" %}
+</div>
+{% endwith %}
+{% endblock %}
+
+
+{% block coltype %}flex{% endblock %}
+{% block site_title %}Contacts Deduplication Review{% endblock %}
+
+{% block content %}
+
+{% if object.status == "processing" %}
+<h1>The deduplication is running, please come back later</h1>
+{% else %}
+
+<h1>Contacts Deduplication Review</h1>
+
+<p>
+	<strong>Last deduplication:</strong> {{ object.last_deduplication }}
+</p>
+<div id="content-main">
+    {% if error %}
+    <p class="errornote">
+    {{error}}
+    </p>
+    {% endif %}
+    <div class="module{% if filtered %} filtered{% endif %}" id="changelist">
+      {% block filters %}
+      {% endblock %}
+	  <form id="changelist-form" action="" method="post"{% if cl.formset.is_multipart %} enctype="multipart/form-data"{% endif %}>{% csrf_token %}
+
+	  {% if duplicates %}
+	  <h2>Potential duplicates</h2>
+	  <table cellspacing="0">
+		  <thead>
+			  <tr>
+				  <th style="text-align: center;">Update</th>
+				  <th style="text-align: center;">Delete</th>
+				  <th style="text-align: center;">Ignore</th>
+				  <th></th>
+				  {% for field in duplicates.0.form %}
+					{% if field.label == 'Groups' %}
+						<th>Group (Text)</th>
+					{% endif %}
+					<th>{{ field.label_tag }}</th>
+				  {% endfor %}
+			  </tr>
+		  </thead>
+		  <tbody>
+			  {% for record in duplicates %}
+				  {% if not record.skip %}
+				  <tr>
+					  <td class="js_select" style="vertical-align: middle; text-align: center;">
+						  <input type="radio" id="action_contact_{{ record.contact_id }}_{{ record.contact_id }}" class="action-select" value="update" name="action_contact_{{ record.contact_id }}_{{ record.contact_id }}">
+					  </td>
+					  <td class="js_select" style="vertical-align: middle; text-align: center;">
+						  <input type="radio" id="action_contact_{{ record.contact_id }}_{{ record.contact_id }}" class="action-select" value="delete" name="action_contact_{{ record.contact_id }}_{{ record.contact_id }}">
+					  </td>
+					  <td class="js_select" style="vertical-align: middle; text-align: center;">
+						  <input type="radio" id="action_contact_{{ record.contact_id }}_{{ record.contact_id }}" class="action-select" value="ignore" name="action_contact_{{ record.contact_id }}_{{ record.contact_id }}">
+					  </td>
+					  {% for field in record.fields %}
+						  <td style="background-color: #d3d7cf;">{{ field|safe }}</td>
+					  {% endfor %}
+					  {% for field in record.form %}
+						{% if field.label == 'Groups' %}
+							<td style="background-color: #d3d7cf;">{% for group in record.contact.groups.all %}{{ group }}<br />{% endfor %}</td>
+						{% endif %}
+						  <td style="background-color: #d3d7cf;">{{ field }}</td>
+					  {% endfor %}
+				  </tr>
+				  {% endif %}
+				  {% for duplicate in record.duplicates %}
+				  {% if not duplicate.skip %}
+				  <tr>
+					  <td class="js_select" style="vertical-align: middle; text-align: center;">
+						  <input type="radio" id="action_contact_{{ record.contact_id }}_{{ duplicate.contact_id }}" class="action-select" value="update" name="action_contact_{{ record.contact_id }}_{{ duplicate.contact_id }}">
+					  </td>
+					  <td class="js_select" style="vertical-align: middle; text-align: center;">
+						  <input type="radio" id="action_contact_{{ record.contact_id }}_{{ duplicate.contact_id }}" class="action-select" value="delete" name="action_contact_{{ record.contact_id }}_{{ duplicate.contact_id }}">
+					  </td>
+					  <td class="js_select" style="vertical-align: middle; text-align: center;">
+						  <input type="radio" id="action_contact_{{ record.contact_id }}_{{ duplicate.contact_id }}" class="action-select" value="ignore" name="action_contact_{{ record.contact_id }}_{{ duplicate.contact_id }}">
+					  </td>
+					  {% for field in duplicate.fields %}
+						  <td>{{ field|safe }}</td>
+					  {% endfor %}
+					  {% if duplicate.form %}
+						{% for field in duplicate.form %}
+						{% if field.label == 'Groups' %}
+							<td>{% for group in record.contact.groups.all %}{{ group|sp2nbsp }}<br />{% endfor %}</td>
+						{% endif %}
+							<td>{{ field }}</td>
+						{% endfor %}
+					  {% endif %}
+				  </tr>
+				  {% endif %}
+				  {% endfor %}
+				  <tr><td colspan="{{ columns|length|add:"2" }}"></td><tr/>
+			  {% endfor %}
+		  </tbody>
+	  </table>
+	  {% endif %}
+
+	  {% if duplicates %}
+	  <p class="paginator">
+	  <input type="submit" name="_deduplicate" class="default" value="Deduplicate">
+	  </p>
+	  {% endif %}
+
+      </form>
+    </div>
+    
+  </div>
+{% endif %}
+
+<script type="text/javascript" src="{{STATIC_URL}}djangoplicity/js/jquery-1.7.1.min.js"></script>
+<script type="text/javascript">
+function toggle_background(td){
+	// This functions toggles the background color for checkboxes tds,
+	// it expect the td as parameter
+}
+//$('td.js_select').click(function(event){
+//	toggle_background($(this));
+//});
+$('td.js_select, input[type=radio], input[type=checkbox]').click(function(e){
+	e.stopPropagation();
+	if ($(e.target).is('input')) {
+		var td = $(this).parent();	
+		var input = $(this);
+	} else {
+		var td = $(this);	
+		var input = $(td).find('input');
+		// Toggle the input
+		input.prop("checked", !input.prop("checked"));
+	}
+
+	if (input.prop("checked")) {
+		// If this is a radio  we need to unset the 
+		// background color of other radios' tds with same name
+		if (input.prop('type') == 'radio') {
+			$('input[name=' + input.prop('name') + ']').each(
+				function() {
+					$(this).parent().css('background-color', '');
+				}
+			)
+		}
+		// Set bg color depending on the action:
+		switch (input.prop('value'))
+		{
+			case 'update':
+				var color = '#8ae234';
+				break;
+			case 'delete':
+				var color = '#ef2929';
+				break;
+			case 'ignore':
+				var color = '#888a85';
+				break;
+			default:
+				var color = '';
+		}
+		$(td).css('background-color', color);
+	} else
+		$(td).css('background-color', '');
+
+//	toggle_background($(this).parent());
+ //   e.stopPropagation();
+});
+</script>
+
+{% endblock %}

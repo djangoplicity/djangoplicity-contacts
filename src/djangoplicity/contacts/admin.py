@@ -38,14 +38,14 @@ from django.conf.urls.defaults import patterns, url
 from django.contrib import admin
 from django.http import Http404
 from django import forms
-from django.shortcuts import get_object_or_404, render_to_response
+from django.shortcuts import get_object_or_404, render_to_response, redirect
 from django.template import RequestContext
 from djangoplicity.admincomments.admin import AdminCommentInline, \
 	AdminCommentMixin
 from djangoplicity.contacts.models import ContactGroup, Contact, Country, \
 	CountryGroup, GroupCategory, ContactField, Field, Label, PostalZone, \
 	ContactGroupAction, ImportTemplate, ImportMapping, ImportSelector, \
-	ImportGroupMapping, Import, CONTACTS_FIELDS, ContactForm
+	ImportGroupMapping, Import, CONTACTS_FIELDS, ContactForm, Deduplication
 from djangoplicity.contacts.tasks import import_data
 from django.shortcuts import get_object_or_404
 from datetime import datetime
@@ -105,7 +105,7 @@ class ImportAdmin( admin.ModelAdmin ):
 
 	def preview_view( self, request, pk=None ):
 		"""
-		Generate labels or show list of available labels
+		Show preview of imports based on template
 		"""
 		obj = get_object_or_404( Import, pk=pk )
 
@@ -205,7 +205,7 @@ class ImportAdmin( admin.ModelAdmin ):
 
 			import_contacts = self._clean_import_data(request)
 
-			# Check if the all the forms are valid, if not create
+			# Check that all the forms are valid, if not create
 			# a list of error messages
 			errorlist = []
 			for line, contact in import_contacts.iteritems():
@@ -495,9 +495,155 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 
 
 class ContactGroupActionAdmin( admin.ModelAdmin ):
-	list_display = ['group', 'on_event', 'action',  ]
-	list_filter = [ 'on_event', 'action', 'group', ]
-	search_fields = ['group__name', 'action__name', ]
+	list_display = ('group', 'on_event', 'action', )
+	list_filter = ('on_event', 'action', 'group', )
+	search_fields = ('group__name', 'action__name', )
+
+
+class DeduplicationAdmin(admin.ModelAdmin):
+	list_display = ('id', 'last_deduplication', )
+	exclude = ('last_deduplication', )
+	readonly_fields = ('status', 'duplicate_contacts', 'deduplicated_contacts', )
+	filter_horizontal = ('groups', )
+
+	def get_urls(self):
+		urls = super(DeduplicationAdmin, self).get_urls()
+		extra_urls = patterns('',
+			url(r'^(?P<pk>[0-9]+)/run/$', self.admin_site.admin_view(self.run), name='contacts_deduplication_run'),
+			url(r'^(?P<pk>[0-9]+)/review/$', self.admin_site.admin_view(self.review_view), name='contacts_deduplication_review'),
+		)
+		return extra_urls + urls
+
+	def run(self, request, pk=None):
+		'''
+		Run deduplication tasks for given groups
+		'''
+
+		dedup = get_object_or_404(Deduplication, pk=pk)
+
+		# Run the deduplication in the background
+		if dedup.status != 'processing':
+			dedup.status = 'processing'
+			dedup.last_deduplication = datetime.now()
+			dedup.save()
+
+			from djangoplicity.contacts.tasks import run_deduplication
+			run_deduplication.delay(dedup.pk, request.user.email)
+
+		return redirect('admin:contacts_deduplication_review', pk=dedup.pk)
+
+	def review_view(self, request, pk=None):
+		if request.method == "POST":
+			return self.deduplicate_view(request, pk)
+
+		dedup = get_object_or_404(Deduplication, pk=pk)
+
+		duplicates = dedup.review_data()
+
+		return render_to_response(
+			"admin/contacts/deduplication/review.html",
+			{
+				'object': dedup,
+				'messages': [],
+				'app_label': dedup._meta.app_label,
+				'opts': dedup._meta,
+				'duplicates': duplicates,
+			},
+			context_instance=RequestContext(request)
+		)
+
+	def deduplicate_view(self, request, pk=None):
+		dedup = get_object_or_404(Deduplication, pk=pk)
+
+		update, delete, ignore = self._clean_deduplicate_data(request)
+
+		# Check that all the update forms are valid, if not create
+		# a list of error messages
+		errorlist = []
+		for dummy, contact in update.iteritems():
+			if not contact['form'].is_valid():
+				# Convert the ErrorList to a dict including the field value for the template:
+				errors = []
+				for field, error in contact['form']._errors.iteritems():
+					errors.append({
+						'field': field,
+						'error': error,
+						'value': contact['form'][field].value,
+					})
+
+				errorlist.append({
+					'contact': contact['contact'],
+					'errors': errors,
+					'value': contact['form']
+				})
+
+		resultlist = []
+		if not errorlist:
+			resultlist = dedup.deduplicate_data(update, delete, ignore)
+
+		return render_to_response(
+				"admin/contacts/deduplication/deduplicate.html",
+				{
+					'object': dedup,
+					'errorlist': errorlist,
+					'resultlist': resultlist,
+					'messages': [],
+					'app_label': dedup._meta.app_label,
+					'opts': dedup._meta,
+				},
+				context_instance=RequestContext( request )
+			)
+
+	def _clean_deduplicate_data(self, request):
+		'''
+		Clean the POST data to be used by deduplicate_view
+		'''
+		update = {}
+		delete = []
+		ignore = []
+
+		for key in request.POST:
+			if not key.startswith('action_contact_'):
+				continue
+
+			# The key will of the form action_contact_22400_22400 or
+			# action_contact_22400_29985, for the "original" contact
+			# and for a potential duplicate
+			target = key[len('action_contact_'):]
+
+			action = request.POST.get(key)
+
+			if action == 'delete':
+				delete.append(target)
+				continue
+			if action == 'ignore':
+				ignore.append(target)
+				continue
+
+			# If we reach this point then action == 'update'
+
+			# Make a copy of post data so we can handle each
+			# entry separately
+			update[target] = {'post': request.POST.copy()}
+
+		for target in update:
+			# Remove data from other contacts from the post data:
+			keys_to_delete = []
+			for key in update[target]['post']:
+				if not key.startswith(target):
+					keys_to_delete.append(key)
+			for key in keys_to_delete:
+				del(update[target]['post'][key])
+
+			original_contact = Contact.objects.get(id=target.split('_')[1])
+			form = ContactForm(update[target]['post'],
+								instance=original_contact,
+								prefix=target)
+
+			update[target]['contact'] = original_contact
+			update[target]['form'] = form
+
+		return update, delete, ignore
 
 
 def register_with_admin( admin_site ):
@@ -513,6 +659,7 @@ def register_with_admin( admin_site ):
 	admin_site.register( ImportTemplate, ImportTemplateAdmin )
 	admin_site.register( ImportMapping, ImportMappingAdmin )
 	admin_site.register( Import, ImportAdmin )
+	admin_site.register( Deduplication, DeduplicationAdmin )
 
 
 # Register with default admin site

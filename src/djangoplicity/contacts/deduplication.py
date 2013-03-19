@@ -14,7 +14,7 @@
 #      notice, this list of conditions and the following disclaimer in the
 #      documentation and/or other materials provided with the distribution.
 #
-#    * Neither the name of the European Southern Observatory nor the names 
+#    * Neither the name of the European Southern Observatory nor the names
 #      of its contributors may be used to endorse or promote products derived
 #      from this software without specific prior written permission.
 #
@@ -35,19 +35,19 @@ Module to help find contact duplicates.
 
 Usage::
 	find_duplicates( data, search_space )
-	
+
 ``data'' is a dictionary with the following keys:
 	* ``name'' - full name including civil titles like Dr., Mr., Ms. etc.
 	* ``address_lines'' - a list of address lines, e.g. ['organisation','department','street 1', 'street 2']
 	* ``city'' - zip/post code, city and county in one line.
 	* ``country'' - country iso code (upper case)
-	
+
 ``search_space'' is a list of dictionaries like data. The dictionary can be created from
-contacts_search_space for all contacts in the contact database. 
+contacts_search_space for all contacts in the contact database.
 
 
 
-  
+
 """
 import difflib
 import re
@@ -55,8 +55,8 @@ import re
 #
 # Variables defining tokens/characters for splitting a name in title and name.
 #
-TITLES = ['acad', 'brother', 'dr', 'mr', 'mrs', 'ms', 'miss', 'prof', 'sir', 'rev', 'master', 'fr', 'ing', 
-		'herr', 'frau', 'dir', 'habil', 'med', 'phil', 'fil', 'herrn', 'hr', 'mag', 'mme', 'sheikh', 'sig', 
+TITLES = ['acad', 'brother', 'dr', 'mr', 'mrs', 'ms', 'miss', 'prof', 'sir', 'rev', 'master', 'fr', 'ing',
+		'herr', 'frau', 'dir', 'habil', 'med', 'phil', 'fil', 'herrn', 'hr', 'mag', 'mme', 'sheikh', 'sig',
 		'sr', 'univ', ]
 
 WHITESPACE = [" ", "\n", "\r", "\t", ""]
@@ -243,22 +243,25 @@ u'missions',
 
 splitter = re.compile("(\s+|\.|\-)")
 
+
 #
 # Functions
 #
+
 def contacts_search_space():
 	"""
 	Create a search space from all contacts in the database.
 	"""
 	from djangoplicity.contacts.models import Contact
-	
+
 	search_space = []
 	for c in Contact.objects.all().select_related( 'country' ):
 		search_space.append( c.get_data() )
-		
+
 	return search_space
 
 num_pattern = re.compile("([0-9]+|road)")
+
 
 def is_street( name ):
 	"""
@@ -266,27 +269,29 @@ def is_street( name ):
 	"""
 	return True if num_pattern.search( name.lower() ) else False
 
+
 def is_organisation( name ):
 	"""
 	Determine if name is an organisation name.
 	"""
 	name = name.lower()
-	
+
 	for indicator in ORG_INDICATORS:
 		if indicator in name:
 			return True
-		
+
+
 def split_addresslines( lines ):
 	"""
 	Split up to 4 lines into appropiate fields (org, dept, street 1/2)
 	"""
-	data = { 
-		'organisation' : '',
-		'department' : '',
-		'street_1' : '',
-		'street_2' : '', 
+	data = {
+		'organisation': '',
+		'department': '',
+		'street_1': '',
+		'street_2': '',
 	}
-	
+
 	if len(lines) == 0:
 		pass
 	elif len(lines) == 1:
@@ -315,16 +320,16 @@ def split_addresslines( lines ):
 		data['department'] = lines[1]
 		data['street_1'] = lines[2]
 		data['street_2'] = lines[3]
-	
+
 	return data
-			
+
 
 def split_name( name ):
 	"""
 	Split a name into civil titles and the name
 	"""
 	parts = splitter.split( name )
-	
+
 	i = 0
 	for p in parts:
 		tmp = p.lower()
@@ -333,7 +338,7 @@ def split_name( name ):
 			continue
 		else:
 			break
-	
+
 	return ( "".join( parts[:i] ).strip(), "".join( parts[i:] ).strip() )
 
 
@@ -342,8 +347,9 @@ def _preprocess_name( name ):
 	Preprocess a name before string comparision
 	"""
 	# Remove titles
-	title, name = split_name( name )
-	return name.lower() 
+	dummy_title, name = split_name( name )
+	return name.lower()
+
 
 def _preprocess_city( city, isocode ):
 	if type(city) is not unicode:
@@ -355,7 +361,7 @@ def _preprocess_city( city, isocode ):
 		return city[len(isocode):]
 	else:
 		return city
-	
+
 
 def _prepare_str(s):
 	'''
@@ -364,7 +370,7 @@ def _prepare_str(s):
 	s = s.strip().lower()
 	return re.sub(r'\s+', ' ', s)
 
-	
+
 #def similar_name( a, b, ratio_limit=0.90 ):
 #	"""
 #	Determine if two names are similar. Note, two
@@ -372,7 +378,7 @@ def _prepare_str(s):
 #	"""
 #	a = _preprocess_name( a )
 #	b = _preprocess_name( b )
-#	
+#
 #	seq = difflib.SequenceMatcher( a=a.lower(), b=b.lower() )
 #	return seq.ratio() > ratio_limit
 
@@ -387,17 +393,17 @@ def similar_text( a, b, ratio_limit=0.90 ):
 #def similar( a, b ):
 #	"""
 #	Compare two objects to determine if they are similar.
-#	
+#
 #	Algorithm:
 #	- Exclude contacts where country and name doesn't match.
 #	- Introduce large penalty if one name is blank and the other not.
 #	- Introduce penalty if city doesn't match
 #	- Introduce small penalty if an address line does not match.
-#	
-#	Note the comparison is not symmetrical - i.e A can be similar to B, 
+#
+#	Note the comparison is not symmetrical - i.e A can be similar to B,
 #	but B not similar to A
-#	
-#	Function returns a ratio between 0.0 and 1.0, where 1.0 means a nearly 
+#
+#	Function returns a ratio between 0.0 and 1.0, where 1.0 means a nearly
 #	perfect match.
 #	"""
 #	c = 0
@@ -408,7 +414,7 @@ def similar_text( a, b, ratio_limit=0.90 ):
 #			return 0.0
 #		c += 1
 #		t += 1
-#	
+#
 #	# Name
 #	if a['name'].strip() != "":
 #		if not similar_name( a['name'], b['name'] ):
@@ -418,7 +424,7 @@ def similar_text( a, b, ratio_limit=0.90 ):
 #	elif b['name'].strip() != "":
 #		# A empty, b not, so introduce large penalty.
 #		c -= 2
-#		
+#
 #	# City
 #	if a['city'].strip() != "":
 #		t += 1
@@ -426,30 +432,30 @@ def similar_text( a, b, ratio_limit=0.90 ):
 #			c -= 1 # Penalty if city does not match
 #		else:
 #			c += 1
-#	
+#
 #	# Address lines
 #	if len( a['address_lines'] ) > 0:
 #		for l in a['address_lines']:
 #			t += 1
-#			for l2 in b['address_lines']:				
+#			for l2 in b['address_lines']:
 #				if similar_text( l, l2, ratio_limit=0.8 ):
 #					c += 1
 #					break
-#	
+#
 #	return float(c)/float(t)
-	
+
 
 #def find_duplicates( obj, search_space, ratio_limit=0.3 ):
 #	"""
 #	Return a list of possible duplicates of obj in the search space
 #	"""
 #	dups = []
-#	
+#
 #	for s in search_space:
 #		ratio = similar( obj, s )
 #		if ratio > ratio_limit:
 #			dups.append( (ratio,s) )
-#			
+#
 #	dups.sort( key=lambda x: x[0] )
 #	dups.reverse()
 #	#dups = [x[1] for x in dups]
@@ -467,16 +473,16 @@ def similar_name(a, b, ratio_limit=0.8):
 
 	# Compare first and last name if we have all the information
 	if a_first and b_first and a_last and a_last:
-		seq = difflib.SequenceMatcher(None, 
+		seq = difflib.SequenceMatcher(None,
 				a_first + a_last, b_first + b_last)
 		if seq.ratio() >= ratio_limit:
 			return 0.8 * seq.ratio()
 
-		# Look for first name initials (e.g.: "S." :
+		# Look for first name initials (e.g.: "S.":
 		if len(a_first) == 2 and a_first[1] == '.' and \
 				a_first[0] == b_first[0]:
 			b_first = b_first[0] + '.'
-			seq = difflib.SequenceMatcher(None, 
+			seq = difflib.SequenceMatcher(None,
 					a_first + a_last, b_first + b_last)
 			if seq.ratio() >= ratio_limit:
 				return 0.75 * seq.ratio()
@@ -492,6 +498,7 @@ def similar_name(a, b, ratio_limit=0.8):
 		return 0.1 * seq.ratio()
 
 	return 0
+
 
 def similar_address(a, b, ratio_limit=0.8):
 	'''
@@ -517,6 +524,7 @@ def similar_address(a, b, ratio_limit=0.8):
 			return 0.2 * seq.ratio()
 
 	return 0
+
 
 def similar(a, b):
 	# Compares two contacts' dictonaries and return a value
@@ -545,16 +553,16 @@ def similar(a, b):
 						b['country']):
 			r += 0.1
 	except KeyError:
-		pass 
+		pass
 
 	# City
 	try:
 		if a['city'] and b['city'] and \
-				similar_text(_preprocess_city(a['city'], a['country']), 
+				similar_text(_preprocess_city(a['city'], a['country']),
 						_preprocess_city( b['city'], b['country'] ), ratio_limit=0.85):
 			r += 0.1
 	except KeyError:
-		pass 
+		pass
 
 	# Organisation
 	try:
@@ -564,7 +572,7 @@ def similar(a, b):
 			if similar_text(organisation_a, organisation_b):
 				r += 0.2
 	except KeyError:
-		pass 
+		pass
 
 	# Department
 	try:
@@ -574,12 +582,13 @@ def similar(a, b):
 			if similar_text(department_a, department_b):
 				r += 0.2
 	except KeyError:
-		pass 
+		pass
 
 	# Address
 	r += similar_address(a, b)
 
 	return r
+
 
 def find_duplicates( obj, search_space, ratio_limit=0.75 ):
 	"""
@@ -591,8 +600,8 @@ def find_duplicates( obj, search_space, ratio_limit=0.75 ):
 		ratio = similar( obj, s )
 		ratio = round(ratio, 2)
 		if ratio > ratio_limit:
-			dups.append( (ratio,s) )
-			
+			dups.append( (ratio, s) )
+
 	dups.sort( key=lambda x: x[0] )
 	dups.reverse()
 	return dups

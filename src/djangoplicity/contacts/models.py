@@ -33,22 +33,26 @@
 
 from datetime import datetime
 from dirtyfields import DirtyFieldsMixin
+import logging
+import os
+import simplejson as json
+
 from django.conf import settings
 from django.core.cache import cache
 from django.core.files.storage import FileSystemStorage
-from django.core.urlresolvers import reverse
+from django.core.urlresolvers import reverse as url_reverse
 from django.db import models
 from django.db.models.signals import m2m_changed, pre_delete, post_delete, \
 	post_save, pre_save
 from django.forms import ValidationError, ModelForm
 from django.utils.translation import ugettext as _
+
 from djangoplicity.actions.models import Action
 from djangoplicity.contacts.labels import LabelRender, LABEL_PAPER_CHOICES
 from djangoplicity.contacts.signals import contact_added, contact_removed, \
 	contact_updated
+
 import deduplication
-import logging
-import os
 
 
 logger = logging.getLogger( 'djangoplicity' )
@@ -1063,7 +1067,7 @@ class ImportTemplate( models.Model ):
 					contact = {
 						'row': unicode(i),
 						'contact_link':  '<a href="%s">%s</a>' %
-								(reverse('admin:contacts_contact_change', args=[id]), id),
+								(url_reverse('admin:contacts_contact_change', args=[id]), id),
 						'data': data,
 					}
 					# Check that the contact still exists:
@@ -1088,10 +1092,10 @@ class ImportTemplate( models.Model ):
 						for id, score in sorted(duplicate_contacts[unicode(i)].iteritems(),
 								key=lambda(k, v): (v, k), reverse=True):
 
-							# Create a list of extra fields to display in the form
 							try:
 								contact = Contact.objects.get(id=id)
-								fields = ('<a href="%s">%s</a> (%.2f)' % (reverse('admin:contacts_contact_change',
+								# Create a list of extra fields to display in the form
+								fields = ('<a href="%s">%s</a> (%.2f)' % (url_reverse('admin:contacts_contact_change',
 												args=[id]), id, score),)
 								form = ContactForm(instance=contact, prefix='%d_update_%s' % (i, id))
 							except Contact.DoesNotExist:
@@ -1364,7 +1368,7 @@ def handle_uploaded_file( instance, filename ):
 	return name
 
 
-IMPORT_STATUS = [
+DEDUPLICATION_STATUS = [
 	( 'new', 'New' ),
 	( 'processing', 'Processing' ),
 	( 'review', 'Review' ),
@@ -1381,7 +1385,7 @@ class Import( models.Model ):
 	"""
 	template = models.ForeignKey( ImportTemplate )
 	data_file = models.FileField( upload_to=handle_uploaded_file, storage=upload_fs )
-	status = models.CharField( max_length=20, choices=IMPORT_STATUS, help_text='', default='new' )
+	status = models.CharField( max_length=20, choices=DEDUPLICATION_STATUS, help_text='', default='new' )
 	created = models.DateTimeField( auto_now_add=True )
 	last_modified = models.DateTimeField( auto_now=True )
 	last_deduplication = models.DateTimeField( null=True )
@@ -1400,7 +1404,6 @@ class Import( models.Model ):
 		Generate a preview of the data mapping for this import including the
 		poential duplicates. The data will be used as the basis for the import.
 		"""
-		import simplejson as json
 		duplicate_contacts = json.loads(self.duplicate_contacts) if self.duplicate_contacts else {}
 		imported_contacts = json.loads(self.imported_contacts) if self.imported_contacts else {}
 		return self.template.review_data( self.data_file.path, duplicate_contacts, imported_contacts )
@@ -1416,7 +1419,6 @@ class Import( models.Model ):
 		imported_contacts = self.template.import_data( import_contacts )
 
 		# Save the dict of imported contacts
-		import simplejson as json
 		if self.imported_contacts:
 			tmp = json.loads(self.imported_contacts)
 		else:
@@ -1435,7 +1437,6 @@ class Import( models.Model ):
 		"""
 		dups = self.template.prepare_import( self.data_file.path )
 		if dups:
-			import simplejson as json
 			self.duplicate_contacts = json.dumps(dups)
 			self.save()
 		return True
@@ -1449,6 +1450,183 @@ class Import( models.Model ):
 			instance.data_file.delete()
 		except Exception:
 			pass
+
+
+class Deduplication(models.Model):
+	'''
+	Deduplication job
+	'''
+	status = models.CharField(max_length=20, choices=DEDUPLICATION_STATUS,
+				help_text='', default='new')
+	last_deduplication = models.DateTimeField(null=True)
+	duplicate_contacts = models.TextField(blank=True)
+	deduplicated_contacts = models.TextField( blank=True )
+	groups = models.ManyToManyField(ContactGroup, blank=True)
+	max_display = models.IntegerField(default=25,
+					help_text='Maximum number of duplicates to display at once.')
+	min_score_display = models.FloatField(default=0.7,
+							help_text='Only display duplicates with score above this score.')
+
+	def run(self):
+		'''
+		Look for potential duplicates in the give groups (if any) or in the
+		whole Contatcs DB. Normally this should be executed in a background
+		task as it might be a long running task.
+
+		Also, the user is responsible to set the import status and save it
+		afterwards to ensure that it's marked as done.
+		'''
+
+		duplicate_contacts = {}
+		search_space = deduplication.contacts_search_space()
+
+		if self.groups:
+			contacts = Contact.objects.filter(groups__in=self.groups.all())
+		else:
+			contacts = Contact.objects.all()
+
+		for contact in contacts:
+			dups = deduplication.find_duplicates(contact.get_data(), search_space)
+			if not dups:
+				continue
+
+			# Create a dict of duplicate score with Contact id as key
+			keys = {}
+			for dup in dups:
+				duplicate_id = dup[1]['contact_object'].pk
+				# find_duplicate will report a perfect match
+				# for itself so we skip it
+				if duplicate_id == contact.id:
+					continue
+				keys[duplicate_id] = dup[0]
+
+			if keys:
+				duplicate_contacts[contact.pk] = keys
+
+		if duplicate_contacts:
+			self.duplicate_contacts = json.dumps(duplicate_contacts)
+			self.save()
+
+		return True
+
+	def review_data( self ):
+		"""
+		Returns the view of the potential found duplicates
+		Only return max_display duplicates at a time
+		"""
+		duplicate_contacts = json.loads(self.duplicate_contacts) if self.duplicate_contacts else {}
+
+		duplicates = []
+
+		i = 0
+		for contact_id in duplicate_contacts:
+			try:
+				contact = Contact.objects.get(id=contact_id)
+				fields = ('<a href="%s">%s</a>' % (url_reverse('admin:contacts_contact_change',
+								args=[contact_id]), contact_id), )
+				form = ContactForm(instance=contact, prefix='%s_%s' % (contact_id, contact_id))
+			except Contact.DoesNotExist:
+				fields = ('<span style="color: red;">Contact %s disappeared!</span>' % contact_id, )
+				contact = None
+				form = None
+
+			# Check if the contact has already been deduplicated:
+			deduplicated = False
+			if '%s_%s' % (contact_id, contact_id) in self.deduplicated_contacts:
+				# Contact won't be displayed in form
+				deduplicated = True
+
+			record = {
+				'skip': deduplicated,
+				'fields': fields,
+				'contact_id': contact_id,
+				'contact': contact,
+				'form': form,
+			}
+
+			dups = []
+
+			for id, score in sorted(duplicate_contacts[contact_id].iteritems(),
+					key=lambda(k, v): (v, k), reverse=True):
+
+				if score < self.min_score_display:
+					continue
+
+				try:
+					contact = Contact.objects.get(id=id)
+					# Create a list of extra fields to display in the form
+					fields = ('<a href="%s">%s</a> (%.2f)' % (url_reverse('admin:contacts_contact_change',
+								args=[id]), id, score),)
+					form = ContactForm(instance=contact, prefix='%s_%s' % (contact_id, id))
+				except Contact.DoesNotExist:
+					fields = ('<span style="color: red">Contact %s disappeared! Please re-run deduplication</span>' % id,)
+					form = None
+
+				# Check if the contact has already been deduplicated:
+				deduplicated = False
+				if '%s_%s' % (contact_id, id) in self.deduplicated_contacts:
+					# Contact won't be displayed in form
+					deduplicated = True
+
+				dups.append({
+					'skip': deduplicated,
+					'fields': fields,
+					'contact_id': id,
+					'contact': contact,
+					'form': form,
+				})
+
+			record['duplicates'] = dups
+
+			# If all the entries for the record have been deduplicated we can skip them:
+			skip = record['skip']
+			for dup in record['duplicates']:
+				skip = skip and dup['skip']
+
+			if not skip:
+				duplicates.append(record)
+				i += 1
+				if i > self.max_display:
+					break
+
+		return duplicates
+
+	def deduplicate_data(self, update, delete, ignore):
+		'''
+		Update, delete and ignore the given contacts
+		'''
+		resultlist = {'errors': [], 'messages': []}
+		deduplicated_contacts = []
+
+		for contact_id in delete:
+			try:
+				contact = Contact.objects.get(id=contact_id.split('_')[1])
+				contact.delete()
+				resultlist['messages'].append('Deleted Contact "%s"' % contact_id)
+			except Contact.DoesNotExist:
+					resultlist['errors'].append(
+						'Couldn\'t delete Contact "%s", Contact doesn\'t exist!' % contact_id)
+			deduplicated_contacts.append(contact_id)
+
+		for contact, data in update.iteritems():
+			form = data['form']
+			form.save()
+			contact_id = contact.split('_')[1]
+			resultlist['messages'].append('Updated Contact <a href="%s">%s</a>' %
+					(url_reverse('admin:contacts_contact_change', args=[contact_id]), contact_id))
+
+			deduplicated_contacts.append(contact)
+
+		for contact in ignore:
+			resultlist['messages'].append('Ignored Contact "%s"' % contact)
+			deduplicated_contacts.append(contact)
+
+		if deduplicated_contacts:
+			old = json.loads(self.deduplicated_contacts) if self.deduplicated_contacts else []
+			self.deduplicated_contacts = json.dumps(deduplicated_contacts + old)
+			self.save()
+
+		return resultlist
 
 
 class ContactForm(ModelForm):

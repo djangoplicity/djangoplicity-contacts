@@ -1,0 +1,77 @@
+{% extends "admin/base_site.html" %}
+{% load admin_list i18n %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <link rel="stylesheet" type="text/css" href="{{STATIC_URL}}admin/css/changelists.css" />
+  {{ media.css }}
+    <style>
+      #changelist table thead th:first-child {width: inherit}
+    </style>
+{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+{{ media.js }}
+{% endblock %}
+
+{% block bodyclass %}change-list{% endblock %}
+
+{% block breadcrumbs %}{% with search as original %}
+<div class="breadcrumbs">
+     <a href="../../../../">{% trans "Home" %}</a> &rsaquo;
+     <a href="../../../">{{ app_label|capfirst|escape }}</a> &rsaquo;
+     <a href="../../">{{ opts.verbose_name_plural|capfirst }}</a> &rsaquo;
+     <a href="../">{{ object|truncatewords:"18" }}</a> &rsaquo;
+     {% trans "Results" %}
+</div>
+{% endwith %}
+{% endblock %}
+
+
+{% block coltype %}flex{% endblock %}
+{% block site_title %}Import started{% endblock %}
+
+{% block content %}
+{% if errorlist %}
+	<h1>Deduplication failed!</h1>
+	<br />
+	<p>Press the <em>Back</em> button of your browser and fix the following errors:</p>
+	<ul>
+		{% for line in errorlist %}
+		<li>
+			<h3>Contact: {{ line.contact }} ({{ line.contact.id }})</h3>
+			<ul>
+				{% for error in line.errors %}
+				<li><strong>{{ error.field }}:</strong> {{ error.value }}<br />{{ error.error.0 }}</li>
+				{% endfor %}
+			</ul>
+		</li>
+		{% endfor %}
+	</ul>
+{% else %}
+	<h1>Contacts Import Complete</h1>
+	<br />
+	<p>
+		{% if resultlist.errors %}
+		<h2>Errors:</h2>
+		<ul>
+			{% for error in resultlist.errors %}
+				<li>{{ error|safe }}</li>
+			{% endfor %}
+		</ul>
+		{% endif %}
+		{% if resultlist.messages %}
+		<h2>Messages:</h2>
+		<ul>
+			{% for message in resultlist.messages %}
+				<li>{{ message|safe }}</li>
+			{% endfor %}
+		</ul>
+		{% endif %}
+	</p>
+	<p>
+	<a href="../review/">Back to review page</a>
+	</p>
+{% endif %}
+{% endblock %}

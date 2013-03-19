@@ -93,6 +93,37 @@ http://%s%s
 				message, 'no-reply@eso.org', [email, 'mandre@eso.org'])
 
 
+@task(ignore_result=True)
+def run_deduplication(deduplication_pk, email):
+	"""
+	Look for potential duplicates in groups selected in deduplication
+	"""
+	logger = run_deduplication.get_logger()
+
+	from djangoplicity.contacts.models import Deduplication
+
+	dedup = Deduplication.objects.get( pk=deduplication_pk )
+
+	if dedup.run():
+		dedup.status = 'review'
+		dedup.save()
+		logger.warning( "Deduplication task complete(pk=%s)" % dedup.pk )
+
+		# Send email to user:
+		site = Site.objects.get_current()
+		message = '''Dear User,
+
+The deduplication task is complete and potential duplicates identified.
+You can review the results at:
+http://%s%s
+
+''' % (site.domain, reverse('admin:contacts_deduplication_review', args=[dedup.pk]))
+
+		send_mail('Deduplication %s ready for review' % dedup.pk,
+				message, 'no-reply@eso.org', [email, 'mandre@eso.org'])
+
+
+
 class PeriodicAction( PeriodicTask ):
 	"""
 	Dispatch periodic actions for groups.
