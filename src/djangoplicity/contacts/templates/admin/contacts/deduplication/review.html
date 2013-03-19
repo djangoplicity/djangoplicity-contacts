@@ -87,6 +87,7 @@
 			  </tr>
 		  </thead>
 		  <tbody>
+				  <tr><td style="background-color: #888a85;" colspan="{{ duplicates.0.form.fields|length|add:"3" }}"></td><tr/>
 			  {% for record in duplicates %}
 				  {% if not record.skip %}
 				  <tr>
@@ -136,7 +137,7 @@
 				  </tr>
 				  {% endif %}
 				  {% endfor %}
-				  <tr><td colspan="{{ columns|length|add:"2" }}"></td><tr/>
+				  <tr><td style="background-color: #888a85;" colspan="{{ duplicates.0.form.fields|length|add:"3" }}"></td><tr/>
 			  {% endfor %}
 		  </tbody>
 	  </table>
