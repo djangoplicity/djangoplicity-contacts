@@ -209,6 +209,8 @@ class ImportAdmin( admin.ModelAdmin ):
 			# a list of error messages
 			errorlist = []
 			for line, contact in import_contacts.iteritems():
+				if not contact['form']:
+					continue
 				if not contact['form'].is_valid():
 					# Convert the ErrorList to a dict including the field value for the template:
 					errors = []
