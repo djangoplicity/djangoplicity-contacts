@@ -63,7 +63,11 @@
 
 <p>
 	<strong>Last deduplication:</strong> {{ object.last_deduplication }}<br />
-	<strong>Showing first {{ object.max_display }} potential duplicates.</strong>
+	{% if duplicates|length <= object.max_display %}
+		<strong>Showing {{ duplicates|length }} potential duplicates out of {{ duplicates|length }}</strong>
+	{% else %}
+		<strong>Showing first {{ object.max_display }} potential duplicates out of {{ duplicates|length }}</strong>
+	{% endif %}
 </p>
 <div id="content-main">
     {% if error %}

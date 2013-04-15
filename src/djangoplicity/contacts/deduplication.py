@@ -254,9 +254,10 @@ def contacts_search_space():
 	"""
 	from djangoplicity.contacts.models import Contact
 
-	search_space = []
+	search_space = {}
 	for c in Contact.objects.all().select_related( 'country' ):
-		search_space.append( c.get_data() )
+		#search_space.append( c.get_data() )
+		search_space[c.id] = c.get_data()
 
 	return search_space
 
@@ -546,6 +547,12 @@ def similar(a, b):
 							ratio_limit=0.95):
 				r += 0.8
 
+	# Two people with same address (e.g.: same institute) will always
+	# be matched as duplicates, so if neither the name or email have
+	# at least some similarities we don't compare the addresses:
+	if r < 0.15:
+		return r
+
 	# Country
 	try:
 		if a['country'] and b['country'] and \
@@ -596,7 +603,7 @@ def find_duplicates( obj, search_space, ratio_limit=0.75 ):
 	"""
 	dups = []
 
-	for s in search_space:
+	for s in search_space.values():
 		ratio = similar( obj, s )
 		ratio = round(ratio, 2)
 		if ratio > ratio_limit:
