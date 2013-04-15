@@ -66,7 +66,6 @@ def import_data( import_pk, request_POST ):
 		else:
 			request[key] = request_POST[key]
 
-	print request
 	import_contacts = ImportAdmin.clean_import_data(request)
 
 	obj = Import.objects.get( pk=import_pk )
