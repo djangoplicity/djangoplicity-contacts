@@ -136,7 +136,8 @@ class ImportAdmin( admin.ModelAdmin ):
 				context_instance=RequestContext( request )
 			)
 
-	def _clean_import_data(self, request):
+	@classmethod
+	def clean_import_data(cls, request_POST):
 		'''
 		Clean the POST data to be used by import_data
 		Returns: dict of dicts:
@@ -147,11 +148,11 @@ class ImportAdmin( admin.ModelAdmin ):
 		'''
 		contacts = {}
 		# Identify which entries need to be imported:
-		for key in request.POST:
+		for key in request_POST:
 			if not key.startswith('_selected_import_'):
 				continue
 
-			if request.POST.get(key) != 'on':
+			if request_POST.get(key) != 'on':
 				# This should never happen...
 				continue
 
@@ -159,8 +160,8 @@ class ImportAdmin( admin.ModelAdmin ):
 
 			# Identify if a new contact should be created or an existing one updated:
 			contacts[import_id] = {
-				'target': request.POST.get('_selected_merge_contact_%s' % import_id),
-				'post': request.POST.copy(),	# Make a copy of post data so we can handle
+				'target': request_POST.get('_selected_merge_contact_%s' % import_id),
+				'post': request_POST.copy(),	# Make a copy of post data so we can handle
 												# each entry separately
 			}
 
@@ -203,7 +204,7 @@ class ImportAdmin( admin.ModelAdmin ):
 		# Import in background
 		if request.method == "POST":
 
-			import_contacts = self._clean_import_data(request)
+			import_contacts = self.clean_import_data(request.POST)
 
 			# Check that all the forms are valid, if not create
 			# a list of error messages
@@ -228,7 +229,17 @@ class ImportAdmin( admin.ModelAdmin ):
 					})
 
 			if not errorlist:
-				import_data( obj.pk, import_contacts )
+				# request.POST is a QueryDict, and it can't be serialized easily
+				# so we convert it to a dict. All the values are single values
+				# except for the groups so we look at the key name to figure out
+				# how to extract the values from the QueryDict
+				d = {}
+				for key in request.POST:
+					if key.endswith('-groups'):
+						d[key] = request.POST.getlist(key)
+					else:
+						d[key] = request.POST[key]
+				import_data.delay( obj.pk, d )
 
 			return render_to_response(
 					"admin/contacts/import/import.html",

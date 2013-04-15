@@ -41,7 +41,7 @@ from djangoplicity.actions.plugins import ActionPlugin
 
 
 @task( ignore_result=True )
-def import_data( import_pk, import_contacts ):
+def import_data( import_pk, request_POST ):
 	"""
 	Run contacts import in the background, import_contacts is a dict:
 	{'line_number ': {
@@ -53,6 +53,21 @@ def import_data( import_pk, import_contacts ):
 	logger = import_data.get_logger()
 
 	from djangoplicity.contacts.models import Import
+	from djangoplicity.contacts.admin import ImportAdmin
+	from django.http import QueryDict
+
+	# Convert request_POST (a dict) back to a QuerySet
+	# All the values are single values except for the groups so we look at the
+	# key name to figure out  how to insert the values in the QueryDict
+	request = QueryDict('', mutable=True)
+	for key in request_POST:
+		if key.endswith('-groups'):
+			request.setlist(key, request_POST[key])
+		else:
+			request[key] = request_POST[key]
+
+	print request
+	import_contacts = ImportAdmin.clean_import_data(request)
 
 	obj = Import.objects.get( pk=import_pk )
 
@@ -121,7 +136,6 @@ http://%s%s
 
 		send_mail('Deduplication %s ready for review' % dedup.pk,
 				message, 'no-reply@eso.org', [email, 'mandre@eso.org'])
-
 
 
 class PeriodicAction( PeriodicTask ):
