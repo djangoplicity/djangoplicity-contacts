@@ -63,10 +63,10 @@
 
 <p>
 	<strong>Last deduplication:</strong> {{ object.last_deduplication }}<br />
-	{% if duplicates|length <= object.max_display %}
+	{% if total_duplicates|length <= object.max_display %}
 		<strong>Showing {{ duplicates|length }} potential duplicates out of {{ duplicates|length }}</strong>
 	{% else %}
-		<strong>Showing first {{ object.max_display }} potential duplicates out of {{ duplicates|length }}</strong>
+		<strong>Showing first {{ object.max_display }} potential duplicates out of {{ total_duplicates }}</strong>
 	{% endif %}
 </p>
 <div id="content-main">

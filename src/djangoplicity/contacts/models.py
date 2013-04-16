@@ -1515,7 +1515,8 @@ class Deduplication(models.Model):
 
 	def review_data( self ):
 		"""
-		Returns the view of the potential found duplicates
+		Returns the view of the potential found duplicates as well as the total
+		number of duplicates
 		Only return max_display duplicates at a time
 		"""
 		duplicate_contacts = json.loads(self.duplicate_contacts) if self.duplicate_contacts else {}
@@ -1593,7 +1594,7 @@ class Deduplication(models.Model):
 				if i >= self.max_display:
 					break
 
-		return duplicates
+		return duplicates, len(duplicate_contacts) - len(self.deduplicated_contacts)
 
 	def deduplicate_data(self, update, delete, ignore):
 		'''

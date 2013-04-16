@@ -551,7 +551,7 @@ class DeduplicationAdmin(admin.ModelAdmin):
 
 		dedup = get_object_or_404(Deduplication, pk=pk)
 
-		duplicates = dedup.review_data()
+		duplicates, total_duplicates = dedup.review_data()
 
 		return render_to_response(
 			"admin/contacts/deduplication/review.html",
@@ -561,6 +561,7 @@ class DeduplicationAdmin(admin.ModelAdmin):
 				'app_label': dedup._meta.app_label,
 				'opts': dedup._meta,
 				'duplicates': duplicates,
+				'total_duplicates': total_duplicates
 			},
 			context_instance=RequestContext(request)
 		)
