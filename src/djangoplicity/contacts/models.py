@@ -1481,7 +1481,7 @@ class Deduplication(models.Model):
 		search_space = deduplication.contacts_search_space()
 
 		if self.groups:
-			contacts = Contact.objects.filter(groups__in=self.groups.all()).select_related('country')
+			contacts = Contact.objects.filter(groups__in=self.groups.all()).select_related('country').distinct()
 		else:
 			contacts = Contact.objects.all().select_related('country')
 
