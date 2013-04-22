@@ -1498,10 +1498,6 @@ class Deduplication(models.Model):
 			keys = {}
 			for dup in dups:
 				duplicate_id = dup[1]['contact_object'].pk
-				# find_duplicate will report a perfect match
-				# for itself so we skip it
-				if duplicate_id == contact.id:
-					continue
 				keys[duplicate_id] = dup[0]
 
 			if keys:
