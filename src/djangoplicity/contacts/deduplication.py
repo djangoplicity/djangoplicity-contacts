@@ -368,7 +368,13 @@ def _prepare_str(s):
 	'''
 	Strip whitespaces chars and remove duplicates from string
 	'''
-	s = s.strip().lower()
+	try:
+		s = s.strip().lower()
+	except AttributeError:
+		# The function was probably passed an int so we try and
+		# convert it to a string:
+		if not isinstance(s, basestring):
+			return _prepare_str(unicode(s))
 	return re.sub(r'\s+', ' ', s)
 
 
