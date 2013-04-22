@@ -1486,10 +1486,10 @@ class Deduplication(models.Model):
 			contacts = Contact.objects.all().select_related('country')
 
 		for contact in contacts:
-			dups = deduplication.find_duplicates(contact.get_data(), search_space)
-
 			# Remove the current contact from the search space:
 			del(search_space[contact.id])
+
+			dups = deduplication.find_duplicates(contact.get_data(), search_space)
 
 			if not dups:
 				continue
