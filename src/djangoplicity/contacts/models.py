@@ -1502,6 +1502,10 @@ class Deduplication(models.Model):
 
 			if keys:
 				duplicate_contacts[contact.pk] = keys
+				message = ''
+				for key in keys:
+					message += '%d (%.2f), ' % (key, keys[key])
+					logger.warning("Found duplicates for deduplication %s: %s" % (self.pk, message))
 
 		if duplicate_contacts:
 			self.duplicate_contacts = json.dumps(duplicate_contacts)

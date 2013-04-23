@@ -495,14 +495,16 @@ def similar_name(a, b, ratio_limit=0.8):
 				return 0.75 * seq.ratio()
 
 	# Compare last names
-	seq = difflib.SequenceMatcher(None, a_last, b_last)
-	if seq.ratio() > ratio_limit:
-		return 0.4 * seq.ratio()
+	if a_last and b_last:
+		seq = difflib.SequenceMatcher(None, a_last, b_last)
+		if seq.ratio() > ratio_limit:
+			return 0.4 * seq.ratio()
 
 	# Compare first names
-	seq = difflib.SequenceMatcher(None, a_first, b_first)
-	if seq.ratio() > ratio_limit:
-		return 0.1 * seq.ratio()
+	if a_first and b_first:
+		seq = difflib.SequenceMatcher(None, a_first, b_first)
+		if seq.ratio() > ratio_limit:
+			return 0.1 * seq.ratio()
 
 	return 0
 
