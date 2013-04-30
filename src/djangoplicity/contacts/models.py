@@ -1249,6 +1249,8 @@ class ImportMapping( models.Model ):
 				ImportMapping._country_cache['iso'][c.iso_code.lower()] = c.iso_code
 				ImportMapping._country_cache['name'][c.name.lower()] = c.iso_code
 
+		if type(value) is not unicode:
+			value = unicode(value)
 		value = value.lower().strip()
 		if len( value ) == 2 and value in ImportMapping._country_cache['iso']:
 			return ImportMapping._country_cache['iso'][value].upper()
