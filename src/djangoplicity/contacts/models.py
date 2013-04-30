@@ -329,6 +329,8 @@ class Contact( DirtyFieldsMixin, models.Model ):
 	social = models.CharField( 'Social media', max_length=255, blank=True )
 	email = models.EmailField( blank=True )
 
+	language = models.CharField(verbose_name=_( 'Language' ), max_length=5, choices=settings.LANGUAGES, blank=True, null=True)
+
 	groups = models.ManyToManyField( ContactGroup, blank=True )
 	group_order = models.PositiveIntegerField( blank=True, null=True )
 

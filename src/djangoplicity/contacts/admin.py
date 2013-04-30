@@ -399,7 +399,7 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 			'fields': ( 'groups', )
 		} ),
 		( 'Contact', {
-			'fields': ( 'email', 'phone', 'website', 'social', )
+			'fields': ( 'email', 'phone', 'website', 'social', 'language' )
 		} ),
 	)
 	filter_horizontal = ['groups']
