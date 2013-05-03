@@ -851,7 +851,7 @@ class ContactGroupAction( models.Model ):
 
 			for group in instance.groups.all():
 				for a in cls.get_actions( group, on_event='contact_updated' ):
-					a.dispatch( changes=updates )
+					a.dispatch( instance=instance, changes=updates )
 
 
 # ====================================================================
