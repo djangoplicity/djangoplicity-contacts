@@ -237,7 +237,12 @@ class UpdateContactAction( ContactAction ):
 		defaults = { 'model_identifier': model_identifier, 'pk': pk }
 
 		for k, v in kwargs.items():
+			print 'k, v', k, v
 			if k in Contact.ALLOWED_FIELDS:
+				# Hack to allow for languages changes:
+				if k == 'get_language':
+					k = 'language'
+					v = Contact.get_language_code(v)
 				defaults[k] = v
 
 		return ( [], defaults )
