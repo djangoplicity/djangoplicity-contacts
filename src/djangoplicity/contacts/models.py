@@ -409,6 +409,16 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		data['contact_object'] = self
 		return data
 
+	def get_language(self):
+		'''
+		Return the full language string:
+		'''
+		if self.language:
+			for code, language in settings.LANGUAGES:
+				if code == self.language:
+					return language
+		return ''
+
 	ALLOWED_FIELDS = ['first_name', 'last_name', 'title', 'position', 'organisation', 'department', 'street_1', 'street_2', 'city', 'zip', 'state', 'country', 'phone', 'website', 'social', 'email', ]
 
 	@classmethod
