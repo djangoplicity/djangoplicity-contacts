@@ -116,7 +116,7 @@
 					  {% endfor %}
 					  {% for field in record.form %}
 						{% if field.label == 'Groups' %}
-							<td style="background-color: #d3d7cf;">{% for group in record.contact.groups.all %}{{ group }}<br />{% endfor %}</td>
+							<td style="background-color: #d3d7cf;">{% for group in record.contact.groups.all %}{{ group|sp2nbsp }}<br />{% endfor %}</td>
 						{% endif %}
 						  <td class="draggable" style="background-color: #d3d7cf;">{{ field }}</td>
 					  {% endfor %}

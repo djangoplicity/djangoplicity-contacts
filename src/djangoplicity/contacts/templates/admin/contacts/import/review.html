@@ -1,5 +1,5 @@
 {% extends "admin/base_site.html" %}
-{% load admin_list i18n %}
+{% load admin_list i18n djangoplicity_text_utils %}
 
 {% block extrastyle %}
   {{ block.super }}
@@ -80,6 +80,9 @@
 				  <th>Row</th>
 				  <th>Import</th>
 				  {% for field in new.0.form %}
+					{% if field.label == 'Groups' %}
+						<th>Group (Text)</th>
+					{% endif %}
 					<th>{{ field.label_tag }}</th>
 				  {% endfor %}
 			  </tr>
@@ -93,6 +96,9 @@
 					  </td>
 					  <input type="hidden" name="_selected_merge_contact_{{ record.row }}" value="new" />
 					  {% for field in record.form %}
+						{% if field.label == 'Groups' %}
+							<td style="background-color: #d3d7cf;">{% for group in record.contact.groups.all %}{{ group|sp2nbsp }}<br />{% endfor %}</td>
+						{% endif %}
 						  <td>{{ field }}</td>
 					  {% endfor %}
 				  </tr>
@@ -112,6 +118,9 @@
 				  <th>Merge with:</th>
 				  <th></th>
 				  {% for field in duplicates.0.form %}
+					{% if field.label == 'Groups' %}
+						<th>Group (Text)</th>
+					{% endif %}
 					<th>{{ field.label_tag }}</th>
 				  {% endfor %}
 			  </tr>
@@ -130,6 +139,9 @@
 					  </td>
 					  <td style="background-color: #d3d7cf;"></td>
 					  {% for field in record.form %}
+						{% if field.label == 'Groups' %}
+							<td style="background-color: #d3d7cf;">{% for group in record.contact.groups.all %}{{ group }}<br />{% endfor %}</td>
+						{% endif %}
 						  <td style="background-color: #d3d7cf;">{{ field }}</td>
 					  {% endfor %}
 				  </tr>
@@ -143,6 +155,9 @@
 					  {% endfor %}
 					  {% if duplicate.form %}
 						{% for field in duplicate.form %}
+							{% if field.label == 'Groups' %}
+								<td>{% for group in duplicate.contact.groups.all %}{{ group|sp2nbsp }}<br />{% endfor %}</td>
+							{% endif %}
 							<td>{{ field }}</td>
 						{% endfor %}
 					  {% endif %}

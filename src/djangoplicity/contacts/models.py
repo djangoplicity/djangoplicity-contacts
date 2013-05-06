@@ -1128,6 +1128,7 @@ class ImportTemplate( models.Model ):
 							dups.append({
 								'fields': fields,
 								'contact_id': id,
+								'contact': contact,
 								'form': form,
 							})
 						record['duplicates'] = dups
