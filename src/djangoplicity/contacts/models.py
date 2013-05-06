@@ -1105,6 +1105,10 @@ class ImportTemplate( models.Model ):
 					# Create a new contact (without saving it)
 					# to generate the form
 					record = {'row': unicode(i), 'form': ContactForm(initial=data, prefix='%d_new' % i)}
+					# Get the list of group names from the import data
+					new_groups = []
+					if 'groups' in data:
+						new_groups = [ ContactGroup.objects.get(id=x).name for x in data['groups'] ]
 
 					if unicode(i) in duplicate_contacts:
 						dups = []
@@ -1118,7 +1122,10 @@ class ImportTemplate( models.Model ):
 								# Create a list of extra fields to display in the form
 								fields = ('<a href="%s">%s</a> (%.2f)' % (url_reverse('admin:contacts_contact_change',
 												args=[id]), id, score),)
-								form = ContactForm(instance=contact, prefix='%d_update_%s' % (i, id))
+								if 'groups' in data:
+									# Get the list of groups from the contact and the Import data:
+									groups = data['groups'] + list(contact.groups.all().values_list('id', flat=True))
+								form = ContactForm(instance=contact, initial={'groups': groups}, prefix='%d_update_%s' % (i, id))
 							except Contact.DoesNotExist:
 								fields = ('<span style="color: red">Contact %s disappeared! Please re-run deduplication</span>' % id,)
 								form = None
@@ -1130,9 +1137,11 @@ class ImportTemplate( models.Model ):
 								'form': form,
 							})
 						record['duplicates'] = dups
+						record['new_groups'] = new_groups
 						duplicates.append(record)
 					else:
 						# New contact
+						record['new_groups'] = new_groups
 						new.append(record)
 
 		return (mapping, imported, new, duplicates)

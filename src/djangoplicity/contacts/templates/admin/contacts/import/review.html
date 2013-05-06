@@ -97,7 +97,7 @@
 					  <input type="hidden" name="_selected_merge_contact_{{ record.row }}" value="new" />
 					  {% for field in record.form %}
 						{% if field.label == 'Groups' %}
-							<td style="background-color: #d3d7cf;">{% for group in record.contact.groups.all %}{{ group|sp2nbsp }}<br />{% endfor %}</td>
+							<td style="background-color: #d3d7cf;">{% for group in record.new_groups %}<i>{{ group|sp2nbsp }}</i><br />{% endfor %}</td>
 						{% endif %}
 						  <td>{{ field }}</td>
 					  {% endfor %}
@@ -140,7 +140,7 @@
 					  <td style="background-color: #d3d7cf;"></td>
 					  {% for field in record.form %}
 						{% if field.label == 'Groups' %}
-							<td style="background-color: #d3d7cf;">{% for group in record.contact.groups.all %}{{ group }}<br />{% endfor %}</td>
+						<td style="background-color: #d3d7cf;">{% for group in record.new_groups %}<i>{{ group|sp2nbsp }}</i><br />{% endfor %}</td>
 						{% endif %}
 						  <td style="background-color: #d3d7cf;">{{ field }}</td>
 					  {% endfor %}
@@ -156,7 +156,7 @@
 					  {% if duplicate.form %}
 						{% for field in duplicate.form %}
 							{% if field.label == 'Groups' %}
-								<td>{% for group in duplicate.contact.groups.all %}{{ group|sp2nbsp }}<br />{% endfor %}</td>
+								<td>{% for group in duplicate.contact.groups.all %}{{ group|sp2nbsp }}<br />{% endfor %}{% for group in record.new_groups %}<i>{{ group|sp2nbsp }}</i><br />{% endfor %}</td>
 							{% endif %}
 							<td>{{ field }}</td>
 						{% endfor %}
