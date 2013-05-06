@@ -1104,9 +1104,7 @@ class ImportTemplate( models.Model ):
 				except KeyError:
 					# Create a new contact (without saving it)
 					# to generate the form
-					contact = Contact()
-					contact.update_object(**data)
-					record = {'row': unicode(i), 'form': ContactForm(instance=contact, prefix='%d_new' % i)}
+					record = {'row': unicode(i), 'form': ContactForm(initial=data, prefix='%d_new' % i)}
 
 					if unicode(i) in duplicate_contacts:
 						dups = []
@@ -1302,7 +1300,7 @@ class ImportMapping( models.Model ):
 
 		# Cache the mapping from values to contact groups so future queries are fast.
 		if self._groupmap_cache is None:
-			self._groupmap_cache = dict( ImportGroupMapping.objects.filter( mapping=self ).values_list( 'value', 'group__name' ) )
+			self._groupmap_cache = dict( ImportGroupMapping.objects.filter( mapping=self ).values_list( 'value', 'group__id' ) )
 
 		return filter( lambda x: x, map( lambda x: self._groupmap_cache.get( x, None ), values ) )
 
