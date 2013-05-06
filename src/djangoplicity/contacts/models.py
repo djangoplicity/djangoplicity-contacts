@@ -1378,6 +1378,9 @@ class ImportGroupMapping( models.Model ):
 	group = models.ForeignKey( ContactGroup )
 
 	def save( self, *args, **kwargs ):
+		# Make sure that the value is stripped (extra spaces would make
+		# the string match to fail
+		self.value = self.value.strip()
 		# Clear group map cache on import mapping
 		super( ImportGroupMapping, self ).save( *args, **kwargs )
 		self.mapping.clear_groupmap_cache()
