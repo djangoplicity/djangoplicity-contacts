@@ -306,7 +306,7 @@ class ContactGroup( DirtyFieldsMixin, models.Model ):
 		instance._original_state = instance._as_dict()
 
 	class Meta:
-		ordering = ( 'order', 'name', )
+		ordering = ( 'name', )
 
 
 class Contact( DirtyFieldsMixin, models.Model ):
