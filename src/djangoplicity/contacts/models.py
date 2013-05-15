@@ -1125,6 +1125,8 @@ class ImportTemplate( models.Model ):
 								if 'groups' in data:
 									# Get the list of groups from the contact and the Import data:
 									groups = data['groups'] + list(contact.groups.all().values_list('id', flat=True))
+								else:
+									groups = list(contact.groups.all().values_list('id', flat=True))
 								form = ContactForm(instance=contact, initial={'groups': groups}, prefix='%d_update_%s' % (i, id))
 							except Contact.DoesNotExist:
 								fields = ('<span style="color: red">Contact %s disappeared! Please re-run deduplication</span>' % id,)
