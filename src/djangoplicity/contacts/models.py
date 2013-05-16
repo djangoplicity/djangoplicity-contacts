@@ -405,7 +405,7 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		data['email'] = self.email.strip()
 		data['organisation'] = self.organisation.strip()
 		data['department'] = self.department.strip()
-		data['country'] = self.country.iso_code.upper() if self.country else ''
+		data['country'] = self.country.pk if self.country else ''
 		data['contact_object'] = self
 		return data
 
@@ -1508,7 +1508,7 @@ class Deduplication(models.Model):
 
 	def run(self):
 		'''
-		Look for potential duplicates in the give groups (if any) or in the
+		Look for potential duplicates in the given groups (if any) or in the
 		whole Contatcs DB. Normally this should be executed in a background
 		task as it might be a long running task.
 

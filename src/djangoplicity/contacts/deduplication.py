@@ -578,8 +578,7 @@ def similar(a, b):
 	# Country
 	try:
 		if a['country'] and b['country'] and \
-				similar_text(a['country'],
-						b['country']):
+				a['country'] == b['country']:
 			if no_name:
 				r += 0.2
 			else:
