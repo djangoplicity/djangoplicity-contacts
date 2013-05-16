@@ -509,7 +509,7 @@ def similar_name(a, b, ratio_limit=0.8):
 	return 0
 
 
-def similar_address(a, b, ratio_limit=0.8):
+def similar_address(a, b, no_name, ratio_limit=0.8):
 	'''
 	Compare two addresses
 	'''
@@ -530,7 +530,10 @@ def similar_address(a, b, ratio_limit=0.8):
 	if address_a and address_b:
 		seq = difflib.SequenceMatcher(None, address_a, address_b)
 		if seq.ratio() > ratio_limit:
-			return 0.2 * seq.ratio()
+			if no_name:
+				return 0.4 * seq.ratio()
+			else:
+				return 0.2 * seq.ratio()
 
 	return 0
 
@@ -555,10 +558,21 @@ def similar(a, b):
 							ratio_limit=0.95):
 				r += 0.8
 
+	# If we have neither first_name nor last_name we change the
+	# algorithm to increase the weight of similar addresses as this
+	# helps detecting duplicate organisation
+	no_name = True
+	for field in ('first_name', 'last_name'):
+		for contact in (a, b):
+			if field in contact and contact[field]:
+				no_name = False
+
 	# Two people with same address (e.g.: same institute) will always
 	# be matched as duplicates, so if neither the name or email have
-	# at least some similarities we don't compare the addresses:
-	if r < 0.15:
+	# at least some similarities we don't compare the addresses, unless
+	# we don't have a first_name or last_name (in which case the contact
+	# is probably an institute or organisation):
+	if not no_name and r < 0.15:
 		return r
 
 	# Country
@@ -566,7 +580,10 @@ def similar(a, b):
 		if a['country'] and b['country'] and \
 				similar_text(a['country'],
 						b['country']):
-			r += 0.1
+			if no_name:
+				r += 0.2
+			else:
+				r += 0.1
 	except KeyError:
 		pass
 
@@ -575,7 +592,10 @@ def similar(a, b):
 		if a['city'] and b['city'] and \
 				similar_text(_preprocess_city(a['city'], a['country']),
 						_preprocess_city( b['city'], b['country'] ), ratio_limit=0.85):
-			r += 0.1
+			if no_name:
+				r += 0.2
+			else:
+				r += 0.1
 	except KeyError:
 		pass
 
@@ -585,7 +605,10 @@ def similar(a, b):
 			organisation_a = _prepare_str(a['organisation'])
 			organisation_b = _prepare_str(b['organisation'])
 			if similar_text(organisation_a, organisation_b):
-				r += 0.2
+				if no_name:
+					r += 0.4
+				else:
+					r += 0.2
 	except KeyError:
 		pass
 
@@ -600,7 +623,7 @@ def similar(a, b):
 		pass
 
 	# Address
-	r += similar_address(a, b)
+	r += similar_address(a, b, no_name)
 
 	return r
 
