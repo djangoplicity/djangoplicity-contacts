@@ -1280,26 +1280,26 @@ class ImportMapping( models.Model ):
 		if ImportMapping._country_cache is None:
 			ImportMapping._country_cache = { 'iso': {}, 'name': {} }
 			for c in Country.objects.all():
-				ImportMapping._country_cache['iso'][c.iso_code.lower()] = c.iso_code
-				ImportMapping._country_cache['name'][c.name.lower()] = c.iso_code
+				ImportMapping._country_cache['iso'][c.iso_code.lower()] = c.pk
+				ImportMapping._country_cache['name'][c.name.lower()] = c.pk
 
 		if type(value) is not unicode:
 			value = unicode(value)
 		value = value.lower().strip()
 		if len( value ) == 2 and value in ImportMapping._country_cache['iso']:
-			return ImportMapping._country_cache['iso'][value].upper()
+			return ImportMapping._country_cache['iso'][value]
 		elif value in ImportMapping._country_cache['name']:
-			return ImportMapping._country_cache['name'][value].upper()
+			return ImportMapping._country_cache['name'][value]
 		else:
 			for k, v in ImportMapping._country_cache['name'].items():
 				if similar_text( k, value ):
 					logger.info( "similar %s = %s" % ( k, value ) )
-					return v.upper()
+					return v
 
 			for iso, exps in ISO_EXPANSION.items():
 				for e in exps:
 					if similar_text( unicode( value ), e ):
-						return iso.upper()
+						return ImportMapping._country_cache['iso'][iso.lower()]
 			return None
 
 	def get_groups_value( self, value ):
