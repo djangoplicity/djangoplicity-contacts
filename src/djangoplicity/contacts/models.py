@@ -1330,6 +1330,10 @@ class ImportMapping( models.Model ):
 					return self.get_groups_value( val )
 				if trail[0] == 'country':
 					return self.get_country_value( val )
+				if trail[0] == 'language':
+					if type(val) is not unicode:
+						val = unicode(val)
+					return val.lower()
 			# Excel uses float for many numbers.
 			if isinstance( val, float ) and val - int( val ) == 0.0:
 				return int(val)
