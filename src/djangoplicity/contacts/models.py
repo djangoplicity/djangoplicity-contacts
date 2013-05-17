@@ -990,7 +990,21 @@ class ImportTemplate( models.Model ):
 					val = m.get_value( incoming_data )
 
 					if as_list:
-						outgoing_data.append( ", ".join( val ) if isinstance( val, list ) and flat else val )
+						# Groups are a list of ids and are handled separetely
+						if field == 'groups':
+							if flat:
+								groups = []
+								for group_id in val:
+									try:
+										groups.append(ContactGroup.objects.get(id=group_id).name)
+									except ContactGroup.DoesNotExist:
+										groups.append('Unknown group: %d' % group_id)
+
+								outgoing_data.append(groups)
+							else:
+								outgoing_data.append(val)
+						else:
+							outgoing_data.append( ", ".join( val ) if isinstance( val, list ) and flat else val )
 					else:
 						if field in outgoing_data:
 							outgoing_data[field] += val
