@@ -358,6 +358,8 @@ def _preprocess_city( city, isocode ):
 		# then it will be exported as int and
 		# strip() will fail
 		city = unicode(city)
+	# FIXME:
+	return city
 	if isocode and city.strip().lower().startswith( isocode.lower() ):
 		return city[len(isocode):]
 	else:
