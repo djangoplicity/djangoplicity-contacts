@@ -187,7 +187,7 @@ class Every6HourAction( PeriodicAction ):
 
 class EveryDayAction( PeriodicAction ):
 	run_every = timedelta( hours=24 )
-	on_event_name = 'periodic_1day'
+	on_event_name = 'periodic_24hr'
 
 
 #
