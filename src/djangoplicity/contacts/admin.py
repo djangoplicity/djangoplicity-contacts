@@ -506,6 +506,10 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 		actions.update( dict( [self._make_group_action( g, remove=True ) for g in ContactGroup.objects.all().order_by( 'name' )] ) )
 		return actions
 
+	class Media:
+		# Javascript to collapse filter pane in admin
+		js = ['djangoplicity/js/list_filter_collapse.js']
+
 
 class ContactGroupActionAdmin( admin.ModelAdmin ):
 	list_display = ('group', 'on_event', 'action', )
