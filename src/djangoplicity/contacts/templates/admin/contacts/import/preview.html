@@ -35,7 +35,7 @@
 {% block content %}
 <h1>Contacts Import Preview</h1>
 <p>
-	<strong>Template:</strong> <a href="{% url admin:contacts_importtemplate_change object.template.pk %}">{{object.template}}</a><br />
+	<strong>Template:</strong> <a href="{% url 'admin:contacts_importtemplate_change' object.template.pk %}">{{object.template}}</a><br />
 	<strong>Tag import:</strong> {{object.template.tag_import|yesno}}<br />
 	<strong>Extra groups:</strong> {% for g in object.template.extra_groups.all%}{% if not forloop.first%}, {%endif%}{{ g }}{% endfor %}<br />
 	<strong>Duplicate handling:</strong> {{object.template.get_duplicate_handling_display}}<br /> 
