@@ -35,7 +35,7 @@ from datetime import datetime
 from dirtyfields import DirtyFieldsMixin
 import logging
 import os
-import simplejson as json
+import json
 
 from django.conf import settings
 from django.core.cache import cache
