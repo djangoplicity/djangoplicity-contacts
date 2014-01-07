@@ -34,7 +34,7 @@
 Admin interfaces for contact models.
 """
 
-from django.conf.urls.defaults import patterns, url
+from django.conf.urls import patterns, url
 from django.contrib import admin
 from django.http import Http404
 from django import forms
