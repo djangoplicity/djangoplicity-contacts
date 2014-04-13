@@ -1,3 +1,5 @@
 
 syntax: regexp
 ^src/djangoplicity_contacts\.egg-info$
+syntax: glob
+*.pyc
