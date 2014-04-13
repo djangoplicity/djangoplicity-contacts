@@ -30,10 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE
 #
 
-# Using distribute instead of setuptools
-import distribute_setup
-distribute_setup.use_setuptools()
-
 import os
 from setuptools import setup, find_packages
 
