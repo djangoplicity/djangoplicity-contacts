@@ -41,6 +41,7 @@ setup(
 	include_package_data = True,
 	zip_safe = False,
 	namespace_packages = ['djangoplicity'],
+    install_requires = ['setuptools'],
 	
 	# metadata for upload to PyPI
 	author = 'European Southern Observatory',
