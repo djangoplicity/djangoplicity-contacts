@@ -1577,6 +1577,7 @@ class Deduplication(models.Model):
 		Only return max_display duplicates at a time
 		"""
 		duplicate_contacts = json.loads(self.duplicate_contacts) if self.duplicate_contacts else {}
+		deduplicated_contacts = json.loads(self.deduplicated_contacts) if self.deduplicated_contacts else {}
 
 		duplicates = []
 
@@ -1586,7 +1587,6 @@ class Deduplication(models.Model):
 			if i < page * self.max_display - self.max_display:
 				i += 1
 				continue
-
 			try:
 				contact = Contact.objects.get(id=contact_id)
 				fields = ('<a href="%s">%s</a>' % (url_reverse('admin:contacts_contact_change',
@@ -1599,7 +1599,7 @@ class Deduplication(models.Model):
 
 			# Check if the contact has already been deduplicated:
 			deduplicated = False
-			if '%s_%s' % (contact_id, contact_id) in self.deduplicated_contacts:
+			if '%s_%s' % (contact_id, contact_id) in deduplicated_contacts:
 				# Contact won't be displayed in form
 				deduplicated = True
 
@@ -1631,7 +1631,7 @@ class Deduplication(models.Model):
 
 				# Check if the contact has already been deduplicated:
 				deduplicated = False
-				if '%s_%s' % (contact_id, id) in self.deduplicated_contacts:
+				if '%s_%s' % (contact_id, id) in deduplicated_contacts:
 					# Contact won't be displayed in form
 					deduplicated = True
 
@@ -1657,8 +1657,8 @@ class Deduplication(models.Model):
 					break
 
 		deduplicated = []
-		for entry in self.deduplicated_contacts:
-			key = entry.split('_')
+		for entry in deduplicated_contacts:
+			key = entry.split('_')[0]
 			if key not in deduplicated:
 				deduplicated.append(key)
 
