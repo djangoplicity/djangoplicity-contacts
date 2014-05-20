@@ -71,7 +71,7 @@
 		{% endif %}
 	</p>
 	<p>
-	<a href="../review/">Back to review page</a>
+	<a href="{% url admin:contacts_deduplication_review object.pk %}">Back to review page</a>
 	</p>
 {% endif %}
 {% endblock %}

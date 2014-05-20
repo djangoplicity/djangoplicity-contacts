@@ -1570,7 +1570,7 @@ class Deduplication(models.Model):
 
 		return True
 
-	def review_data( self ):
+	def review_data( self, page=1 ):
 		"""
 		Returns the view of the potential found duplicates as well as the total
 		number of duplicates
@@ -1582,6 +1582,11 @@ class Deduplication(models.Model):
 
 		i = 0
 		for contact_id in duplicate_contacts:
+			# Deal with pagination:
+			if i < page * self.max_display - self.max_display:
+				i += 1
+				continue
+
 			try:
 				contact = Contact.objects.get(id=contact_id)
 				fields = ('<a href="%s">%s</a>' % (url_reverse('admin:contacts_contact_change',
@@ -1648,10 +1653,16 @@ class Deduplication(models.Model):
 			if not skip:
 				duplicates.append(record)
 				i += 1
-				if i >= self.max_display:
+				if i >= page * self.max_display:
 					break
 
-		return duplicates, len(duplicate_contacts) - len(self.deduplicated_contacts)
+		deduplicated = []
+		for entry in self.deduplicated_contacts:
+			key = entry.split('_')
+			if key not in deduplicated:
+				deduplicated.append(key)
+
+		return duplicates, len(duplicate_contacts) - len(deduplicated)
 
 	def deduplicate_data(self, update, delete, ignore):
 		'''
