@@ -140,7 +140,7 @@
 					  {% if duplicate.form %}
 						{% for field in duplicate.form %}
 						{% if field.label == 'Groups' %}
-							<td>{% for group in record.contact.groups.all %}{{ group|sp2nbsp }}<br />{% endfor %}</td>
+							<td>{% for group in duplicate.contact.groups.all %}{{ group|sp2nbsp }}<br />{% endfor %}</td>
 						{% endif %}
 							<td class="draggable">{{ field }}</td>
 						{% endfor %}
