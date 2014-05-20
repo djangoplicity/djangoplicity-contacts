@@ -1583,10 +1583,6 @@ class Deduplication(models.Model):
 
 		i = 0
 		for contact_id in duplicate_contacts:
-			# Deal with pagination:
-			if i < page * self.max_display - self.max_display:
-				i += 1
-				continue
 			try:
 				contact = Contact.objects.get(id=contact_id)
 				fields = ('<a href="%s">%s</a>' % (url_reverse('admin:contacts_contact_change',
@@ -1651,6 +1647,10 @@ class Deduplication(models.Model):
 				skip = skip and dup['skip']
 
 			if not skip:
+				# Deal with pagination:
+				if i < page * self.max_display - self.max_display:
+					i += 1
+					continue
 				duplicates.append(record)
 				i += 1
 				if i >= page * self.max_display:
