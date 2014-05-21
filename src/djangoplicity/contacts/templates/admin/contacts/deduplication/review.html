@@ -66,8 +66,9 @@
 	{% if total_duplicates|length <= object.max_display %}
 		<strong>Showing {{ duplicates|length }} potential duplicates out of {{ duplicates|length }}</strong>
 	{% else %}
-		<strong>Showing first {{ object.max_display }} potential duplicates out of {{ total_duplicates }}</strong>
+		<strong>Showing {{ object.max_display }} potential duplicates (page {{ page }}) out of {{ total_duplicates }}</strong>
 	{% endif %}
+		<br /><strong>Pages: </strong>{% for p in pages %}{% if p != page %}<a href="{% url admin:contacts_deduplication_review_page object.pk p %}">{{ p }}</a>{% else %}{{ p }}{% endif %} {% endfor %}
 </p>
 <div id="content-main">
     {% if error %}
@@ -140,7 +141,7 @@
 					  {% if duplicate.form %}
 						{% for field in duplicate.form %}
 						{% if field.label == 'Groups' %}
-							<td>{% for group in record.contact.groups.all %}{{ group|sp2nbsp }}<br />{% endfor %}</td>
+							<td>{% for group in duplicate.contact.groups.all %}{{ group|sp2nbsp }}<br />{% endfor %}</td>
 						{% endif %}
 							<td class="draggable">{{ field }}</td>
 						{% endfor %}

@@ -1537,7 +1537,7 @@ class Deduplication(models.Model):
 		duplicate_contacts = {}
 		search_space = deduplication.contacts_search_space()
 
-		if self.groups:
+		if self.groups.all():
 			contacts = Contact.objects.filter(groups__in=self.groups.all()).select_related('country').distinct()
 		else:
 			contacts = Contact.objects.all().select_related('country')
@@ -1570,13 +1570,14 @@ class Deduplication(models.Model):
 
 		return True
 
-	def review_data( self ):
+	def review_data( self, page=1 ):
 		"""
 		Returns the view of the potential found duplicates as well as the total
 		number of duplicates
 		Only return max_display duplicates at a time
 		"""
 		duplicate_contacts = json.loads(self.duplicate_contacts) if self.duplicate_contacts else {}
+		deduplicated_contacts = json.loads(self.deduplicated_contacts) if self.deduplicated_contacts else {}
 
 		duplicates = []
 
@@ -1594,7 +1595,7 @@ class Deduplication(models.Model):
 
 			# Check if the contact has already been deduplicated:
 			deduplicated = False
-			if '%s_%s' % (contact_id, contact_id) in self.deduplicated_contacts:
+			if '%s_%s' % (contact_id, contact_id) in deduplicated_contacts:
 				# Contact won't be displayed in form
 				deduplicated = True
 
@@ -1626,7 +1627,7 @@ class Deduplication(models.Model):
 
 				# Check if the contact has already been deduplicated:
 				deduplicated = False
-				if '%s_%s' % (contact_id, id) in self.deduplicated_contacts:
+				if '%s_%s' % (contact_id, id) in deduplicated_contacts:
 					# Contact won't be displayed in form
 					deduplicated = True
 
@@ -1646,12 +1647,22 @@ class Deduplication(models.Model):
 				skip = skip and dup['skip']
 
 			if not skip:
+				# Deal with pagination:
+				if i < page * self.max_display - self.max_display:
+					i += 1
+					continue
 				duplicates.append(record)
 				i += 1
-				if i >= self.max_display:
+				if i >= page * self.max_display:
 					break
 
-		return duplicates, len(duplicate_contacts) - len(self.deduplicated_contacts)
+		deduplicated = []
+		for entry in deduplicated_contacts:
+			key = entry.split('_')[0]
+			if key not in deduplicated:
+				deduplicated.append(key)
+
+		return duplicates, len(duplicate_contacts) - len(deduplicated)
 
 	def deduplicate_data(self, update, delete, ignore):
 		'''

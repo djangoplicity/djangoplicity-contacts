@@ -527,6 +527,7 @@ class DeduplicationAdmin(admin.ModelAdmin):
 		urls = super(DeduplicationAdmin, self).get_urls()
 		extra_urls = patterns('',
 			url(r'^(?P<pk>[0-9]+)/run/$', self.admin_site.admin_view(self.run), name='contacts_deduplication_run'),
+			url(r'^(?P<pk>[0-9]+)/review/page/(?P<page>[0-9]+)/$', self.admin_site.admin_view(self.review_view), name='contacts_deduplication_review_page'),
 			url(r'^(?P<pk>[0-9]+)/review/$', self.admin_site.admin_view(self.review_view), name='contacts_deduplication_review'),
 		)
 		return extra_urls + urls
@@ -549,13 +550,14 @@ class DeduplicationAdmin(admin.ModelAdmin):
 
 		return redirect('admin:contacts_deduplication_review', pk=dedup.pk)
 
-	def review_view(self, request, pk=None):
+	def review_view(self, request, pk=None, page=1):
+		page = int(page)
 		if request.method == "POST":
 			return self.deduplicate_view(request, pk)
 
 		dedup = get_object_or_404(Deduplication, pk=pk)
 
-		duplicates, total_duplicates = dedup.review_data()
+		duplicates, total_duplicates = dedup.review_data(page)
 
 		return render_to_response(
 			"admin/contacts/deduplication/review.html",
@@ -565,7 +567,9 @@ class DeduplicationAdmin(admin.ModelAdmin):
 				'app_label': dedup._meta.app_label,
 				'opts': dedup._meta,
 				'duplicates': duplicates,
-				'total_duplicates': total_duplicates
+				'total_duplicates': total_duplicates,
+				'page': page,
+				'pages': range(1, (total_duplicates / dedup.max_display + 1)),
 			},
 			context_instance=RequestContext(request)
 		)
