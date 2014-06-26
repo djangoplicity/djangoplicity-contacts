@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<!DOCTYPE document SYSTEM "rml.dtd">
+<document filename="{{filename}}">
+<docinit>
+	<registerFont fontName="HelveticaNeue" fontFile="HelveticaNeue.ttf" />
+	<registerFont fontName="HelveticaNeueBold" fontFile="HelveticaNeueBold.ttf" />
+	<registerFont fontName="HelveticaNeueBoldItalic" fontFile="HelveticaNeueBoldItalic.ttf" />
+	<registerFont fontName="HelveticaNeueCondensedBlack" fontFile="HelveticaNeueCondensedBlack.ttf" />
+	<registerFont fontName="HelveticaNeueCondensedBold" fontFile="HelveticaNeueCondensedBold.ttf" />
+	<registerFont fontName="HelveticaNeueItalic" fontFile="HelveticaNeueItalic.ttf" />
+	<registerFont fontName="HelveticaNeueLight" fontFile="HelveticaNeueLight.ttf" /> 
+	<registerFont fontName="HelveticaNeueLightItalic" fontFile="HelveticaNeueLightItalic.ttf" />
+	<registerFont fontName="HelveticaNeueMedium" fontFile="HelveticaNeueMedium.ttf" /> 
+	<registerFont fontName="HelveticaNeueUltraLight" fontFile="HelveticaNeueUltraLight.ttf" /> 
+	<registerFont fontName="HelveticaNeueUltraLightItalic" fontFile="HelveticaNeueUltraLightItalic.ttf" />
+</docinit>
+<template pageSize="(21.6cm, 27.9cm)" 
+		  {% if title %}title="{{title}}"{% endif %}
+		  {% if author %}author="{{author}}"{% endif %} 
+		  showBoundary="0" 
+		  >
+    {% block page_template %}
+    {% endblock %}
+</template>
+<stylesheet>
+	<paraStyle name="normal"
+     fontName="HelveticaNeueLight"
+     fontSize="11"
+     spaceBefore="0.1cm"
+     />
+
+     <paraStyle name="returnto"
+     fontName="HelveticaNeueLight"
+     fontSize="9"
+     textColor="#2f76c0"
+     />
+     
+     <paraStyle name="sendto"
+     fontName="HelveticaNeueLight"
+     fontSize="11"
+     spaceBefore="0.1cm"
+     />
+     
+     <paraStyle name="extra"
+     fontName="HelveticaNeue"
+     fontSize="14"
+     />
+     
+      <paraStyle name="postal_zone"
+     fontName="HelveticaNeueMedium"
+     fontSize="7"
+     alignment="right"
+     />
+     
+     {% block page_style %}
+     {% endblock %}
+     
+     {% block label_style %}
+     {% include label_template_style %}
+     {% endblock %}
+</stylesheet>
+<story>
+{% block story %}    
+{% endblock %}
+</story>
+</document>

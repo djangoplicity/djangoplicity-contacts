@@ -1,0 +1,128 @@
+{% extends "contacts/labels/usletter.rml" %}
+
+{% block page_template %}
+<pageTemplate id="main">
+    <frame id="page" x1="0.50cm" y1="0cm" width="20.1cm" height="27.3cm" />
+</pageTemplate>
+{% endblock %}
+
+{% block label_style %}
+     {% include "contacts/labels/standard_label_small_style.rml" %}
+{% endblock %}
+
+{% block page_style %}
+ <blockTableStyle id="5162">
+ 	<blockFont name="HelveticaNeueLight" fontSize="11" start="0,0" stop="-1,-1"/>
+ 	<blockValign value="TOP" />
+ 	<blockAlignment value="CENTER" />
+ 	<blockLeftPadding length="0cm" />
+ 	<blockRightPadding length="0cm" />
+ 	<blockBottomPadding length="0cm" />
+ 	<blockTopPadding length="0cm" />
+	<!-- Use of linestyles -->
+ </blockTableStyle>
+{% endblock %}
+    
+{% block story %}    
+<spacer length="1.5cm" />
+{% for page_objects in objects %}
+<blockTable
+     style="5162"
+     rowHeights="3.35cm,3.35cm,3.35cm,3.35cm,3.35cm,3.35cm,3.35cm"
+     colWidths="10.54cm,0.28cm,10.16cm">
+    <tr>
+        <td>
+        	{% if page_objects.0 %}{% with page_objects.0 as obj %}
+        		{% block label0 %}{% include label_template %}{% endblock %}
+        	{% endwith %}{% endif %}
+        </td>
+        <td></td>
+		<td>
+            {% if page_objects.1 %}{% with page_objects.1 as obj %}
+        		{% block label1 %}{% include label_template %}{% endblock %}
+        	{% endwith %}{% endif %}
+        </td>
+    </tr>
+	<tr>
+        <td>
+            {% if page_objects.2 %}{% with page_objects.2 as obj %}
+        		{% block label2 %}{% include label_template %}{% endblock %}
+        	{% endwith %}{% endif %}
+        </td>
+		<td></td>
+		<td>
+            {% if page_objects.3 %}{% with page_objects.3 as obj %}
+        		{% block label3 %}{% include label_template %}{% endblock %}
+        	{% endwith %}{% endif %}
+        </td>
+    </tr>
+    <tr>
+        <td>
+            {% if page_objects.4 %}{% with page_objects.4 as obj %}
+        		{% block label4 %}{% include label_template %}{% endblock %}
+        	{% endwith %}{% endif %}
+        </td>
+        <td></td>
+		<td>
+            {% if page_objects.5 %}{% with page_objects.5 as obj %}
+        		{% block label5 %}{% include label_template %}{% endblock %}
+        	{% endwith %}{% endif %}
+        </td>
+    </tr>
+    <tr>
+        <td>
+            {% if page_objects.6 %}{% with page_objects.6 as obj %}
+        		{% block label6 %}{% include label_template %}{% endblock %}
+        	{% endwith %}{% endif %}
+        </td>
+        <td></td>
+		<td>
+            {% if page_objects.7 %}{% with page_objects.7 as obj %}
+        		{% block label7 %}{% include label_template %}{% endblock %}
+        	{% endwith %}{% endif %}
+        </td>
+    </tr>
+    <tr>
+        <td>
+        	{% if page_objects.8 %}{% with page_objects.8 as obj %}
+        		{% block label8 %}{% include label_template %}{% endblock %}
+        	{% endwith %}{% endif %}
+        </td>
+        <td></td>
+		<td>
+            {% if page_objects.9 %}{% with page_objects.9 as obj %}
+        		{% block label9 %}{% include label_template %}{% endblock %}
+        	{% endwith %}{% endif %}
+        </td>
+    </tr>
+	<tr>
+        <td>
+            {% if page_objects.10 %}{% with page_objects.10 as obj %}
+        		{% block label10 %}{% include label_template %}{% endblock %}
+        	{% endwith %}{% endif %}
+        </td>
+		<td></td>
+		<td>
+            {% if page_objects.11 %}{% with page_objects.11 as obj %}
+        		{% block label11 %}{% include label_template %}{% endblock %}
+        	{% endwith %}{% endif %}
+        </td>
+    </tr>
+    <tr>
+        <td>
+            {% if page_objects.12 %}{% with page_objects.12 as obj %}
+        		{% block label12 %}{% include label_template %}{% endblock %}
+        	{% endwith %}{% endif %}
+        </td>
+        <td></td>
+		<td>
+            {% if page_objects.13 %}{% with page_objects.13 as obj %}
+        		{% block label13 %}{% include label_template %}{% endblock %}
+        	{% endwith %}{% endif %}
+        </td>
+    </tr>
+</blockTable>
+<spacer length="2.0cm" />
+<nextFrame />
+{% endfor %}
+{% endblock %}
