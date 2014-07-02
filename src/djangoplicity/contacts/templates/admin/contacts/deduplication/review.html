@@ -63,12 +63,8 @@
 
 <p>
 	<strong>Last deduplication:</strong> {{ object.last_deduplication }}<br />
-	{% if total_duplicates|length <= object.max_display %}
-		<strong>Showing {{ duplicates|length }} potential duplicates out of {{ duplicates|length }}</strong>
-	{% else %}
-		<strong>Showing {{ object.max_display }} potential duplicates (page {{ page }}) out of {{ total_duplicates }}</strong>
-	{% endif %}
-		<br /><strong>Pages: </strong>{% for p in pages %}{% if p != page %}<a href="{% url 'admin:contacts_deduplication_review_page' object.pk p %}">{{ p }}</a>{% else %}{{ p }}{% endif %} {% endfor %}
+	<strong>Showing {{ duplicates|length }} potential duplicates out of {{ total_duplicates }}</strong>
+	<br /><strong>Pages: </strong>{% for p in pages %}{% if p != page %}<a href="{% url 'admin:contacts_deduplication_review_page' object.pk p %}">{{ p }}</a>{% else %}{{ p }}{% endif %} {% endfor %}
 </p>
 <div id="content-main">
     {% if error %}

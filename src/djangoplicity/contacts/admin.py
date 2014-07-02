@@ -569,7 +569,7 @@ class DeduplicationAdmin(admin.ModelAdmin):
 				'duplicates': duplicates,
 				'total_duplicates': total_duplicates,
 				'page': page,
-				'pages': range(1, (total_duplicates / dedup.max_display + 1)),
+				'pages': range(1, (total_duplicates / dedup.max_display + 2)),
 			},
 			context_instance=RequestContext(request)
 		)
