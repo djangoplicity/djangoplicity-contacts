@@ -1,5 +1,8 @@
-<blockTable style="labeltable" colWidths="2cm,7.11cm" rowHeights="0cm,2.5cm,0.7cm">
+<blockTable style="labeltable" colWidths="2cm,7.11cm" rowHeights="0cm,0.3cm,2.9cm">
 	<tr><td></td><td align="right"></td></tr>
+	<tr>
+		<td><para style="returnto">ESO, Alonso de Córdova 3107, Vitacura - Santiago</para></td>
+	</tr>
 	<tr>
 		<td>
 			{% if obj.first_name or obj.last_name %}<para style="sendto">{% if obj.title %}{{obj.title}} {% endif%}{% if obj.first_name %}{{obj.first_name}} {% endif%}{{obj.last_name}}</para>{% endif %}
@@ -12,8 +15,4 @@
 			{% if obj.country %}<para style="sendto">{{ obj.country|upper }}</para>{% endif %}
 		</td>
 	</tr>
-	<tr>
-		<td>{% block postal_zone %}{% if obj.country and obj.country.postal_zone %}<para style="postal_zone">{{ obj.country.postal_zone|upper }}</para>{% endif %}{% endblock %}</td>
-	</tr>
 </blockTable>
- ~                                                                                                                                                            o
