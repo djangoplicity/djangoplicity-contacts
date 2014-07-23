@@ -29,14 +29,14 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE
 
-from djangoplicity.contacts.models import Contact
-from djangoplicity.contacts.forms import ContactPublicForm
+from djangoplicity.contacts.models import Contact, ContactGroup
+from djangoplicity.contacts.forms import ContactPublicForm, GroupSubscribeForm
 
 from django.contrib import messages
 from django.contrib.admin.models import LogEntry, CHANGE
 from django.contrib.contenttypes.models import ContentType
 from django.http import Http404
-from django.views.generic import UpdateView
+from django.views.generic import FormView, UpdateView
 
 
 class ContactPublicUpdate(UpdateView):
@@ -87,6 +87,71 @@ class ContactPublicUpdate(UpdateView):
 					change_message=change_message)
 
 		return super(ContactPublicUpdate, self).form_valid(form)
+
+	def get_success_url(self):
+		'''
+		Return the current path to stay on the same page
+		after a successful edit
+		'''
+		return self.request.path
+
+
+class GroupSubscribe(FormView):
+	'''
+	View to allow a contact to subscribe to a given group.
+	group and template_name must be passed as arguments to as_view() such as:
+	GroupSubscribe.as_view(group=357, template_name='contacts/messenger_public_subscribe.html')
+	'''
+	form_class = GroupSubscribeForm
+	group = None
+	template_name = ''
+
+	def get_initial(self):
+		'''
+		Check that the contact actually exists and prepare the form
+		'''
+		# Fetch the contact
+		pk = self.kwargs.get('pk', None)
+		try:
+			self.contact = Contact.objects.get(pk=pk)
+		except Contact.DoesNotExist:
+			raise Http404
+
+		# Check that the group has been set correctly in the urls.py and exists
+		self.group = ContactGroup.objects.get(id=self.group)
+
+		initial = {}
+
+		# Check if the contact already belongs to the group
+		if self.group in self.contact.groups.all():
+			initial['subscribe'] = True
+		else:
+			initial['subscribe'] = False
+
+		return initial
+
+	def form_valid(self, form):
+		'''
+		Subscribe/unsubscribe the contact to the group
+		'''
+		subscribe = form.cleaned_data['subscribe']
+
+		if self.group in self.contact.groups.all():
+			# The contact is already a member of the group
+			if not subscribe:
+				self.contact.groups.remove(self.group)
+		else:
+			# The contact is already a member of the group
+			if subscribe:
+				self.contact.groups.add(self.group)
+
+		return super(GroupSubscribe, self).form_valid(form)
+
+	def get_context_data(self, **kwargs):
+		context = super(GroupSubscribe, self).get_context_data(**kwargs)
+		context['contact'] = self.contact
+
+		return context
 
 	def get_success_url(self):
 		'''

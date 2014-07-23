@@ -31,10 +31,14 @@
 
 from djangoplicity.contacts.models import Contact
 
-from django.forms import ModelForm
+from django import forms
 
 
-class ContactPublicForm(ModelForm):
+class ContactPublicForm(forms.ModelForm):
 	class Meta:
 		model = Contact
 		exclude = ['social', 'groups', 'group_order', 'extra_fields', 'created', 'laste_modified']
+
+
+class GroupSubscribeForm(forms.Form):
+	subscribe = forms.BooleanField(required=False)
