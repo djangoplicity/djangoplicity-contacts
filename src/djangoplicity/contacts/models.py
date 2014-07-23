@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # djangoplicity-contacts
-# Copyright (c) 2007-2011, European Southern Observatory (ESO)
+# Copyright (c) 2007-2014, European Southern Observatory (ESO)
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -33,6 +33,7 @@
 
 from datetime import datetime
 from dirtyfields import DirtyFieldsMixin
+from hashids import Hashids
 import logging
 import os
 import json
@@ -678,6 +679,30 @@ class Contact( DirtyFieldsMixin, models.Model ):
 			logger.debug( "send contact_updated" )
 			contact_updated.send( sender=cls, instance=instance, dirty_fields=dirty_fields )
 
+	def get_uid(self):
+		'''
+		Returns the Contact's UID, used when publicly accessing the
+		edit interface.
+		We use Hashids to encrypt the Contact's ID into a unique string
+		'''
+		hashids = Hashids(salt=settings.HASHIDS_SALT)
+
+		return hashids.encrypt(self.id)
+
+	@classmethod
+	def from_uid(cls, uid):
+		'''
+		Returns the contact matching the UID
+		Raise Contact.DoesNotExist if no matching Contact
+		'''
+		hashids = Hashids(salt=settings.HASHIDS_SALT)
+
+		pk = hashids.decrypt(uid)
+		if pk:
+			return Contact.objects.get(pk=pk[0])
+		else:
+			raise Contact.DoesNotExist
+
 	class Meta:
 		ordering = ['last_name']
 
@@ -1205,7 +1230,7 @@ class ImportTemplate( models.Model ):
 		duplicate_contacts = {}
 		search_space = deduplication.contacts_search_space()
 
-		i = 1 # Excel start with header at row 1
+		i = 1  # Excel start with header at row 1
 		for data in self.extract_data( filename ):
 			i += 1
 			if data:

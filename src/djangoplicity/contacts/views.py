@@ -50,9 +50,9 @@ class ContactPublicUpdate(UpdateView):
 	template_name = 'contacts/contact_public_form.html'
 
 	def get_object(self, queryset=None):
-		pk = self.kwargs.get('uid', None)
+		uid = self.kwargs.get('uid', None)
 		try:
-			contact = Contact.objects.get(pk=pk)
+			contact = Contact.from_uid(uid)
 		except Contact.DoesNotExist:
 			raise Http404
 
