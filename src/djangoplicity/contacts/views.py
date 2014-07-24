@@ -33,6 +33,7 @@ from djangoplicity.contacts.models import Contact, ContactGroup
 from djangoplicity.contacts.forms import ContactPublicForm, GroupSubscribeForm
 
 from django.contrib import messages
+from django.contrib.auth.models import User
 from django.contrib.admin.models import LogEntry, CHANGE
 from django.contrib.contenttypes.models import ContentType
 from django.http import Http404
@@ -77,9 +78,15 @@ class ContactPublicUpdate(UpdateView):
 			change_message = 'Changed (from public interface) %s' % ', '.join(changed_fields)
 
 			# log_action expect a valid user_id, as the action is not done by a
-			# registered User we fake it and use 93 (mandre)
+			# registered User we use the ID of an anonymous User if it exists,
+			# otherwise we use the first ID we fine
+			try:
+				user = User.objects.get(username='anonymous')
+			except User.DoesNotExist:
+				user = User.objects.all()[0]
+
 			LogEntry.objects.log_action(
-					user_id=93,
+					user_id=user.id,
 					content_type_id=ContentType.objects.get_for_model(self.object).pk,
 					object_id=self.object.id,
 					object_repr=unicode(self.object),
