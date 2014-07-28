@@ -51,6 +51,10 @@ class ContactPublicUpdate(UpdateView):
 	template_name = 'contacts/contact_public_form.html'
 
 	def get_object(self, queryset=None):
+		'''
+		Check that a contact with the given UID exists
+		or raise 404
+		'''
 		uid = self.kwargs.get('uid', None)
 		try:
 			contact = Contact.from_uid(uid)
@@ -117,10 +121,9 @@ class GroupSubscribe(FormView):
 		'''
 		Check that the contact actually exists and prepare the form
 		'''
-		# Fetch the contact
-		pk = self.kwargs.get('pk', None)
+		uid = self.kwargs.get('uid', None)
 		try:
-			self.contact = Contact.objects.get(pk=pk)
+			self.contact = Contact.from_uid(uid)
 		except Contact.DoesNotExist:
 			raise Http404
 
