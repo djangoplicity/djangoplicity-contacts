@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # djangoplicity-contacts
-# Copyright (c) 2007-2011, European Southern Observatory (ESO)
+# Copyright (c) 2007-2014, European Southern Observatory (ESO)
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -14,7 +14,7 @@
 #      notice, this list of conditions and the following disclaimer in the
 #      documentation and/or other materials provided with the distribution.
 #
-#    * Neither the name of the European Southern Observatory nor the names 
+#    * Neither the name of the European Southern Observatory nor the names
 #      of its contributors may be used to endorse or promote products derived
 #      from this software without specific prior written permission.
 #
@@ -28,26 +28,17 @@
 # IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE
-#
 
-import os
-from setuptools import setup, find_packages
+from djangoplicity.contacts.models import Contact
 
-setup(
-	name = 'djangoplicity-contacts',
-	version = '0.1',
-	packages = find_packages('src'),
-	package_dir = { '': 'src' },
-	include_package_data = True,
-	zip_safe = False,
-	namespace_packages = ['djangoplicity'],
-    install_requires = ['setuptools'],
-	
-	# metadata for upload to PyPI
-	author = 'European Southern Observatory',
-	author_email = 'information@eso.org',
-	description = 'Djangoplicity application for managing contacts (features include label generation)',
-	license = "New BSD License",
-	keywords = "django djangoplicity contacts labels pdf",
-	url = "http://www.djangoplicity.org"
-)
+from django import forms
+
+
+class ContactPublicForm(forms.ModelForm):
+	class Meta:
+		model = Contact
+		exclude = ['social', 'groups', 'group_order', 'extra_fields', 'created', 'laste_modified']
+
+
+class GroupSubscribeForm(forms.Form):
+	subscribe = forms.BooleanField(required=False)

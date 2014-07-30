@@ -34,7 +34,7 @@
 Admin interfaces for contact models.
 """
 
-from django.conf.urls.defaults import patterns, url
+from django.conf.urls import patterns, url
 from django.contrib import admin
 from django.http import Http404
 from django import forms
@@ -569,7 +569,7 @@ class DeduplicationAdmin(admin.ModelAdmin):
 				'duplicates': duplicates,
 				'total_duplicates': total_duplicates,
 				'page': page,
-				'pages': range(1, (total_duplicates / dedup.max_display + 1)),
+				'pages': range(1, (total_duplicates / dedup.max_display + 2)),
 			},
 			context_instance=RequestContext(request)
 		)

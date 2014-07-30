@@ -1,0 +1,18 @@
+<blockTable style="labeltable" colWidths="2cm,7.11cm" rowHeights="0cm,0.3cm,2.9cm">
+	<tr><td></td><td align="right"></td></tr>
+	<tr>
+		<td><para style="returnto">ESO, Alonso de Córdova 3107, Vitacura - Santiago</para></td>
+	</tr>
+	<tr>
+		<td>
+			{% if obj.first_name or obj.last_name %}<para style="sendto">{% if obj.title %}{{obj.title}} {% endif%}{% if obj.first_name %}{{obj.first_name}} {% endif%}{{obj.last_name}}</para>{% endif %}
+			{% if not obj.first_name and not obj.last_name and obj.position %}<para style="sendto">{{ obj.position }}</para>{% endif %}
+			{% if obj.organisation %}<para style="sendto">{{ obj.organisation|truncatechars:52 }}</para>{% endif %}
+			{% if obj.department %}<para style="sendto">{{ obj.department|truncatechars:52 }}</para>{% endif %}
+			{% if obj.street_1 %}<para style="sendto">{{ obj.street_1|truncatechars:52 }}</para>{% endif %}
+			{% if obj.street_2 %}<para style="sendto">{{ obj.street_2|truncatechars:52 }}</para>{% endif %}
+			{% if obj.city %}<para style="sendto">{{ obj.city }}</para>{% endif %}
+			{% if obj.country %}<para style="sendto">{{ obj.country|upper }}</para>{% endif %}
+		</td>
+	</tr>
+</blockTable>

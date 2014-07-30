@@ -1,22 +1,22 @@
 # -*- coding: utf-8 -*-
 #
 # djangoplicity-contacts
-# Copyright (c) 2007-2011, European Southern Observatory (ESO)
+# Copyright (c) 2007-2014, European Southern Observatory (ESO)
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
 #
-#    * Redistributions of source code must retain the above copyright
-#      notice, this list of conditions and the following disclaimer.
+#	* Redistributions of source code must retain the above copyright
+#	  notice, this list of conditions and the following disclaimer.
 #
-#    * Redistributions in binary form must reproduce the above copyright
-#      notice, this list of conditions and the following disclaimer in the
-#      documentation and/or other materials provided with the distribution.
+#	* Redistributions in binary form must reproduce the above copyright
+#	  notice, this list of conditions and the following disclaimer in the
+#	  documentation and/or other materials provided with the distribution.
 #
-#    * Neither the name of the European Southern Observatory nor the names 
-#      of its contributors may be used to endorse or promote products derived
-#      from this software without specific prior written permission.
+#	* Neither the name of the European Southern Observatory nor the names
+#	  of its contributors may be used to endorse or promote products derived
+#	  from this software without specific prior written permission.
 #
 # THIS SOFTWARE IS PROVIDED BY ESO ``AS IS'' AND ANY EXPRESS OR IMPLIED
 # WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
@@ -28,8 +28,11 @@
 # IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE
-#
-include *.txt
-recursive-include docs *
-recursive-include src/djangoplicity/contacts/templates *
-recursive-include src/djangoplicity/contacts/static * 
+
+from djangoplicity.contacts.views import ContactPublicUpdate
+
+from django.conf.urls import patterns, url
+
+urlpatterns = patterns( '',
+	url( r'^edit/(?P<uid>.*)/$', ContactPublicUpdate.as_view(), name='public_contact_edit' ),
+)

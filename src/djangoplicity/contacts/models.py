@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # djangoplicity-contacts
-# Copyright (c) 2007-2011, European Southern Observatory (ESO)
+# Copyright (c) 2007-2014, European Southern Observatory (ESO)
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -33,9 +33,10 @@
 
 from datetime import datetime
 from dirtyfields import DirtyFieldsMixin
+from hashids import Hashids
 import logging
 import os
-import simplejson as json
+import json
 
 from django.conf import settings
 from django.core.cache import cache
@@ -52,7 +53,7 @@ from djangoplicity.contacts.labels import LabelRender, LABEL_PAPER_CHOICES
 from djangoplicity.contacts.signals import contact_added, contact_removed, \
 	contact_updated
 
-import deduplication
+from djangoplicity.contacts import deduplication
 
 
 logger = logging.getLogger( 'djangoplicity' )
@@ -678,6 +679,30 @@ class Contact( DirtyFieldsMixin, models.Model ):
 			logger.debug( "send contact_updated" )
 			contact_updated.send( sender=cls, instance=instance, dirty_fields=dirty_fields )
 
+	def get_uid(self):
+		'''
+		Returns the Contact's UID, used when publicly accessing the
+		edit interface.
+		We use Hashids to encrypt the Contact's ID into a unique string
+		'''
+		hashids = Hashids(salt=settings.HASHIDS_SALT)
+
+		return hashids.encrypt(self.id)
+
+	@classmethod
+	def from_uid(cls, uid):
+		'''
+		Returns the contact matching the UID
+		Raise Contact.DoesNotExist if no matching Contact
+		'''
+		hashids = Hashids(salt=settings.HASHIDS_SALT)
+
+		pk = hashids.decrypt(uid)
+		if pk:
+			return Contact.objects.get(pk=pk[0])
+		else:
+			raise Contact.DoesNotExist
+
 	class Meta:
 		ordering = ['last_name']
 
@@ -1052,7 +1077,7 @@ class ImportTemplate( models.Model ):
 		import template.
 		"""
 		data_table = []
-		i = 1 # Excel start with header at row 1
+		i = 1  # Excel start with header at row 1
 		for row in self.get_importer( filename ):
 			i += 1
 			data = self.parse_row( row, as_list=True, flat=True, include_missing=True )
@@ -1095,7 +1120,7 @@ class ImportTemplate( models.Model ):
 		duplicates = []
 		mapping = self.get_mapping()
 
-		i = 1 # Excel start with header at row 1
+		i = 1  # Excel start with header at row 1
 		for data in self.extract_data( filename ):
 			i += 1
 			if data:
@@ -1103,7 +1128,7 @@ class ImportTemplate( models.Model ):
 					id = imported_contacts[unicode(i)]
 					contact = {
 						'row': unicode(i),
-						'contact_link':  '<a href="%s">%s</a>' %
+						'contact_link': '<a href="%s">%s</a>' %
 								(url_reverse('admin:contacts_contact_change', args=[id]), id),
 						'data': data,
 					}
@@ -1129,7 +1154,7 @@ class ImportTemplate( models.Model ):
 						#  Duplicates dict is using 0 based arrays
 						#  We loop over the IDs, stored in reverse score order:
 						for id, score in sorted(duplicate_contacts[unicode(i)].iteritems(),
-								key=lambda(k, v): (v, k), reverse=True):
+												key=lambda(k, v): (v, k), reverse=True):
 
 							try:
 								contact = Contact.objects.get(id=id)
@@ -1205,7 +1230,7 @@ class ImportTemplate( models.Model ):
 		duplicate_contacts = {}
 		search_space = deduplication.contacts_search_space()
 
-		i = 1 # Excel start with header at row 1
+		i = 1  # Excel start with header at row 1
 		for data in self.extract_data( filename ):
 			i += 1
 			if data:
@@ -1544,7 +1569,7 @@ class Deduplication(models.Model):
 
 		for contact in contacts:
 			# Remove the current contact from the search space:
-			del(search_space[contact.id])
+			del search_space[contact.id]
 
 			dups = deduplication.find_duplicates(contact.get_data(), search_space)
 
@@ -1577,7 +1602,19 @@ class Deduplication(models.Model):
 		Only return max_display duplicates at a time
 		"""
 		duplicate_contacts = json.loads(self.duplicate_contacts) if self.duplicate_contacts else {}
-		deduplicated_contacts = json.loads(self.deduplicated_contacts) if self.deduplicated_contacts else {}
+		deduplicated_contacts = []
+
+		# Load previously deduplicated contacts, including those from previous
+		# Deduplications, this is so that if a duplicated was ignored (for
+		# example because it was a false positive) it won't appear every time
+		# we run the deduplication again
+		for d in Deduplication.objects.filter(status='review'):
+			if d.deduplicated_contacts:
+				deduplicated_contacts += json.loads(d.deduplicated_contacts)
+
+		# Convert deduplicated_contacts to a set() to remove duplicates and
+		# provide faster lookups
+		deduplicated_contacts = set(deduplicated_contacts)
 
 		duplicates = []
 
@@ -1656,13 +1693,18 @@ class Deduplication(models.Model):
 				if i >= page * self.max_display:
 					break
 
-		deduplicated = []
-		for entry in deduplicated_contacts:
-			key = entry.split('_')[0]
-			if key not in deduplicated:
-				deduplicated.append(key)
+		# Count how many contacts were already fully deduplicated
+		count_deduplicated = 0
+		for entry, dups in duplicate_contacts.items():
+			for d in dups:
+				if '%s_%s' % (entry, d) not in deduplicated_contacts:
+					break
+			else:
+				# All duplicates were already deduplicated
+				continue
+			count_deduplicated += 1
 
-		return duplicates, len(duplicate_contacts) - len(deduplicated)
+		return duplicates, count_deduplicated
 
 	def deduplicate_data(self, update, delete, ignore):
 		'''
@@ -1677,7 +1719,7 @@ class Deduplication(models.Model):
 				contact.delete()
 				resultlist['messages'].append('Deleted Contact "%s"' % contact_id)
 			except Contact.DoesNotExist:
-					resultlist['errors'].append(
+				resultlist['errors'].append(
 						'Couldn\'t delete Contact "%s", Contact doesn\'t exist!' % contact_id)
 			deduplicated_contacts.append(contact_id)
 
