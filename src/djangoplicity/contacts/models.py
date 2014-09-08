@@ -689,6 +689,8 @@ class Contact( DirtyFieldsMixin, models.Model ):
 
 		return hashids.encrypt(self.id)
 
+	uid = property(get_uid)
+
 	@classmethod
 	def from_uid(cls, uid):
 		'''
