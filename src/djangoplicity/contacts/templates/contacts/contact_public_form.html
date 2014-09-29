@@ -7,11 +7,11 @@
 <p>Please verify your contact information below and update if necessary.<br />
 Press 'Save' to save the changes.</p>
 
-<ul class="messages">
-    {% for message in messages %}
-    <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
-    {% endfor %}
-</ul>
+{% for message in messages %}
+<div class="alert alert-{{ message.tags }}" role="alert">
+	{{ message }}
+</div>
+{% endfor %}
 
 <form action="" method="post" id="public-contact-form">
     {% csrf_token %}

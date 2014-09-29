@@ -155,6 +155,8 @@ class GroupSubscribe(FormView):
 			if subscribe:
 				self.contact.groups.add(self.group)
 
+		messages.success(self.request, 'Your Subscription preferences have been successful updated. Thank you!')
+
 		return super(GroupSubscribe, self).form_valid(form)
 
 	def get_context_data(self, **kwargs):
