@@ -128,7 +128,10 @@ class GroupSubscribe(FormView):
 			raise Http404
 
 		# Check that the group has been set correctly in the urls.py and exists
-		self.group = ContactGroup.objects.get(id=self.group)
+		try:
+			self.group = ContactGroup.objects.get(id=self.group)
+		except ContactGroup.DoesNotExist:
+			raise Http404
 
 		initial = {}
 
