@@ -10,7 +10,7 @@ import dirtyfields.dirtyfields
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('actions', '__first__'),
+        ('actions', '0001_initial'),
     ]
 
     operations = [
