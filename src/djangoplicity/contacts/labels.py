@@ -217,7 +217,7 @@ class LabelRender( object ):
 		Write rendered PDF to a HttpResponse object.
 		"""
 		if response is None:
-			response = HttpResponse( mimetype='application/pdf' )
+			response = HttpResponse( content_type='application/pdf' )
 		response['Content-Disposition'] = 'attachment; filename=%s' % filename
 		response.write( self.render( queryset, filename, extra_context=extra_context ) )
 		return response
