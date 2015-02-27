@@ -241,7 +241,7 @@ u'osservativa',
 u'missions',
 ]
 
-splitter = re.compile("(\s+|\.|\-)")
+splitter = re.compile(r"(\s+|\.|\-)")
 
 
 #
@@ -488,8 +488,7 @@ def similar_name(a, b, ratio_limit=0.8):
 			return 0.8 * seq.ratio()
 
 		# Look for first name initials (e.g.: "S.":
-		if len(a_first) == 2 and a_first[1] == '.' and \
-				a_first[0] == b_first[0]:
+		if len(a_first) == 2 and a_first[1] == '.' and a_first[0] == b_first[0]:
 			b_first = b_first[0] + '.'
 			seq = difflib.SequenceMatcher(None,
 					a_first + a_last, b_first + b_last)
