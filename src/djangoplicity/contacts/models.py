@@ -42,7 +42,7 @@ from django.conf import settings
 from django.core.cache import cache
 from django.core.files.storage import FileSystemStorage
 from django.core.urlresolvers import reverse as url_reverse
-from django.db import models
+from django.db import models, connection
 from django.db.models.signals import m2m_changed, pre_delete, post_delete, \
 	post_save, pre_save
 from django.forms import ValidationError, ModelForm
@@ -1571,6 +1571,11 @@ class Deduplication(models.Model):
 			contacts = Contact.objects.filter(groups__in=self.groups.all()).select_related('country').distinct()
 		else:
 			contacts = Contact.objects.all().select_related('country')
+
+		# Deduplications can take many hours to complete, and we risk running
+		# into a 'MySQL server has gone away' error, so we close the DB
+		# connection for now, it will be automatically re-opened when necessary
+		connection.close()
 
 		for contact in contacts:
 			# Remove the current contact from the search space:

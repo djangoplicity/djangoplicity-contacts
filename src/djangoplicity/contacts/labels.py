@@ -77,6 +77,14 @@ try:
 except ImportError:
 	trml2pdf = None
 
+# Variable defines all possible paper types. For each paper type following properties
+# are defined:
+# 	* ``labels_no``: Number of labels per page
+# 	* ``template``: The RML template for the paper type
+# 	* ``label_template``: The default RML template file for layout of one label (the
+# 		template file is included once for each label in template)
+# 	* ``label_template_style``:  The default extra RML stylesheet which may be needed
+# 		by label_template
 LABEL_PAPER = {
 	'a4-l7163': {
 		'title': 'A4 (L7163 - 99.1x38.1)',
@@ -100,19 +108,9 @@ LABEL_PAPER = {
 		'label_template_style': 'contacts/labels/standard_label_small_style.rml',
 	},
 }
-"""
-Variable defines all possible paper types. For each paper type following properties
-are defined:
-	* ``labels_no``: Number of labels per page
-	* ``template``: The RML template for the paper type
-	* ``label_template``: The default RML template file for layout of one label (the
-		template file is included once for each label in template)
-	* ``label_template_style``:  The default extra RML stylesheet which may be needed
-		by label_template
-"""
 
+# Label paper choices for use as choices in a django field
 LABEL_PAPER_CHOICES = tuple( [( k, v['title'] ) for k, v in LABEL_PAPER.items()] )
-""" Label paper choices for use as choices in a django field. """
 
 
 class LabelRender( object ):
