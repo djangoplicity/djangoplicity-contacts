@@ -1572,11 +1572,6 @@ class Deduplication(models.Model):
 		else:
 			contacts = Contact.objects.all().select_related('country')
 
-		# Deduplications can take many hours to complete, and we risk running
-		# into a 'MySQL server has gone away' error, so we close the DB
-		# connection for now, it will be automatically re-opened when necessary
-		connection.close()
-
 		for contact in contacts:
 			# Remove the current contact from the search space:
 			del search_space[contact.id]
@@ -1598,6 +1593,11 @@ class Deduplication(models.Model):
 				for key in keys:
 					message += '%d (%.2f), ' % (key, keys[key])
 					logger.warning("Found duplicates for deduplication %s: %s", self.pk, message)
+
+		# Deduplications can take many hours to complete, and we risk running
+		# into a 'MySQL server has gone away' error, so we close the DB
+		# connection, it will be automatically re-opened if necessary
+		connection.close()
 
 		if duplicate_contacts:
 			self.duplicate_contacts = json.dumps(duplicate_contacts)
