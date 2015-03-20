@@ -48,6 +48,8 @@ from djangoplicity.contacts.models import ContactGroup, Contact, Country, \
 	ImportGroupMapping, Import, CONTACTS_FIELDS, ContactForm, Deduplication
 from djangoplicity.contacts.tasks import import_data
 from django.shortcuts import get_object_or_404
+
+from collections import OrderedDict
 from datetime import datetime
 
 
@@ -161,8 +163,8 @@ class ImportAdmin( admin.ModelAdmin ):
 			# Identify if a new contact should be created or an existing one updated:
 			contacts[import_id] = {
 				'target': request_POST.get('_selected_merge_contact_%s' % import_id),
-				'post': request_POST.copy(),	# Make a copy of post data so we can handle
-												# each entry separately
+				'post': request_POST.copy(),
+				# Make a copy of post data so we can handle each entry separately
 			}
 
 		for contact in contacts:
@@ -180,7 +182,7 @@ class ImportAdmin( admin.ModelAdmin ):
 				if not key.startswith(prefix):
 					keys_to_delete.append(key)
 			for key in keys_to_delete:
-				del(contacts[contact]['post'][key])
+				del contacts[contact]['post'][key]
 
 			# Fetch the existing contact if updating:
 			if target != 'new':
@@ -292,7 +294,7 @@ class ImportAdmin( admin.ModelAdmin ):
 class ImportTemplateAdmin( admin.ModelAdmin ):
 	list_display = ['name', 'duplicate_handling', 'tag_import', ]
 	list_editable = ['duplicate_handling', 'tag_import', ]
-	search_fields = ['name',  ]
+	search_fields = ['name', ]
 	filter_horizontal = ['extra_groups', 'frozen_groups']
 	fieldsets = (
 		( None, {
@@ -470,7 +472,7 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 		in the admin. See notes for function and futher notes in signals.py.
 		"""
 		obj.save()
-		obj.create_snapshot('save_model') # very important! trust me ;-)
+		obj.create_snapshot('save_model')  # very important! trust me ;-)
 
 	def response_change(self, request, obj, *args, **kwargs ):
 		obj.dispatch_signals('save_model')
@@ -501,9 +503,10 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 		Dynamically add admin actions for creating labels based on enabled labels.
 		"""
 		actions = super( ContactAdmin, self ).get_actions( request )
-		actions.update( dict( [self._make_label_action( l ) for l in Label.objects.filter( enabled=True ).order_by( 'name' )] ) )
-		actions.update( dict( [self._make_group_action( g, remove=False ) for g in ContactGroup.objects.all().order_by( 'name' )] ) )
-		actions.update( dict( [self._make_group_action( g, remove=True ) for g in ContactGroup.objects.all().order_by( 'name' )] ) )
+		actions.update( OrderedDict( [self._make_label_action( l ) for l in Label.objects.filter( enabled=True ).order_by( 'name' )] ) )
+		actions.update( OrderedDict( [self._make_group_action( g, remove=False ) for g in ContactGroup.objects.all().order_by( 'name' )] ) )
+		actions.update( OrderedDict( [self._make_group_action( g, remove=True ) for g in ContactGroup.objects.all().order_by( 'name' )] ) )
+
 		return actions
 
 	class Media:
@@ -655,7 +658,7 @@ class DeduplicationAdmin(admin.ModelAdmin):
 				if not key.startswith(target):
 					keys_to_delete.append(key)
 			for key in keys_to_delete:
-				del(update[target]['post'][key])
+				del update[target]['post'][key]
 
 			original_contact = Contact.objects.get(id=target.split('_')[1])
 			form = ContactForm(update[target]['post'],

@@ -14,7 +14,7 @@
 #	  notice, this list of conditions and the following disclaimer in the
 #	  documentation and/or other materials provided with the distribution.
 #
-#	* Neither the name of the European Southern Observatory nor the names 
+#	* Neither the name of the European Southern Observatory nor the names
 #	  of its contributors may be used to endorse or promote products derived
 #	  from this software without specific prior written permission.
 #
@@ -38,7 +38,7 @@ alleviate that problem.
 Django problem
 ==============
 Using pure python everything works nicely::
-	
+
 	c= Contact.objects.get( ... )
 	c.groups.add( .. )
 	c.groups.remove( .. )
@@ -48,22 +48,21 @@ You will receive the m2m_changed signal 4 times with the actions:
   * post_add
   * pre_remove
   * post_remove
-   
+
 However, if you now go to the admin and add/change a contact, then you would expect to get
 the same m2m_changed signals. But in fact you get m2m_changed signals like this:
-  
+
   * pre_clear
   * post_clear
   * pre_add
   * post_add
 
 Django first delete all relations, and add the new ones. Hence, it's hard to know which
-ones are actually removed. I guess they save one SQL query doing it this way. 
+ones are actually removed. I guess they save one SQL query doing it this way.
 """
 
 from django.dispatch import Signal
 
 contact_added = Signal( providing_args=[ "group", "contact", ] )
 contact_removed = Signal( providing_args=[ "group", "contact", ] )
-contact_updated = Signal( providing_args=[ "instance", "dirty_fields", ] ) # Some field changed value
-
+contact_updated = Signal( providing_args=[ "instance", "dirty_fields", ] )  # Some field changed value

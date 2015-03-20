@@ -14,7 +14,7 @@
 #	  notice, this list of conditions and the following disclaimer in the
 #	  documentation and/or other materials provided with the distribution.
 #
-#	* Neither the name of the European Southern Observatory nor the names 
+#	* Neither the name of the European Southern Observatory nor the names
 #	  of its contributors may be used to endorse or promote products derived
 #	  from this software without specific prior written permission.
 #
@@ -43,40 +43,41 @@ Usage example::
 	# First construct an importer.
 	>>> importer = CSVImporter( filename='/path/to/csvfile.csv' )
 	>>> importer = ExcelImporter( filename='/path/to/excelfile.xls', sheet=1 )
-	
+
 	# Iterate over rows in tabular data
 	>>> for row in importer:
 	...	 for c in importer.keys(): # Iterator over each column
 	...		 print row[c]
-	
+
 	# Extract column and iterate over all values
 	>>> column_values = importer['SomeColumnName']
 	>>> for val in column_values:
 	...	 print val
- 
+
  	# Get number of rows in tabular data
  	>>> number_of_rows = len(importer)
- 	
+
  	# Check if column exists in importer
  	>>> test = 'SomeColumnName' in importer
- 	
+
  	# Get all column names in importer
  	>>> header = importer.keys()
- 	
+
  	# Get a list of all column values
  	>>> header = importer.values()
- 	
- 	# 
+
+ 	#
  	>>> for column,values in importer.items()
  	...	 print column
  	...	 for v in values:
  	...		 print v
-	 
+
 """
 
 import codecs
 import csv
 import xlrd
+
 
 # ============
 # Base classes
@@ -87,61 +88,63 @@ class Importer( object ):
 	"""
 	def __init__( self, *args, **kwargs ):
 		self.cols = {}
-	
+
 	def __iter__( self ):
 		return ImportIterator()
-	
+
 	def __len__( self ):
 		return 0
 
 	def __getitem__( self, value ):
 		raise KeyError
-	
+
 	def __contains__( self, value ):
 		"""
 		Test if column name exists in excel file.
 		"""
 		return value in self.cols.keys()
-	
+
 	def keys( self ):
 		"""
 		Return all column names.
 		"""
 		return self.cols.keys()
-	
+
 	def items( self ):
 		return [( c, self[c] ) for c in self.keys()]
 
 	def values( self ):
 		return [self[c] for c in self.keys()]
-	
+
+
 class ImportIterator( object ):
 	"""
 	Abstract base class for all import iterators.
 	"""
 	def __iter__( self ):
 		return self
-	
+
 	def next( self ):
 		raise StopIteration
-	
+
+
 # ==============
 # Excel Importer
 # ==============
 class ExcelImporter( Importer ):
 	"""
-	Importer for Excel files. 
-	
+	Importer for Excel files.
+
 	Defaults:
 		sheet = 0
 	"""
 	def __init__( self, filename=None, sheet=0 ):
 		"""
-		Initialize importer by opening the Excel file and 
+		Initialize importer by opening the Excel file and
 		reading out a specific sheet.
 		"""
 		self.sheet = xlrd.open_workbook( filename ).sheet_by_index( sheet )
-		
+
 		i = 0
 		self._header = []
 		self.cols = {}
@@ -151,7 +154,7 @@ class ExcelImporter( Importer ):
 			self.cols[c] = i
 			self._header.append( ( c, None ) )
 			i += 1
-			
+
 	def header( self ):
 		"""
 		Return the Excel header for this file. This can be used as input to
@@ -164,7 +167,7 @@ class ExcelImporter( Importer ):
 		"""
 		Return the number of rows in the excel file.
 		"""
-		return self.sheet.nrows-1
+		return self.sheet.nrows - 1
 
 	def __getitem__( self, value ):
 		"""
@@ -172,10 +175,9 @@ class ExcelImporter( Importer ):
 		"""
 		return self.sheet.col_values( self.cols[value] )[1:]
 
-	
 	def row( self, rowidx ):
 		"""
-		Return a specific row in the table.  
+		Return a specific row in the table.
 		"""
 		rowidx = rowidx + 1
 		data = {}
@@ -194,36 +196,36 @@ class ExcelImportIterator( ImportIterator ):
 	def __init__( self, excelimporter ):
 		self.excelimporter = excelimporter
 		self.rowidx = -1
-		
+
 	def next( self ):
 		self.rowidx += 1
-		
-		if self.rowidx >= len( self.excelimporter ):  
+
+		if self.rowidx >= len( self.excelimporter ):
 			raise StopIteration
-		
+
 		return self.excelimporter.row( self.rowidx )
-	
-	
+
+
 # ==============
 # CSV Importer
 # ==============
 class CSVImporter( Importer ):
 	"""
 	Importer for CSV files.
-	
-	Defaults: 
+
+	Defaults:
 		encoding='utf-8'
 		dialect=csv.excel
-	 
+
 	"""
 	def __init__( self, filename=None, **kwargs ):
 		"""
-		Initialise importer by opening the Excel file and 
+		Initialise importer by opening the Excel file and
 		reading out a specific sheet.
 		"""
 		f = open( filename, 'r' )
 		self.csvreader = _UnicodeReader( f, **kwargs )
-		
+
 		# Parse header
 		i = 0
 		self.cols = {}
@@ -233,9 +235,9 @@ class CSVImporter( Importer ):
 				c = c.strip()
 			self.cols[c] = i
 			i += 1
-			
-		# Build dictionary of tabular data			
-		self._rows  = []
+
+		# Build dictionary of tabular data
+		self._rows = []
 		for r in self.csvreader:
 			data = {}
 			for c, i in self.cols.items():
@@ -244,7 +246,6 @@ class CSVImporter( Importer ):
 				except IndexError:
 					data[c] = None
 			self._rows.append( data )
-
 
 	def __len__( self ):
 		"""
@@ -263,13 +264,13 @@ class CSVImporter( Importer ):
 
 	def row( self, rowidx ):
 		"""
-		Return a specific row in the table.  
+		Return a specific row in the table.
 		"""
 		return self._rows[rowidx]
 
 	def __iter__( self ):
 		return self._rows.__iter__()
-	
+
 
 class _UTF8Recoder:
 	"""

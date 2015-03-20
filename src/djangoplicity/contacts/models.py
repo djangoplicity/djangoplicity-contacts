@@ -42,7 +42,7 @@ from django.conf import settings
 from django.core.cache import cache
 from django.core.files.storage import FileSystemStorage
 from django.core.urlresolvers import reverse as url_reverse
-from django.db import models
+from django.db import models, connection
 from django.db.models.signals import m2m_changed, pre_delete, post_delete, \
 	post_save, pre_save
 from django.forms import ValidationError, ModelForm
@@ -72,6 +72,9 @@ class Label( models.Model ):
 
 	def get_label_render( self ):
 		return LabelRender( self.paper, label_template=self.template, style=self.style, repeat=self.repeat )
+
+	def __unicode__( self ):
+		return self.name
 
 	class Meta:
 		ordering = ['name']
@@ -250,7 +253,7 @@ class ContactGroup( DirtyFieldsMixin, models.Model ):
 		"""
 		Propagate ContactGroup.order to contacts on delete
 		"""
-		logger.debug( "%s.pre_delete" % cls.__name__ )
+		logger.debug( "%s.pre_delete", cls.__name__ )
 
 		# Get a query of contacts to update and make sure it's evaluated (the contacts will be updated in the post_delete_callback)
 		# This cannot be done in post_delete, since then the object have been deleted from the database, and the relationships are
@@ -265,7 +268,7 @@ class ContactGroup( DirtyFieldsMixin, models.Model ):
 		"""
 		Propagate ContactGroup.order to contacts on delete
 		"""
-		logger.debug( "%s.post_delete" % cls.__name__ )
+		logger.debug( "%s.post_delete", cls.__name__ )
 
 		# See notes in pre_delete_callback
 		for c in Contact.objects.filter( pk__in=instance._cached_contact_set ).annotate( min__group_order=models.Min( 'groups__order' ) ):
@@ -277,7 +280,7 @@ class ContactGroup( DirtyFieldsMixin, models.Model ):
 		"""
 		Propagate ContactGroup.order to contacts on save (if order was changed)
 		"""
-		logger.debug( "%s.pre_save" % cls.__name__ )
+		logger.debug( "%s.pre_save", cls.__name__ )
 		instance._dirty_fields = instance.get_dirty_fields()
 
 	@classmethod
@@ -285,7 +288,7 @@ class ContactGroup( DirtyFieldsMixin, models.Model ):
 		"""
 		Propagate ContactGroup.order to contacts on save (if order was changed)
 		"""
-		logger.debug( "%s.post_save" % cls.__name__ )
+		logger.debug( "%s.post_save", cls.__name__ )
 
 		dirty_fields = instance._dirty_fields
 		instance._dirty_fields = None
@@ -348,7 +351,7 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		if not hasattr( self, '_snapshot' ):
 			self._snapshot = None
 
-		logger.debug( "create_snapshot:%s" % action )
+		logger.debug( "create_snapshot:%s", action )
 		if self._snapshot is None:
 			self._snapshot = ( action, set( self.groups.all() ) )
 
@@ -597,7 +600,7 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		old_groups = self.get_snapshot( action )
 		# Signals only sent if snapshot was created with the same action
 		if old_groups is not None:
-			logger.debug( "dispatch_signals:%s" % action )
+			logger.debug( "dispatch_signals:%s", action )
 			new_groups = set( self.groups.all() )
 			# added groups
 			for g in new_groups - old_groups:
@@ -623,7 +626,7 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		TODO: Does not take the reverse relation into account - e.g: grp.contact_set.add(..)
 		TODO: When last group is removed via admin, only a pre_clear, post_clear is sent, and not a pre_clear, post_clear, pre_add, post_add
 		"""
-		logger.debug( "%s.m2m_changed:%s" % ( cls.__name__, action ) )
+		logger.debug( "%s.m2m_changed:%s", cls.__name__, action )
 
 		# Pre-compute group ordering
 		if action in ['post_add', 'post_remove']:
@@ -651,7 +654,7 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		"""
 		Callback is used to send contact_removed, contact_added signals
 		"""
-		logger.debug( "%s.pre_delete" % cls.__name__ )
+		logger.debug( "%s.pre_delete", cls.__name__ )
 		for g in instance.groups.all():
 			contact_removed.send_robust( sender=cls, group=g, contact=instance )
 
@@ -660,7 +663,7 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		"""
 		Callback for detecting changes to the model.
 		"""
-		logger.debug( "%s.pre_save" % cls.__name__ )
+		logger.debug( "%s.pre_save", cls.__name__ )
 		if instance.email:
 			# All email addresses use lower-case
 			instance.email = instance.email.lower()
@@ -671,7 +674,7 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		"""
 		Callback for detecting changes to the model.
 		"""
-		logger.debug( "%s.post_save" % cls.__name__ )
+		logger.debug( "%s.post_save", cls.__name__ )
 
 		dirty_fields = instance._dirty_fields
 		instance._dirty_fields = None
@@ -720,8 +723,8 @@ class ContactField( models.Model ):
 	def __unicode__( self ):
 		return self.value
 
-	def full_clean( self, exclude=None ):
-		super( ContactField, self ).full_clean( exclude=exclude )
+	def full_clean( self, exclude=None, validate_unique=True ):
+		super( ContactField, self ).full_clean( exclude=exclude, validate_unique=validate_unique )
 		# Apparently if field is null (i.e. not set in admin), it's not detected
 		# until validate_unique, so we check it as the last step.
 		if self.field.blank and self.value == '':
@@ -792,7 +795,7 @@ class ContactGroupAction( models.Model ):
 		"""
 		logger.debug( "generating action cache" )
 		action_cache = {}
-		for a in cls.objects.all().select_related( depth=1 ).order_by( 'group', 'on_event', 'action' ):
+		for a in cls.objects.all().select_related('action', 'group').order_by( 'group', 'on_event', 'action' ):
 			g_pk = str( a.group.pk )
 			# by group_pk, event
 			if g_pk not in action_cache:
@@ -861,7 +864,7 @@ class ContactGroupAction( models.Model ):
 		Callback handler for when a contact is *added* to a group. Will execute defined
 		actions for this group.
 		"""
-		logger.debug( "contact %s added to group %s" % ( contact.pk, group.pk ) )
+		logger.debug( "contact %s added to group %s", contact.pk, group.pk )
 		for a in cls.get_actions( group, on_event='contact_added' ):
 			a.dispatch( group=group, contact=contact )
 
@@ -871,7 +874,7 @@ class ContactGroupAction( models.Model ):
 		Callback handler for when a contact is *removed* from a group. Will execute defined
 		actions for this group.
 		"""
-		logger.debug( "contact %s removed from group %s" % ( contact.pk, group.pk ) )
+		logger.debug( "contact %s removed from group %s", contact.pk, group.pk )
 		for a in cls.get_actions( group, on_event='contact_removed' ):
 			a.dispatch( group=group, contact=contact )
 
@@ -881,7 +884,7 @@ class ContactGroupAction( models.Model ):
 		Callback handler for when a local field is *updated*. Will execute defined actions for
 		all groups for this contact.
 		"""
-		logger.debug( "contact %s updated" % instance.pk )
+		logger.debug( "contact %s updated", instance.pk )
 		updates = {}
 		if dirty_fields:
 			for attr, val in dirty_fields.items():
@@ -1334,7 +1337,7 @@ class ImportMapping( models.Model ):
 		else:
 			for k, v in ImportMapping._country_cache['name'].items():
 				if similar_text( k, value ):
-					logger.info( "similar %s = %s" % ( k, value ) )
+					logger.info( "similar %s = %s", k, value )
 					return v
 
 			for iso, exps in ISO_EXPANSION.items():
@@ -1589,7 +1592,12 @@ class Deduplication(models.Model):
 				message = ''
 				for key in keys:
 					message += '%d (%.2f), ' % (key, keys[key])
-					logger.warning("Found duplicates for deduplication %s: %s" % (self.pk, message))
+					logger.warning("Found duplicates for deduplication %s: %s", self.pk, message)
+
+		# Deduplications can take many hours to complete, and we risk running
+		# into a 'MySQL server has gone away' error, so we close the DB
+		# connection, it will be automatically re-opened if necessary
+		connection.close()
 
 		if duplicate_contacts:
 			self.duplicate_contacts = json.dumps(duplicate_contacts)
