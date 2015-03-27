@@ -280,6 +280,8 @@ class ContactGroup( DirtyFieldsMixin, models.Model ):
 		"""
 		Propagate ContactGroup.order to contacts on save (if order was changed)
 		"""
+		if raw:
+			return
 		logger.debug( "%s.pre_save", cls.__name__ )
 		instance._dirty_fields = instance.get_dirty_fields()
 
@@ -288,6 +290,8 @@ class ContactGroup( DirtyFieldsMixin, models.Model ):
 		"""
 		Propagate ContactGroup.order to contacts on save (if order was changed)
 		"""
+		if raw:
+			return
 		logger.debug( "%s.post_save", cls.__name__ )
 
 		dirty_fields = instance._dirty_fields
@@ -663,6 +667,8 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		"""
 		Callback for detecting changes to the model.
 		"""
+		if raw:
+			return
 		logger.debug( "%s.pre_save", cls.__name__ )
 		if instance.email:
 			# All email addresses use lower-case
@@ -674,6 +680,8 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		"""
 		Callback for detecting changes to the model.
 		"""
+		if raw:
+			return
 		logger.debug( "%s.post_save", cls.__name__ )
 
 		dirty_fields = instance._dirty_fields
