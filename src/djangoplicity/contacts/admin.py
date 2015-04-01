@@ -409,6 +409,9 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 	inlines = [ ContactFieldInlineAdmin, AdminCommentInline, ]
 	list_select_related = True
 
+	def queryset(self, request):
+		return super(ContactAdmin, self).queryset(request).select_related('country').prefetch_related('groups')
+
 	def tags( self, obj ):
 		return ", ".join( [unicode(x) for x in obj.groups.all()] )
 
