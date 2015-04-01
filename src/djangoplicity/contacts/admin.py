@@ -376,6 +376,23 @@ class ContactGroupAdmin( admin.ModelAdmin ):
 	list_filter = ['category', ]
 	ordering = ['name', ]
 
+	def queryset(self, request):
+		return super(ContactGroupAdmin, self).queryset(request).select_related('category')
+
+	def formfield_for_dbfield(self, db_field, **kwargs):
+		'''
+		Cache the category choices to speed up admin list view
+		'''
+		request = kwargs['request']
+		formfield = super(ContactGroupAdmin, self).formfield_for_dbfield(db_field, **kwargs)
+		if db_field.name in ('category', ):
+			choices_cache = getattr(request, '%s_choices_cache' % db_field.name, None)
+			if choices_cache is not None:
+				formfield.choices = choices_cache
+			else:
+				setattr(request, '%s_choices_cache' % db_field.name, formfield.choices)
+		return formfield
+
 
 class ContactFieldInlineAdmin( admin.TabularInline ):
 	model = ContactField
