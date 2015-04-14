@@ -45,7 +45,7 @@ from django.core.urlresolvers import reverse as url_reverse
 from django.db import models, connection
 from django.db.models.signals import m2m_changed, pre_delete, post_delete, \
 	post_save, pre_save
-from django.forms import ValidationError, ModelForm
+from django.forms import ModelForm
 from django.utils.translation import ugettext as _
 
 from djangoplicity.actions.models import Action
@@ -286,11 +286,11 @@ class ContactGroup( DirtyFieldsMixin, models.Model ):
 		instance._dirty_fields = instance.get_dirty_fields()
 
 	@classmethod
-	def post_save_callback( cls, sender, instance=None, raw=False, **kwargs ):
+	def post_save_callback( cls, sender, instance=None, **kwargs ):
 		"""
 		Propagate ContactGroup.order to contacts on save (if order was changed)
 		"""
-		if raw:
+		if 'raw' in kwargs and kwargs['raw']:
 			return
 		logger.debug( "%s.post_save", cls.__name__ )
 
@@ -606,6 +606,7 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		if old_groups is not None:
 			logger.debug( "dispatch_signals:%s", action )
 			new_groups = set( self.groups.all() )
+
 			# added groups
 			for g in new_groups - old_groups:
 				logger.debug( "send contact_added" )
@@ -676,11 +677,11 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		instance._dirty_fields = instance.get_dirty_fields()
 
 	@classmethod
-	def post_save_callback( cls, sender, instance=None, raw=False, **kwargs ):
+	def post_save_callback( cls, sender, instance=None, **kwargs ):
 		"""
 		Callback for detecting changes to the model.
 		"""
-		if raw:
+		if 'raw' in kwargs and kwargs['raw']:
 			return
 		logger.debug( "%s.post_save", cls.__name__ )
 
