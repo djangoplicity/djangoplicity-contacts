@@ -46,7 +46,7 @@ from django.db import models, connection
 from django.db.models.signals import pre_delete, post_delete, post_save, \
 	pre_save
 from django.forms import ModelForm
-from django.utils.translation import ugettext as _
+from django.utils.translation import ugettext_lazy as _
 
 from djangoplicity.actions.models import Action
 from djangoplicity.contacts.labels import LabelRender, LABEL_PAPER_CHOICES
