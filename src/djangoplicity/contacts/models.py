@@ -477,6 +477,8 @@ class Contact( DirtyFieldsMixin, models.Model ):
 			obj.update_extra_fields( **kwargs )
 			if groups:
 				obj.groups.add( *ContactGroup.objects.filter( name__in=groups ) )
+				for g in groups:
+					contact_added.send(sender=obj.__class__, group=g, contact=obj)
 			return obj
 		else:
 			return None
@@ -1144,6 +1146,8 @@ class ImportTemplate( models.Model ):
 			contact = form.save()
 			if extra_groups:
 				contact.groups.add( *ContactGroup.objects.filter( name__in=extra_groups ) )
+				for g in extra_groups:
+					contact_added.send(sender=contact.__class__, group=g, contact=contact)
 			imported_contacts[line_number] = contact.pk
 
 		return imported_contacts

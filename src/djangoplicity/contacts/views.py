@@ -31,6 +31,7 @@
 
 from djangoplicity.contacts.models import Contact, ContactGroup
 from djangoplicity.contacts.forms import ContactPublicForm, GroupSubscribeForm
+from djangoplicity.contacts.signals import contact_added, contact_removed
 
 from django.contrib import messages
 from django.contrib.auth.models import User
@@ -153,10 +154,12 @@ class GroupSubscribe(FormView):
 			# The contact is already a member of the group
 			if not subscribe:
 				self.contact.groups.remove(self.group)
+				contact_removed.send(sender=self.contact.__class__, group=self.group, contact=self.contact)
 		else:
 			# The contact is already a member of the group
 			if subscribe:
 				self.contact.groups.add(self.group)
+				contact_added.send(sender=self.contact.__class__, group=self.group, contact=self.contact)
 
 		messages.success(self.request, 'Your Subscription preferences have been successful updated. Thank you!')
 
