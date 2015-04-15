@@ -43,8 +43,8 @@ from django.core.cache import cache
 from django.core.files.storage import FileSystemStorage
 from django.core.urlresolvers import reverse as url_reverse
 from django.db import models, connection
-from django.db.models.signals import m2m_changed, pre_delete, post_delete, \
-	post_save, pre_save
+from django.db.models.signals import pre_delete, post_delete, post_save, \
+	pre_save
 from django.forms import ModelForm
 from django.utils.translation import ugettext as _
 
@@ -52,6 +52,7 @@ from djangoplicity.actions.models import Action
 from djangoplicity.contacts.labels import LabelRender, LABEL_PAPER_CHOICES
 from djangoplicity.contacts.signals import contact_added, contact_removed, \
 	contact_updated
+from djangoplicity.contacts.tasks import contactgroup_change_check
 
 from djangoplicity.contacts import deduplication
 
@@ -253,7 +254,6 @@ class ContactGroup( DirtyFieldsMixin, models.Model ):
 		"""
 		Propagate ContactGroup.order to contacts on delete
 		"""
-		logger.debug( "%s.pre_delete", cls.__name__ )
 
 		# Get a query of contacts to update and make sure it's evaluated (the contacts will be updated in the post_delete_callback)
 		# This cannot be done in post_delete, since then the object have been deleted from the database, and the relationships are
@@ -268,7 +268,6 @@ class ContactGroup( DirtyFieldsMixin, models.Model ):
 		"""
 		Propagate ContactGroup.order to contacts on delete
 		"""
-		logger.debug( "%s.post_delete", cls.__name__ )
 
 		# See notes in pre_delete_callback
 		for c in Contact.objects.filter( pk__in=instance._cached_contact_set ).annotate( min__group_order=models.Min( 'groups__order' ) ):
@@ -282,7 +281,6 @@ class ContactGroup( DirtyFieldsMixin, models.Model ):
 		"""
 		if raw:
 			return
-		logger.debug( "%s.pre_save", cls.__name__ )
 		instance._dirty_fields = instance.get_dirty_fields()
 
 	@classmethod
@@ -292,7 +290,6 @@ class ContactGroup( DirtyFieldsMixin, models.Model ):
 		"""
 		if 'raw' in kwargs and kwargs['raw']:
 			return
-		logger.debug( "%s.post_save", cls.__name__ )
 
 		dirty_fields = instance._dirty_fields
 		instance._dirty_fields = None
@@ -346,33 +343,6 @@ class Contact( DirtyFieldsMixin, models.Model ):
 
 	created = models.DateTimeField( auto_now_add=True )
 	last_modified = models.DateTimeField( auto_now=True )
-
-	def create_snapshot( self, action=None ):
-		"""
-		Take a snapshot of the groups for this contact. The snapshot
-		is used to detect added/removed groups.
-		"""
-		if not hasattr( self, '_snapshot' ):
-			self._snapshot = None
-
-		logger.debug( "create_snapshot:%s", action )
-		if self._snapshot is None:
-			self._snapshot = ( action, set( self.groups.all() ) )
-
-	def get_snapshot( self, action ):
-		"""
-		Get the snapshot. Returns None if no snapshot was taken.
-		"""
-		if self._snapshot is not None:
-			if self._snapshot[0] is None or self._snapshot[0] == action:
-				return self._snapshot[1]
-		return None
-
-	def reset_snapshot( self ):
-		"""
-		Reset the current snapshot.
-		"""
-		self._snapshot = None
 
 	def set_extra_field( self, field_slug, value ):
 		"""
@@ -600,66 +570,11 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		else:
 			return unicode( self.pk )
 
-	def dispatch_signals( self, action ):
-		old_groups = self.get_snapshot( action )
-		# Signals only sent if snapshot was created with the same action
-		if old_groups is not None:
-			logger.debug( "dispatch_signals:%s", action )
-			new_groups = set( self.groups.all() )
-
-			# added groups
-			for g in new_groups - old_groups:
-				logger.debug( "send contact_added" )
-				contact_added.send( sender=self.__class__, group=g, contact=self )
-
-			# removed groups
-			for g in old_groups - new_groups:
-				logger.debug( "send contact_removed" )
-				contact_removed.send( sender=self.__class__, group=g, contact=self )
-
-			self.reset_snapshot()
-
-	@classmethod
-	def m2m_changed_callback( cls, sender, instance=None, action=None, reverse=None, model=None, pk_set=[], **kwargs ):
-		"""
-		m2m_changed signal callback handler. Note, due to strange implementation of
-		c.groups = [...] feature (used by admin) it's overly complex to figure out
-		which groups was added/removed for a contact.
-
-		Callback is used to send contact_removed, contact_added signals
-
-		TODO: Does not take the reverse relation into account - e.g: grp.contact_set.add(..)
-		TODO: When last group is removed via admin, only a pre_clear, post_clear is sent, and not a pre_clear, post_clear, pre_add, post_add
-		"""
-		logger.debug( "%s.m2m_changed:%s", cls.__name__, action )
-
-		# Pre-compute group ordering
-		if action in ['post_add', 'post_remove']:
-			try:
-				min_order = instance.groups.all().aggregate( min_order=models.Min( 'order' ) )['min_order']
-				if min_order != instance.group_order:
-					cls.objects.filter( pk=instance.pk ).update( group_order=min_order )
-					instance.group_order = min_order
-			except KeyError:
-				if min_order is not None:
-					cls.objects.filter( pk=instance.pk ).update( group_order=None )
-					instance.group_order = None
-		if action == 'post_clear':
-			if instance.group_order is not None:
-				cls.objects.filter( pk=instance.pk ).update( group_order=None )
-				instance.group_order = None
-
-		if action in ['pre_clear', 'pre_remove', 'pre_add']:
-			instance.create_snapshot( action[4:] )
-		elif action in ['post_clear', 'post_remove', 'post_add']:
-			instance.dispatch_signals( action[5:] )
-
 	@classmethod
 	def pre_delete_callback( cls, sender, instance=None, **kwargs ):
 		"""
 		Callback is used to send contact_removed, contact_added signals
 		"""
-		logger.debug( "%s.pre_delete", cls.__name__ )
 		for g in instance.groups.all():
 			contact_removed.send_robust( sender=cls, group=g, contact=instance )
 
@@ -670,11 +585,22 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		"""
 		if raw:
 			return
-		logger.debug( "%s.pre_save", cls.__name__ )
 		if instance.email:
 			# All email addresses use lower-case
 			instance.email = instance.email.lower()
 		instance._dirty_fields = instance.get_dirty_fields()
+
+		# Start a celery task to check if the groups have been changed.
+		# Ideally we would use m2m_changed signals, but at the moment Django
+		# admin first clears then add the groups which makes it very hard
+		# to identify changed groups. Instead we store the current groups' IDs
+		# and check if they have change when the task is run 20s later.
+		# 20s is just an arbitrary value to give enough time for the contact to
+		# be saved and the m2m relations saved to the DB
+		contactgroup_change_check.apply_async(
+			(list(instance.groups.values_list('id', flat=True)), instance.id),
+			countdown=20,
+		)
 
 	@classmethod
 	def post_save_callback( cls, sender, instance=None, **kwargs ):
@@ -683,12 +609,10 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		"""
 		if 'raw' in kwargs and kwargs['raw']:
 			return
-		logger.debug( "%s.post_save", cls.__name__ )
 
 		dirty_fields = instance._dirty_fields
 		instance._dirty_fields = None
 		if dirty_fields != {}:
-			logger.debug( "send contact_updated" )
 			contact_updated.send( sender=cls, instance=instance, dirty_fields=dirty_fields )
 
 	def get_uid(self):
@@ -767,7 +691,6 @@ class ContactGroupAction( models.Model ):
 		"""
 		Ensure cache is reset in case any change is made.
 		"""
-		logger.debug( "clearing action cache" )
 		cache.delete( cls._key )
 
 	@classmethod
@@ -795,7 +718,6 @@ class ContactGroupAction( models.Model ):
 			...
 		}
 		"""
-		logger.debug( "generating action cache" )
 		action_cache = {}
 		for a in cls.objects.all().select_related('action', 'group').order_by( 'group', 'on_event', 'action' ):
 			g_pk = str( a.group.pk )
@@ -1773,7 +1695,6 @@ post_delete.connect( ContactGroupAction.clear_cache, sender=ContactGroup )
 post_save.connect( ContactGroupAction.clear_cache, sender=ContactGroup )
 
 # Connect signals needed to send out contac_added/contact_removed signals.
-m2m_changed.connect( Contact.m2m_changed_callback, sender=Contact.groups.through )
 pre_delete.connect( Contact.pre_delete_callback, sender=Contact )
 pre_save.connect( Contact.pre_save_callback, sender=Contact )
 post_save.connect( Contact.post_save_callback, sender=Contact )

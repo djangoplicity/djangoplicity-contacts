@@ -486,22 +486,6 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 			else:
 				obj.groups.add( group )
 
-	def save_model( self, request, obj, form, change ):
-		"""
-		Method needed to make Contact.m2m_changed_callback work correctly when saving
-		in the admin. See notes for function and futher notes in signals.py.
-		"""
-		obj.save()
-		obj.create_snapshot('save_model')  # very important! trust me ;-)
-
-	def response_change(self, request, obj, *args, **kwargs ):
-		obj.dispatch_signals('save_model')
-		return super(ContactAdmin, self).response_change(request, obj, *args, **kwargs)
-
-	def response_add(self, request, obj, *args, **kwargs):
-		obj.dispatch_signals('save_model')
-		return super(ContactAdmin, self).response_add(request, obj, *args, **kwargs)
-
 	def _make_label_action( self, label ):
 		"""
 		Helper method to define an admin action for a specific label
