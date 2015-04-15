@@ -46,7 +46,7 @@ from djangoplicity.contacts.models import ContactGroup, Contact, Country, \
 	CountryGroup, GroupCategory, ContactField, Field, Label, PostalZone, \
 	ContactGroupAction, ImportTemplate, ImportMapping, ImportSelector, \
 	ImportGroupMapping, Import, CONTACTS_FIELDS, ContactForm, Deduplication
-from djangoplicity.contacts.tasks import import_data contactgroup_change_check
+from djangoplicity.contacts.tasks import import_data, contactgroup_change_check
 from django.shortcuts import get_object_or_404
 
 from collections import OrderedDict
