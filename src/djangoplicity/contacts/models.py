@@ -476,7 +476,8 @@ class Contact( DirtyFieldsMixin, models.Model ):
 			obj.save()
 			obj.update_extra_fields( **kwargs )
 			if groups:
-				obj.groups.add( *ContactGroup.objects.filter( name__in=groups ) )
+				groups = list(ContactGroup.objects.filter( name__in=groups ))
+				obj.groups.add( *groups )
 				for g in groups:
 					contact_added.send(sender=obj.__class__, group=g, contact=obj)
 			return obj
@@ -599,8 +600,13 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		# and check if they have change when the task is run 20s later.
 		# 20s is just an arbitrary value to give enough time for the contact to
 		# be saved and the m2m relations saved to the DB
+		if instance.pk:
+			groups = list(instance.groups.values_list('id', flat=True))
+		else:
+			# Contact is new:
+			groups = []
 		contactgroup_change_check.apply_async(
-			(list(instance.groups.values_list('id', flat=True)), instance.id),
+			(groups, instance.id),
 			countdown=20,
 		)
 
@@ -1145,7 +1151,8 @@ class ImportTemplate( models.Model ):
 				continue
 			contact = form.save()
 			if extra_groups:
-				contact.groups.add( *ContactGroup.objects.filter( name__in=extra_groups ) )
+				extra_groups = list(ContactGroup.objects.filter( name__in=extra_groups ))
+				contact.groups.add( *extra_groups )
 				for g in extra_groups:
 					contact_added.send(sender=contact.__class__, group=g, contact=contact)
 			imported_contacts[line_number] = contact.pk
