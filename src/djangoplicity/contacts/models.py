@@ -48,7 +48,7 @@ from django.db.models.signals import pre_delete, post_delete, post_save, \
 from django.forms import ModelForm
 from django.utils.translation import ugettext_lazy as _
 
-from djangoplicity.actions.models import Action
+from djangoplicity.actions.models import Action  # pylint: disable=E0611
 from djangoplicity.contacts.labels import LabelRender, LABEL_PAPER_CHOICES
 from djangoplicity.contacts.signals import contact_added, contact_removed, \
 	contact_updated
@@ -600,15 +600,14 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		# and check if they have change when the task is run 20s later.
 		# 20s is just an arbitrary value to give enough time for the contact to
 		# be saved and the m2m relations saved to the DB
+		# In case the contact is new we don't have the PK yet, so we store
+		# the groups in a instance attribute _initial_groups and call the
+		# task in the post_save
 		if instance.pk:
-			groups = list(instance.groups.values_list('id', flat=True))
+			instance._initial_groups = list(instance.groups.values_list('id', flat=True))
 		else:
 			# Contact is new:
-			groups = []
-		contactgroup_change_check.apply_async(
-			(groups, instance.id),
-			countdown=20,
-		)
+			instance._initial_groups = []
 
 	@classmethod
 	def post_save_callback( cls, sender, instance=None, **kwargs ):
@@ -622,6 +621,13 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		instance._dirty_fields = None
 		if dirty_fields != {}:
 			contact_updated.send( sender=cls, instance=instance, dirty_fields=dirty_fields )
+
+		# Send task to check group changes, see pre_save_callback for details
+		if instance and hasattr(instance, '_initial_groups'):
+			contactgroup_change_check.apply_async(
+				(instance._initial_groups, instance.pk),
+				countdown=20,
+			)
 
 	def get_uid(self):
 		'''
@@ -773,7 +779,7 @@ class ContactGroupAction( models.Model ):
 		try:
 			actions = action_cache[on_event]
 			return actions if group_pk is None else actions[str( group_pk )]
-		except:
+		except:  # pylint: disable=W0702
 			return {} if group_pk is None else []
 
 	@classmethod
