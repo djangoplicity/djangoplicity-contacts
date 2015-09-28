@@ -40,6 +40,7 @@ from django.http import Http404
 from django import forms
 from django.shortcuts import get_object_or_404, render_to_response, redirect
 from django.template import RequestContext
+# pylint: disable=E0611
 from djangoplicity.admincomments.admin import AdminCommentInline, \
 	AdminCommentMixin
 from djangoplicity.contacts.models import ContactGroup, Contact, Country, \
@@ -482,7 +483,7 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 		"""
 		for obj in queryset:
 			contactgroup_change_check.apply_async(
-				(list(obj.groups.values_list('id', flat=True)), obj.id),
+				(list(obj.groups.values_list('id', flat=True)), obj.pk, obj.email),
 				countdown=20,
 			)
 			if remove:

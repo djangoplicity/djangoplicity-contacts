@@ -625,7 +625,7 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		# Send task to check group changes, see pre_save_callback for details
 		if instance and hasattr(instance, '_initial_groups'):
 			contactgroup_change_check.apply_async(
-				(instance._initial_groups, instance.pk),
+				(instance._initial_groups, instance.pk, instance.email),
 				countdown=20,
 			)
 
