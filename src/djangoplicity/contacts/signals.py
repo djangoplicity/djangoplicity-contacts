@@ -64,5 +64,5 @@ ones are actually removed. I guess they save one SQL query doing it this way.
 from django.dispatch import Signal
 
 contact_added = Signal( providing_args=[ "group", "contact", ] )
-contact_removed = Signal( providing_args=[ "group", "contact", ] )
+contact_removed = Signal( providing_args=[ "group", "contact", "email" ] )
 contact_updated = Signal( providing_args=[ "instance", "dirty_fields", ] )  # Some field changed value

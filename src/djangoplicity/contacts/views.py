@@ -154,7 +154,7 @@ class GroupSubscribe(FormView):
 			# The contact is already a member of the group
 			if not subscribe:
 				self.contact.groups.remove(self.group)
-				contact_removed.send(sender=self.contact.__class__, group=self.group, contact=self.contact)
+				contact_removed.send(sender=self.contact.__class__, group=self.group, contact=self.contact, email=self.contact.email)
 		else:
 			# The contact is already a member of the group
 			if subscribe:

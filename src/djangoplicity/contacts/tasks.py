@@ -37,7 +37,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.core.mail import send_mail
 from django.core.urlresolvers import reverse
 from django.db import models
-from djangoplicity.actions.plugins import ActionPlugin
+from djangoplicity.actions.plugins import ActionPlugin  # pylint: disable=E0611
 
 
 @task( ignore_result=True )
@@ -138,26 +138,32 @@ http://%s%s
 
 
 @task
-def contactgroup_change_check(old_groups_ids, contact_id):
+def contactgroup_change_check(old_groups_ids, contact_id, email):
 	from djangoplicity.contacts.models import Contact, ContactGroup
 	from djangoplicity.contacts.signals import contact_added, contact_removed
 	logger = contactgroup_change_check.get_logger()
 	try:
 		c = Contact.objects.get(id=contact_id)
 	except Contact.DoesNotExist:
-		logger.error('Contact with id "%d "does not exist', contact_id)
-		return
+		c = None
 
 	old_groups = set(ContactGroup.objects.filter(id__in=old_groups_ids))
-	new_groups = set(c.groups.all())
 
-	for g in new_groups - old_groups:
-		logger.info('Added "%s" to group "%s"', c, g)
-		contact_added.send(sender=c.__class__, group=g, contact=c)
+	if c:
+		new_groups = set(c.groups.all())
 
-	for g in old_groups - new_groups:
-		logger.info('Removed "%s" from group "%s"', c, g)
-		contact_removed.send(sender=c.__class__, group=g, contact=c)
+		for g in new_groups - old_groups:
+			logger.info('Added "%s" to group "%s"', c, g)
+			contact_added.send(sender=c.__class__, group=g, contact=c)
+
+		for g in old_groups - new_groups:
+			logger.info('Removed "%s" from group "%s"', c, g)
+			contact_removed.send(sender=c.__class__, group=g, contact=c, email=email)
+	else:
+		# Contact has disappeared, remove it from its group
+		for g in old_groups:
+			logger.info('Remove disappeared contact "%s" from group "%s"', email, g)
+			contact_removed.send(sender=c.__class__, group=g, contact=c, email=email)
 
 
 class PeriodicAction( PeriodicTask ):

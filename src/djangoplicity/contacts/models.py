@@ -579,7 +579,7 @@ class Contact( DirtyFieldsMixin, models.Model ):
 		Callback is used to send contact_removed, contact_added signals
 		"""
 		for g in instance.groups.all():
-			contact_removed.send_robust( sender=cls, group=g, contact=instance )
+			contact_removed.send_robust( sender=cls, group=g, contact=instance, email=instance.email )
 
 	@classmethod
 	def pre_save_callback( cls, sender, instance=None, raw=False, **kwargs ):
@@ -807,14 +807,14 @@ class ContactGroupAction( models.Model ):
 			a.dispatch( group=group, contact=contact )
 
 	@classmethod
-	def contact_removed_callback( cls, sender=None, group=None, contact=None, **kwargs ):
+	def contact_removed_callback( cls, sender=None, group=None, contact=None, email=None, **kwargs ):
 		"""
 		Callback handler for when a contact is *removed* from a group. Will execute defined
 		actions for this group.
 		"""
 		logger.debug( "contact %s removed from group %s", contact.pk, group.pk )
 		for a in cls.get_actions( group, on_event='contact_removed' ):
-			a.dispatch( group=group, contact=contact )
+			a.dispatch( group=group, contact=contact, email=email )
 
 	@classmethod
 	def contact_updated_callback( cls, sender=None, instance=None, dirty_fields={}, **kwargs ):
