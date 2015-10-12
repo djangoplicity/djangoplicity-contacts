@@ -244,7 +244,7 @@ class ContactGroup( DirtyFieldsMixin, models.Model ):
 
 	def get_emails( self ):
 		""" Get all email addresses for contacts in this group """
-		return self.contact_set.exclude( email='' ).values_list( 'email', flat=True )
+		return self.contact_set.exclude(email='').exclude(email__iendswith='-invalid').values_list('email', flat=True)
 
 	def __unicode__( self ):
 		return self.name
