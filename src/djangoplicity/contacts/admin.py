@@ -40,13 +40,14 @@ from django.http import Http404
 from django import forms
 from django.shortcuts import get_object_or_404, render_to_response, redirect
 from django.template import RequestContext
+# pylint: disable=E0611
 from djangoplicity.admincomments.admin import AdminCommentInline, \
 	AdminCommentMixin
 from djangoplicity.contacts.models import ContactGroup, Contact, Country, \
 	CountryGroup, GroupCategory, ContactField, Field, Label, PostalZone, \
 	ContactGroupAction, ImportTemplate, ImportMapping, ImportSelector, \
 	ImportGroupMapping, Import, CONTACTS_FIELDS, ContactForm, Deduplication
-from djangoplicity.contacts.tasks import import_data
+from djangoplicity.contacts.tasks import import_data, contactgroup_change_check
 from django.shortcuts import get_object_or_404
 
 from collections import OrderedDict
@@ -376,6 +377,23 @@ class ContactGroupAdmin( admin.ModelAdmin ):
 	list_filter = ['category', ]
 	ordering = ['name', ]
 
+	def queryset(self, request):
+		return super(ContactGroupAdmin, self).queryset(request).select_related('category')
+
+	def formfield_for_dbfield(self, db_field, **kwargs):
+		'''
+		Cache the category choices to speed up admin list view
+		'''
+		request = kwargs['request']
+		formfield = super(ContactGroupAdmin, self).formfield_for_dbfield(db_field, **kwargs)
+		if db_field.name in ('category', ):
+			choices_cache = getattr(request, '%s_choices_cache' % db_field.name, None)
+			if choices_cache is not None:
+				formfield.choices = choices_cache
+			else:
+				setattr(request, '%s_choices_cache' % db_field.name, formfield.choices)
+		return formfield
+
 
 class ContactFieldInlineAdmin( admin.TabularInline ):
 	model = ContactField
@@ -408,6 +426,9 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 	readonly_fields = ['id', 'created', 'last_modified']
 	inlines = [ ContactFieldInlineAdmin, AdminCommentInline, ]
 	list_select_related = True
+
+	def queryset(self, request):
+		return super(ContactAdmin, self).queryset(request).select_related('country').prefetch_related('groups')
 
 	def tags( self, obj ):
 		return ", ".join( [unicode(x) for x in obj.groups.all()] )
@@ -461,26 +482,14 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 		Action method for set/removing groups to contacts.
 		"""
 		for obj in queryset:
+			contactgroup_change_check.apply_async(
+				(list(obj.groups.values_list('id', flat=True)), obj.pk, obj.email),
+				countdown=20,
+			)
 			if remove:
 				obj.groups.remove( group )
 			else:
 				obj.groups.add( group )
-
-	def save_model( self, request, obj, form, change ):
-		"""
-		Method needed to make Contact.m2m_changed_callback work correctly when saving
-		in the admin. See notes for function and futher notes in signals.py.
-		"""
-		obj.save()
-		obj.create_snapshot('save_model')  # very important! trust me ;-)
-
-	def response_change(self, request, obj, *args, **kwargs ):
-		obj.dispatch_signals('save_model')
-		return super(ContactAdmin, self).response_change(request, obj, *args, **kwargs)
-
-	def response_add(self, request, obj, *args, **kwargs):
-		obj.dispatch_signals('save_model')
-		return super(ContactAdmin, self).response_add(request, obj, *args, **kwargs)
 
 	def _make_label_action( self, label ):
 		"""
