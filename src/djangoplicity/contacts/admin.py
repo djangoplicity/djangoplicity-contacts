@@ -71,6 +71,7 @@ class ImportMappingForm( forms.ModelForm ):
 
 	class Meta:
 		model = ImportMapping
+		fields = '__all__'
 
 
 class ImportMappingInlineAdmin( admin.TabularInline ):
@@ -320,8 +321,8 @@ class ImportMappingAdmin( admin.ModelAdmin ):
 	)
 	inlines = [ImportGroupMappingInlineAdmin]
 
-	def queryset( self, request ):
-		qs = super( ImportMappingAdmin, self ).queryset( request )
+	def get_queryset( self, request ):
+		qs = super( ImportMappingAdmin, self ).get_queryset( request )
 		qs = qs.filter( field='groups' )
 		return qs
 
@@ -377,8 +378,8 @@ class ContactGroupAdmin( admin.ModelAdmin ):
 	list_filter = ['category', ]
 	ordering = ['name', ]
 
-	def queryset(self, request):
-		return super(ContactGroupAdmin, self).queryset(request).select_related('category')
+	def get_queryset(self, request):
+		return super(ContactGroupAdmin, self).get_queryset(request).select_related('category')
 
 	def formfield_for_dbfield(self, db_field, **kwargs):
 		'''
@@ -427,8 +428,8 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 	inlines = [ ContactFieldInlineAdmin, AdminCommentInline, ]
 	list_select_related = True
 
-	def queryset(self, request):
-		return super(ContactAdmin, self).queryset(request).select_related('country').prefetch_related('groups')
+	def get_queryset(self, request):
+		return super(ContactAdmin, self).get_queryset(request).select_related('country').prefetch_related('groups')
 
 	def tags( self, obj ):
 		return ", ".join( [unicode(x) for x in obj.groups.all()] )
