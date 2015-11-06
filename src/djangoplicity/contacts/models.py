@@ -53,8 +53,8 @@ from djangoplicity.contacts.labels import LabelRender, LABEL_PAPER_CHOICES
 from djangoplicity.contacts.signals import contact_added, contact_removed, \
 	contact_updated
 from djangoplicity.contacts.tasks import contactgroup_change_check
-
 from djangoplicity.contacts import deduplication
+from djangoplicity.translation.fields import LanguageField
 
 
 logger = logging.getLogger( 'djangoplicity' )
@@ -334,7 +334,7 @@ class Contact( DirtyFieldsMixin, models.Model ):
 	social = models.CharField( 'Social media', max_length=255, blank=True )
 	email = models.EmailField( blank=True )
 
-	language = models.CharField(verbose_name=_( 'Language' ), max_length=7, choices=settings.LANGUAGES, blank=True, null=True)
+	language = LanguageField(verbose_name=_( 'Language' ), max_length=7, blank=True, null=True)
 
 	groups = models.ManyToManyField( ContactGroup, blank=True )
 	group_order = models.PositiveIntegerField( blank=True, null=True )
