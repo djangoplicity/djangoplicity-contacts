@@ -308,7 +308,7 @@ class ContactGroup( DirtyFieldsMixin, models.Model ):
 
 		# Reset dirty state - DirtyFieldMixin is supposed to do it automatically,
 		# but apparently there's some conflicts with the signals it seems like.
-		instance._original_state = instance._as_dict()
+		instance._original_state = instance._as_dict(False)
 
 	class Meta:
 		ordering = ( 'name', )
