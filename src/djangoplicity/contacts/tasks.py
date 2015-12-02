@@ -40,7 +40,7 @@ from django.core.urlresolvers import reverse
 from django.db import models
 
 from djangoplicity.actions.plugins import ActionPlugin  # pylint: disable=E0611
-from djangoplicity.utils.history import add_admin_history
+from djangoplicity.utils.history import add_admin_history  # pylint: disable=E0611
 
 
 @task( ignore_result=True )
@@ -171,7 +171,7 @@ def contactgroup_change_check(old_groups_ids, contact_id, email):
 		if added:
 			messages.append('Added to groups: %s' % (', '.join(added)))
 		if removed:
-			messages.append('Removed from groups: %s' % (', '.join(added)))
+			messages.append('Removed from groups: %s' % (', '.join(removed)))
 
 		if messages:
 			add_admin_history(c, ', '.join(messages))
