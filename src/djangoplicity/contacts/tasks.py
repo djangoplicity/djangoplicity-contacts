@@ -32,12 +32,15 @@
 
 from celery.task import PeriodicTask, task
 from datetime import timedelta
+
 from django.contrib.sites.models import Site
 from django.core.exceptions import ImproperlyConfigured
 from django.core.mail import send_mail
 from django.core.urlresolvers import reverse
 from django.db import models
+
 from djangoplicity.actions.plugins import ActionPlugin  # pylint: disable=E0611
+from djangoplicity.utils.history import add_admin_history
 
 
 @task( ignore_result=True )
@@ -151,14 +154,28 @@ def contactgroup_change_check(old_groups_ids, contact_id, email):
 
 	if c:
 		new_groups = set(c.groups.all())
+		added = []
+		removed = []
 
 		for g in new_groups - old_groups:
 			logger.info('Added "%s" to group "%s"', c, g)
+			added.append(g.name)
 			contact_added.send(sender=c.__class__, group=g, contact=c)
 
 		for g in old_groups - new_groups:
 			logger.info('Removed "%s" from group "%s"', c, g)
+			removed.append(g.name)
 			contact_removed.send(sender=c.__class__, group=g, contact=c, email=email)
+
+		messages = []
+		if added:
+			messages.append('Added to groups: %s' % (', '.join(added)))
+		if removed:
+			messages.append('Removed from groups: %s' % (', '.join(added)))
+
+		if messages:
+			add_admin_history(c, ', '.join(messages))
+
 	else:
 		# Contact has disappeared, remove it from its group
 		for g in old_groups:
