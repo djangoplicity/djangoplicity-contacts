@@ -1625,7 +1625,8 @@ class Deduplication(models.Model):
 
 				# Check if the contact has already been deduplicated:
 				deduplicated = False
-				if '%s_%s' % (contact_id, pk) in deduplicated_contacts:
+				if '%s_%s' % (contact_id, pk) in deduplicated_contacts or \
+					'%s_%s' % (pk, contact_id) in deduplicated_contacts:
 					# Contact won't be displayed in form
 					deduplicated = True
 
@@ -1640,9 +1641,7 @@ class Deduplication(models.Model):
 			record['duplicates'] = dups
 
 			# If all the entries for the record have been deduplicated we can skip them:
-			skip = record['skip']
-			for dup in record['duplicates']:
-				skip = skip and dup['skip']
+			skip = all([d['skip'] for d in record['duplicates']])
 
 			if not skip:
 				# Deal with pagination:
@@ -1658,7 +1657,8 @@ class Deduplication(models.Model):
 		count_deduplicated = 0
 		for entry, dups in duplicate_contacts.items():
 			for d in dups:
-				if '%s_%s' % (entry, d) not in deduplicated_contacts:
+				if '%s_%s' % (entry, d) not in deduplicated_contacts and \
+					'%s_%s' % (d, entry) not in deduplicated_contacts:
 					break
 			else:
 				# All duplicates were already deduplicated
