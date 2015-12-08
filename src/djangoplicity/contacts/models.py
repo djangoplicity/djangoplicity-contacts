@@ -54,7 +54,7 @@ from djangoplicity.contacts.signals import contact_added, contact_removed, \
 	contact_updated
 from djangoplicity.contacts.tasks import contactgroup_change_check
 from djangoplicity.contacts import deduplication
-from djangoplicity.translation.fields import LanguageField
+from djangoplicity.translation.fields import LanguageField  # pylint: disable=E0611
 
 
 logger = logging.getLogger( 'djangoplicity' )
@@ -1555,6 +1555,16 @@ class Deduplication(models.Model):
 		duplicate_contacts = json.loads(self.duplicate_contacts) if self.duplicate_contacts else {}
 		deduplicated_contacts = []
 
+		# Prefetch all contacts and duplicates to avoid hundreds of queries
+		# down the line
+		keys = duplicate_contacts.keys()
+		for v in duplicate_contacts.values():
+			keys += v.keys()
+		contacts = dict([
+			(str(c.pk), c) for c in
+			Contact.objects.filter(pk__in=keys).prefetch_related('groups')
+		])
+
 		# Load previously deduplicated contacts, including those from previous
 		# Deduplications, this is so that if a duplicated was ignored (for
 		# example because it was a false positive) it won't appear every time
@@ -1572,11 +1582,11 @@ class Deduplication(models.Model):
 		i = 0
 		for contact_id in duplicate_contacts:
 			try:
-				contact = Contact.objects.get(id=contact_id)
+				contact = contacts[contact_id]
 				fields = ('<a href="%s">%s</a>' % (url_reverse('admin:contacts_contact_change',
 								args=[contact_id]), contact_id), )
 				form = ContactForm(instance=contact, prefix='%s_%s' % (contact_id, contact_id))
-			except Contact.DoesNotExist:
+			except KeyError:
 				fields = ('<span style="color: red;">Contact %s disappeared!</span>' % contact_id, )
 				contact = None
 				form = None
@@ -1597,32 +1607,32 @@ class Deduplication(models.Model):
 
 			dups = []
 
-			for id, score in sorted(duplicate_contacts[contact_id].iteritems(),
+			for pk, score in sorted(duplicate_contacts[contact_id].iteritems(),
 					key=lambda(k, v): (v, k), reverse=True):
 
 				if score < self.min_score_display:
 					continue
 
 				try:
-					contact = Contact.objects.get(id=id)
+					contact = contacts[pk]
 					# Create a list of extra fields to display in the form
 					fields = ('<a href="%s">%s</a> (%.2f)' % (url_reverse('admin:contacts_contact_change',
-								args=[id]), id, score),)
-					form = ContactForm(instance=contact, prefix='%s_%s' % (contact_id, id))
-				except Contact.DoesNotExist:
-					fields = ('<span style="color: red">Contact %s disappeared! Please re-run deduplication</span>' % id,)
+								args=[pk]), pk, score),)
+					form = ContactForm(instance=contact, prefix='%s_%s' % (contact_id, pk))
+				except KeyError:
+					fields = ('<span style="color: red">Contact %s disappeared! Please re-run deduplication</span>' % pk,)
 					form = None
 
 				# Check if the contact has already been deduplicated:
 				deduplicated = False
-				if '%s_%s' % (contact_id, id) in deduplicated_contacts:
+				if '%s_%s' % (contact_id, pk) in deduplicated_contacts:
 					# Contact won't be displayed in form
 					deduplicated = True
 
 				dups.append({
 					'skip': deduplicated,
 					'fields': fields,
-					'contact_id': id,
+					'contact_id': pk,
 					'contact': contact,
 					'form': form,
 				})
