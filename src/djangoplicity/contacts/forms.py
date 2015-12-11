@@ -89,6 +89,8 @@ class ContactPublicForm(forms.ModelForm):
 
 	def __init__(self, *args, **kwargs):
 		super(ContactPublicForm, self).__init__(*args, **kwargs)
+		# Allow Region widget to access form
+		self.fields['region'].widget.form = self
 		self.helper = FormHelper()
 		self.helper.form_class = 'form-horizontal'
 		self.helper.label_class = 'col-md-2'
