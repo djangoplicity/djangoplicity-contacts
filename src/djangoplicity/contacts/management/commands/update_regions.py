@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # djangoplicity-contacts
-# Copyright (c) 2007-2014, European Southern Observatory (ESO)
+# Copyright (c) 2007-2015, European Southern Observatory (ESO)
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -29,12 +29,35 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE
 
-from djangoplicity.contacts.views import ContactPublicUpdate, \
-	RegionByCountryJSONView
+import requests
 
-from django.conf.urls import patterns, url
+from django.core.management.base import BaseCommand
 
-urlpatterns = patterns( '',
-	url( r'^edit/(?P<uid>.*)/$', ContactPublicUpdate.as_view(), name='public_contact_edit' ),
-	url(r'^countryregions/(?P<pk>[0-9]+)/json/$', RegionByCountryJSONView.as_view(), kwargs={}, name='region_by_country'),
-)
+from djangoplicity.contacts.models import Country, Region
+
+
+class Command(BaseCommand):
+	'''
+	Update Regions based on geoname.org's data
+	'''
+	def handle(self, *args, **options):
+		r = requests.get('http://download.geonames.org/export/dump/admin1CodesASCII.txt')
+
+		c = None
+
+		for line in r.text.splitlines():
+			code, local_name, name, _uid = line.split('\t')
+			country_code, region_code = code.split('.')
+
+			if not c or c.iso_code != country_code:
+				try:
+					c = Country.objects.get(iso_code=country_code)
+				except Country.DoesNotExist:
+					continue
+
+			region, _created = Region.objects.get_or_create(country=c, code=region_code)
+			region.name = name
+			region.local_name = local_name
+
+			region.save()
+			print 'Updating: %s' % region

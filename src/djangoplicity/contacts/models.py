@@ -223,6 +223,22 @@ class Country( models.Model ):
 		ordering = ['name', ]
 
 
+class Region(models.Model):
+	'''
+	Regions for Countries
+	'''
+	name = models.CharField(max_length=200, db_index=True, verbose_name='Region/State name')
+	local_name = models.CharField(max_length=200, verbose_name='Region/State name in the local language')
+	code = models.CharField(max_length=200, db_index=True)
+	country = models.ForeignKey(Country)
+
+	def __unicode__(self):
+		return self.name
+
+	class Meta:
+		ordering = ['country', 'name']
+
+
 class ContactGroup( DirtyFieldsMixin, models.Model ):
 	"""
 	Groups for contacts
@@ -318,9 +334,9 @@ class Contact( DirtyFieldsMixin, models.Model ):
 	"""
 	Contacts model
 	"""
+	title = models.CharField( max_length=50, blank=True, db_index=True )
 	first_name = models.CharField( max_length=255, blank=True )
 	last_name = models.CharField( max_length=255, blank=True )
-	title = models.CharField( max_length=50, blank=True, db_index=True )
 	position = models.CharField( max_length=255, blank=True )
 	organisation = models.CharField( max_length=255, blank=True )
 	department = models.CharField( max_length=255, blank=True )
@@ -328,6 +344,7 @@ class Contact( DirtyFieldsMixin, models.Model ):
 	street_2 = models.CharField( max_length=255, blank=True )
 	city = models.CharField( max_length=255, blank=True, help_text="Including postal code, city and state." )
 	country = models.ForeignKey( Country, blank=True, null=True )
+	region = models.ForeignKey(Region, blank=True, null=True)
 
 	phone = models.CharField( max_length=255, blank=True )
 	website = models.CharField( 'Website', max_length=255, blank=True )

@@ -34,24 +34,27 @@
 Admin interfaces for contact models.
 """
 
+from collections import OrderedDict
+from datetime import datetime
+
 from django.conf.urls import patterns, url
 from django.contrib import admin
 from django.http import Http404
 from django import forms
+from django.shortcuts import get_object_or_404
 from django.shortcuts import get_object_or_404, render_to_response, redirect
 from django.template import RequestContext
 # pylint: disable=E0611
+
 from djangoplicity.admincomments.admin import AdminCommentInline, \
 	AdminCommentMixin
+from djangoplicity.contacts.forms import ContactAdminForm
 from djangoplicity.contacts.models import ContactGroup, Contact, Country, \
 	CountryGroup, GroupCategory, ContactField, Field, Label, PostalZone, \
 	ContactGroupAction, ImportTemplate, ImportMapping, ImportSelector, \
-	ImportGroupMapping, Import, CONTACTS_FIELDS, ContactForm, Deduplication
+	ImportGroupMapping, Import, CONTACTS_FIELDS, ContactForm, Deduplication, \
+	Region
 from djangoplicity.contacts.tasks import import_data, contactgroup_change_check
-from django.shortcuts import get_object_or_404
-
-from collections import OrderedDict
-from datetime import datetime
 
 
 class ImportSelectorInlineAdmin( admin.TabularInline ):
@@ -335,6 +338,24 @@ class CountryAdmin( admin.ModelAdmin ):
 	filter_horizontal = ['groups']
 
 
+class RegionAdmin(admin.ModelAdmin):
+	'''
+	Regions are updated with the update_regions management country and any
+	edit in the admin is disabled
+	'''
+	list_display = ['country', 'name', 'local_name', 'code']
+	list_filter = ['country']
+	search_fields = ['country', 'name', 'local_name', 'code']
+	list_select_related = ['country']
+	readonly_fields = ['country', 'name', 'local_name', 'code']
+
+	def has_add_permission(self, request):
+		return False
+
+	def has_delete_permission(self, request, obj=None):
+		return False
+
+
 class GroupCategoryAdmin( admin.ModelAdmin ):
 	list_display = ['name', ]
 	search_fields = ['name', ]
@@ -402,6 +423,7 @@ class ContactFieldInlineAdmin( admin.TabularInline ):
 
 
 class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
+	form = ContactAdminForm
 	list_display = ['id', 'title', 'last_name', 'first_name', 'position', 'organisation', 'department', 'tags', 'group_order', 'street_1', 'street_2', 'city', 'country', 'language', 'email', 'phone', 'website', 'created', 'last_modified' ]
 	list_editable = ['title', 'first_name', 'last_name', 'position', 'email', 'organisation', 'department', 'street_1', 'street_2', 'city', 'phone', 'website', 'language', ]
 	list_filter = ['last_modified', 'groups__category__name', 'groups', 'country__groups', 'extra_fields__name', 'country', 'language', 'title' ]
@@ -414,7 +436,7 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 			'fields': ( ( 'title', 'first_name', 'last_name' ), 'position', )
 		} ),
 		( 'Address', {
-			'fields': ( 'organisation', 'department', 'street_1', 'street_2', 'city', 'country' )
+			'fields': ( 'organisation', 'department', 'street_1', 'street_2', 'city', 'country', 'region' )
 		} ),
 		( 'Groups', {
 			'fields': ( 'groups', )
@@ -521,7 +543,10 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 
 	class Media:
 		# Javascript to collapse filter pane in admin
-		js = ['djangoplicity/js/list_filter_collapse.js']
+		js = [
+			'djangoplicity/js/list_filter_collapse.js',
+			'contacts/js/contacts.js',
+		]
 
 
 class ContactGroupActionAdmin( admin.ModelAdmin ):
@@ -690,6 +715,7 @@ def register_with_admin( admin_site ):
 	admin_site.register( ContactGroup, ContactGroupAdmin )
 	admin_site.register( Contact, ContactAdmin )
 	admin_site.register( PostalZone, PostalZoneAdmin )
+	admin_site.register( Region, RegionAdmin )
 	admin_site.register( ContactGroupAction, ContactGroupActionAdmin )
 	admin_site.register( ImportTemplate, ImportTemplateAdmin )
 	admin_site.register( ImportMapping, ImportMappingAdmin )
