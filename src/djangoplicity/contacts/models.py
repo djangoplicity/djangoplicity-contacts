@@ -345,6 +345,8 @@ class Contact( DirtyFieldsMixin, models.Model ):
 	city = models.CharField( max_length=255, blank=True, help_text="Including postal code, city and state." )
 	country = models.ForeignKey( Country, blank=True, null=True )
 	region = models.ForeignKey(Region, blank=True, null=True)
+	tax_code = models.CharField(_('Tax Code'), max_length=20, blank=True,
+		help_text=_('Tax Code for Argentina, Brazil, Paraguay, Peru (CUIT/CPF/RUC)'))
 
 	phone = models.CharField( max_length=255, blank=True )
 	website = models.CharField( 'Website', max_length=255, blank=True )

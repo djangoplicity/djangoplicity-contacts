@@ -436,7 +436,7 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 			'fields': ( ( 'title', 'first_name', 'last_name' ), 'position', )
 		} ),
 		( 'Address', {
-			'fields': ( 'organisation', 'department', 'street_1', 'street_2', 'city', 'country', 'region' )
+			'fields': ( 'organisation', 'department', 'street_1', 'street_2', 'tax_code', 'city', 'country', 'region' )
 		} ),
 		( 'Groups', {
 			'fields': ( 'groups', )
