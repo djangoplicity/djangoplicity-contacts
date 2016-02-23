@@ -1233,6 +1233,8 @@ CONTACTS_FIELDS = [
 	( 'postal_code', 'Postal code' ),
 	( 'state', 'State' ),
 	( 'language', 'Language' ),
+	( 'tax_code', 'Tax Code' ),
+	( 'region', 'Region' ),
 ]
 # + Field.field_options() # Todo: needs to be dynamic since if extra field is added, then it will require server restart to have the list updated.
 CONTACTS_FIELDS.sort( key=lambda x: x[1] )
