@@ -33,12 +33,23 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
 
 from django import forms
-from django.forms import widgets
+from django.forms import ModelForm, widgets
 from django.forms.utils import flatatt
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
 from djangoplicity.contacts.models import Contact, Region
+
+
+class ContactForm(ModelForm):
+	# country = forms.CharField()
+	# region = forms.CharField()
+	language = forms.CharField(required=False)
+	# groups = forms.CharField()
+
+	class Meta:
+		model = Contact
+		exclude = ('extra_fields', )
 
 
 class RegionWidget(widgets.Select):

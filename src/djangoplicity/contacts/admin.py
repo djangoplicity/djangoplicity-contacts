@@ -42,17 +42,16 @@ from django.contrib import admin
 from django.http import Http404
 from django import forms
 from django.shortcuts import get_object_or_404
-from django.shortcuts import get_object_or_404, render_to_response, redirect
-from django.template import RequestContext
+from django.shortcuts import get_object_or_404, render, redirect
 # pylint: disable=E0611
 
 from djangoplicity.admincomments.admin import AdminCommentInline, \
 	AdminCommentMixin
-from djangoplicity.contacts.forms import ContactAdminForm
+from djangoplicity.contacts.forms import ContactAdminForm, ContactForm
 from djangoplicity.contacts.models import ContactGroup, Contact, Country, \
 	CountryGroup, GroupCategory, ContactField, Field, Label, PostalZone, \
 	ContactGroupAction, ImportTemplate, ImportMapping, ImportSelector, \
-	ImportGroupMapping, Import, CONTACTS_FIELDS, ContactForm, Deduplication, \
+	ImportGroupMapping, Import, CONTACTS_FIELDS, Deduplication, \
 	Region
 from djangoplicity.contacts.tasks import import_data, contactgroup_change_check
 
@@ -118,7 +117,7 @@ class ImportAdmin( admin.ModelAdmin ):
 
 		try:
 			mapping, rows = obj.preview_data()
-			return render_to_response(
+			return render(request,
 				"admin/contacts/import/preview.html",
 				{
 					'columns': mapping,
@@ -127,11 +126,10 @@ class ImportAdmin( admin.ModelAdmin ):
 					'messages': [],
 					'app_label': obj._meta.app_label,
 					'opts': obj._meta,
-				},
-				context_instance=RequestContext( request )
+				}
 			)
 		except Exception, e:
-			return render_to_response(
+			return render(request,
 				"admin/contacts/import/preview.html",
 				{
 					'error': e.message,
@@ -139,8 +137,7 @@ class ImportAdmin( admin.ModelAdmin ):
 					'messages': [],
 					'app_label': obj._meta.app_label,
 					'opts': obj._meta,
-				},
-				context_instance=RequestContext( request )
+				}
 			)
 
 	@classmethod
@@ -248,7 +245,7 @@ class ImportAdmin( admin.ModelAdmin ):
 						d[key] = request.POST[key]
 				import_data.delay( obj.pk, d )
 
-			return render_to_response(
+			return render(request,
 					"admin/contacts/import/import.html",
 					{
 						'object': obj,
@@ -256,8 +253,7 @@ class ImportAdmin( admin.ModelAdmin ):
 						'messages': [],
 						'app_label': obj._meta.app_label,
 						'opts': obj._meta,
-					},
-					context_instance=RequestContext( request )
+					}
 				)
 		else:
 			raise Http404
@@ -280,8 +276,17 @@ class ImportAdmin( admin.ModelAdmin ):
 
 		mapping, imported, new, duplicates = obj.review_data()
 
-		return render_to_response(
-				"admin/contacts/import/review.html",
+		# The page rendering will be very slow if we have too many contacts
+		# so we limit it to 50 new or duplicates
+		partial = False
+		if len(new) > 50:
+			new = new[:50]
+			partial = True
+		if len(duplicates) > 50:
+			duplicates = duplicates[:50]
+			partial = True
+
+		return render(request, 'admin/contacts/import/review.html',
 				{
 					'columns': mapping,
 					'imported': imported,
@@ -291,8 +296,8 @@ class ImportAdmin( admin.ModelAdmin ):
 					'messages': [],
 					'app_label': obj._meta.app_label,
 					'opts': obj._meta,
-				},
-				context_instance=RequestContext( request )
+					'partial': partial,
+				}
 			)
 
 
@@ -482,7 +487,7 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 			# No label, so display list of available labels
 			labels = Label.objects.filter( enabled=True ).order_by( 'name' )
 
-			return render_to_response(
+			return render(request,
 				"admin/contacts/contact/labels.html",
 				{
 					'labels': labels,
@@ -490,8 +495,7 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 					'messages': [],
 					'app_label': obj._meta.app_label,
 					'opts': obj._meta,
-				},
-				context_instance=RequestContext( request )
+				}
 			)
 
 	def action_make_label( self, request, queryset, label=None ):
@@ -597,7 +601,7 @@ class DeduplicationAdmin(admin.ModelAdmin):
 
 		duplicates, total_duplicates = dedup.review_data(page)
 
-		return render_to_response(
+		return render(request,
 			"admin/contacts/deduplication/review.html",
 			{
 				'object': dedup,
@@ -608,8 +612,7 @@ class DeduplicationAdmin(admin.ModelAdmin):
 				'total_duplicates': total_duplicates,
 				'page': page,
 				'pages': range(1, (total_duplicates / dedup.max_display + 2)),
-			},
-			context_instance=RequestContext(request)
+			}
 		)
 
 	def deduplicate_view(self, request, pk=None):
@@ -641,7 +644,7 @@ class DeduplicationAdmin(admin.ModelAdmin):
 		if not errorlist:
 			resultlist = dedup.deduplicate_data(update, delete, ignore)
 
-		return render_to_response(
+		return render(request,
 				"admin/contacts/deduplication/deduplicate.html",
 				{
 					'object': dedup,
@@ -650,8 +653,7 @@ class DeduplicationAdmin(admin.ModelAdmin):
 					'messages': [],
 					'app_label': dedup._meta.app_label,
 					'opts': dedup._meta,
-				},
-				context_instance=RequestContext( request )
+				}
 			)
 
 	def _clean_deduplicate_data(self, request):

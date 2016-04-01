@@ -45,7 +45,6 @@ from django.core.urlresolvers import reverse as url_reverse
 from django.db import models, connection
 from django.db.models.signals import pre_delete, post_delete, post_save, \
 	pre_save
-from django.forms import ModelForm
 from django.utils.translation import ugettext_lazy as _
 
 from djangoplicity.actions.models import Action  # pylint: disable=E0611
@@ -1077,6 +1076,7 @@ class ImportTemplate( models.Model ):
 		Review the data file according to the defined import template,
 		displaying the potential duplicates
 		"""
+		from djangoplicity.contacts.forms import ContactForm
 		imported = []
 		new = []
 		duplicates = []
@@ -1091,7 +1091,7 @@ class ImportTemplate( models.Model ):
 					contact = {
 						'row': unicode(i),
 						'contact_link': '<a href="%s">%s</a>' %
-								(url_reverse('admin:contacts_contact_change', args=[id]), id),
+						(url_reverse('admin:contacts_contact_change', args=[id]), id),
 						'data': data,
 					}
 					# Check that the contact still exists:
@@ -1573,6 +1573,7 @@ class Deduplication(models.Model):
 		number of duplicates
 		Only return max_display duplicates at a time
 		"""
+		from djangoplicity.contacts.forms import ContactForm
 		duplicate_contacts = json.loads(self.duplicate_contacts) if self.duplicate_contacts else {}
 		deduplicated_contacts = []
 
@@ -1724,12 +1725,6 @@ class Deduplication(models.Model):
 			self.save()
 
 		return resultlist
-
-
-class ContactForm(ModelForm):
-	class Meta:
-		model = Contact
-		exclude = ('extra_fields', )
 
 
 pre_delete.connect( Import.pre_delete_callback, sender=Import )
