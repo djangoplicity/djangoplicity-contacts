@@ -34,24 +34,26 @@
 Admin interfaces for contact models.
 """
 
+from collections import OrderedDict
+from datetime import datetime
+
 from django.conf.urls import patterns, url
 from django.contrib import admin
 from django.http import Http404
 from django import forms
-from django.shortcuts import get_object_or_404, render_to_response, redirect
-from django.template import RequestContext
+from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, render, redirect
 # pylint: disable=E0611
+
 from djangoplicity.admincomments.admin import AdminCommentInline, \
 	AdminCommentMixin
+from djangoplicity.contacts.forms import ContactAdminForm, ContactForm
 from djangoplicity.contacts.models import ContactGroup, Contact, Country, \
 	CountryGroup, GroupCategory, ContactField, Field, Label, PostalZone, \
 	ContactGroupAction, ImportTemplate, ImportMapping, ImportSelector, \
-	ImportGroupMapping, Import, CONTACTS_FIELDS, ContactForm, Deduplication
+	ImportGroupMapping, Import, CONTACTS_FIELDS, Deduplication, \
+	Region
 from djangoplicity.contacts.tasks import import_data, contactgroup_change_check
-from django.shortcuts import get_object_or_404
-
-from collections import OrderedDict
-from datetime import datetime
 
 
 class ImportSelectorInlineAdmin( admin.TabularInline ):
@@ -115,7 +117,7 @@ class ImportAdmin( admin.ModelAdmin ):
 
 		try:
 			mapping, rows = obj.preview_data()
-			return render_to_response(
+			return render(request,
 				"admin/contacts/import/preview.html",
 				{
 					'columns': mapping,
@@ -124,11 +126,10 @@ class ImportAdmin( admin.ModelAdmin ):
 					'messages': [],
 					'app_label': obj._meta.app_label,
 					'opts': obj._meta,
-				},
-				context_instance=RequestContext( request )
+				}
 			)
 		except Exception, e:
-			return render_to_response(
+			return render(request,
 				"admin/contacts/import/preview.html",
 				{
 					'error': e.message,
@@ -136,8 +137,7 @@ class ImportAdmin( admin.ModelAdmin ):
 					'messages': [],
 					'app_label': obj._meta.app_label,
 					'opts': obj._meta,
-				},
-				context_instance=RequestContext( request )
+				}
 			)
 
 	@classmethod
@@ -245,7 +245,7 @@ class ImportAdmin( admin.ModelAdmin ):
 						d[key] = request.POST[key]
 				import_data.delay( obj.pk, d )
 
-			return render_to_response(
+			return render(request,
 					"admin/contacts/import/import.html",
 					{
 						'object': obj,
@@ -253,8 +253,7 @@ class ImportAdmin( admin.ModelAdmin ):
 						'messages': [],
 						'app_label': obj._meta.app_label,
 						'opts': obj._meta,
-					},
-					context_instance=RequestContext( request )
+					}
 				)
 		else:
 			raise Http404
@@ -277,8 +276,17 @@ class ImportAdmin( admin.ModelAdmin ):
 
 		mapping, imported, new, duplicates = obj.review_data()
 
-		return render_to_response(
-				"admin/contacts/import/review.html",
+		# The page rendering will be very slow if we have too many contacts
+		# so we limit it to 50 new or duplicates
+		partial = False
+		if len(new) > 50:
+			new = new[:50]
+			partial = True
+		if len(duplicates) > 50:
+			duplicates = duplicates[:50]
+			partial = True
+
+		return render(request, 'admin/contacts/import/review.html',
 				{
 					'columns': mapping,
 					'imported': imported,
@@ -288,8 +296,8 @@ class ImportAdmin( admin.ModelAdmin ):
 					'messages': [],
 					'app_label': obj._meta.app_label,
 					'opts': obj._meta,
-				},
-				context_instance=RequestContext( request )
+					'partial': partial,
+				}
 			)
 
 
@@ -333,6 +341,24 @@ class CountryAdmin( admin.ModelAdmin ):
 	list_filter = ['groups', 'postal_zone', 'zip_after_city']
 	search_fields = ['name', 'iso_code', 'dialing_code', ]
 	filter_horizontal = ['groups']
+
+
+class RegionAdmin(admin.ModelAdmin):
+	'''
+	Regions are updated with the update_regions management country and any
+	edit in the admin is disabled
+	'''
+	list_display = ['country', 'name', 'local_name', 'code']
+	list_filter = ['country']
+	search_fields = ['country', 'name', 'local_name', 'code']
+	list_select_related = ['country']
+	readonly_fields = ['country', 'name', 'local_name', 'code']
+
+	def has_add_permission(self, request):
+		return False
+
+	def has_delete_permission(self, request, obj=None):
+		return False
 
 
 class GroupCategoryAdmin( admin.ModelAdmin ):
@@ -402,7 +428,8 @@ class ContactFieldInlineAdmin( admin.TabularInline ):
 
 
 class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
-	list_display = ['id', 'title', 'last_name', 'first_name', 'position', 'organisation', 'department', 'tags', 'group_order', 'street_1', 'street_2', 'city', 'country', 'language', 'email', 'phone', 'website', 'created', 'last_modified' ]
+	form = ContactAdminForm
+	list_display = ['id', 'title', 'last_name', 'first_name', 'position', 'organisation', 'department', 'tags', 'group_order', 'street_1', 'street_2', 'tax_code', 'city', 'country', 'region', 'language', 'email', 'phone', 'website', 'created', 'last_modified' ]
 	list_editable = ['title', 'first_name', 'last_name', 'position', 'email', 'organisation', 'department', 'street_1', 'street_2', 'city', 'phone', 'website', 'language', ]
 	list_filter = ['last_modified', 'groups__category__name', 'groups', 'country__groups', 'extra_fields__name', 'country', 'language', 'title' ]
 	search_fields = ['first_name', 'last_name', 'title', 'position', 'email', 'organisation', 'department', 'street_1', 'street_2', 'city', 'phone', 'website', 'social', ]
@@ -414,7 +441,7 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 			'fields': ( ( 'title', 'first_name', 'last_name' ), 'position', )
 		} ),
 		( 'Address', {
-			'fields': ( 'organisation', 'department', 'street_1', 'street_2', 'city', 'country' )
+			'fields': ( 'organisation', 'department', 'street_1', 'street_2', 'tax_code', 'city', 'country', 'region' )
 		} ),
 		( 'Groups', {
 			'fields': ( 'groups', )
@@ -460,7 +487,7 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 			# No label, so display list of available labels
 			labels = Label.objects.filter( enabled=True ).order_by( 'name' )
 
-			return render_to_response(
+			return render(request,
 				"admin/contacts/contact/labels.html",
 				{
 					'labels': labels,
@@ -468,8 +495,7 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 					'messages': [],
 					'app_label': obj._meta.app_label,
 					'opts': obj._meta,
-				},
-				context_instance=RequestContext( request )
+				}
 			)
 
 	def action_make_label( self, request, queryset, label=None ):
@@ -521,7 +547,10 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 
 	class Media:
 		# Javascript to collapse filter pane in admin
-		js = ['djangoplicity/js/list_filter_collapse.js']
+		js = [
+			'djangoplicity/js/list_filter_collapse.js',
+			'contacts/js/contacts.js',
+		]
 
 
 class ContactGroupActionAdmin( admin.ModelAdmin ):
@@ -572,7 +601,7 @@ class DeduplicationAdmin(admin.ModelAdmin):
 
 		duplicates, total_duplicates = dedup.review_data(page)
 
-		return render_to_response(
+		return render(request,
 			"admin/contacts/deduplication/review.html",
 			{
 				'object': dedup,
@@ -583,8 +612,7 @@ class DeduplicationAdmin(admin.ModelAdmin):
 				'total_duplicates': total_duplicates,
 				'page': page,
 				'pages': range(1, (total_duplicates / dedup.max_display + 2)),
-			},
-			context_instance=RequestContext(request)
+			}
 		)
 
 	def deduplicate_view(self, request, pk=None):
@@ -616,7 +644,7 @@ class DeduplicationAdmin(admin.ModelAdmin):
 		if not errorlist:
 			resultlist = dedup.deduplicate_data(update, delete, ignore)
 
-		return render_to_response(
+		return render(request,
 				"admin/contacts/deduplication/deduplicate.html",
 				{
 					'object': dedup,
@@ -625,8 +653,7 @@ class DeduplicationAdmin(admin.ModelAdmin):
 					'messages': [],
 					'app_label': dedup._meta.app_label,
 					'opts': dedup._meta,
-				},
-				context_instance=RequestContext( request )
+				}
 			)
 
 	def _clean_deduplicate_data(self, request):
@@ -690,6 +717,7 @@ def register_with_admin( admin_site ):
 	admin_site.register( ContactGroup, ContactGroupAdmin )
 	admin_site.register( Contact, ContactAdmin )
 	admin_site.register( PostalZone, PostalZoneAdmin )
+	admin_site.register( Region, RegionAdmin )
 	admin_site.register( ContactGroupAction, ContactGroupActionAdmin )
 	admin_site.register( ImportTemplate, ImportTemplateAdmin )
 	admin_site.register( ImportMapping, ImportMappingAdmin )

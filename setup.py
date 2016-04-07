@@ -42,6 +42,7 @@ setup(
 	namespace_packages=['djangoplicity'],
     install_requires=[
 		'setuptools',
+		'django-crispy-forms',
 		'django-dirtyfields',
 		'hashids',
 		'xlrd',

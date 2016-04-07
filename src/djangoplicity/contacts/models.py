@@ -45,7 +45,6 @@ from django.core.urlresolvers import reverse as url_reverse
 from django.db import models, connection
 from django.db.models.signals import pre_delete, post_delete, post_save, \
 	pre_save
-from django.forms import ModelForm
 from django.utils.translation import ugettext_lazy as _
 
 from djangoplicity.actions.models import Action  # pylint: disable=E0611
@@ -54,7 +53,7 @@ from djangoplicity.contacts.signals import contact_added, contact_removed, \
 	contact_updated
 from djangoplicity.contacts.tasks import contactgroup_change_check
 from djangoplicity.contacts import deduplication
-from djangoplicity.translation.fields import LanguageField
+from djangoplicity.translation.fields import LanguageField  # pylint: disable=E0611
 
 
 logger = logging.getLogger( 'djangoplicity' )
@@ -223,6 +222,22 @@ class Country( models.Model ):
 		ordering = ['name', ]
 
 
+class Region(models.Model):
+	'''
+	Regions for Countries
+	'''
+	name = models.CharField(max_length=200, db_index=True, verbose_name='Region/State name')
+	local_name = models.CharField(max_length=200, verbose_name='Region/State name in the local language')
+	code = models.CharField(max_length=200, db_index=True)
+	country = models.ForeignKey(Country)
+
+	def __unicode__(self):
+		return self.name
+
+	class Meta:
+		ordering = ['country', 'name']
+
+
 class ContactGroup( DirtyFieldsMixin, models.Model ):
 	"""
 	Groups for contacts
@@ -308,7 +323,7 @@ class ContactGroup( DirtyFieldsMixin, models.Model ):
 
 		# Reset dirty state - DirtyFieldMixin is supposed to do it automatically,
 		# but apparently there's some conflicts with the signals it seems like.
-		instance._original_state = instance._as_dict()
+		instance._original_state = instance._as_dict(False)
 
 	class Meta:
 		ordering = ( 'name', )
@@ -318,9 +333,9 @@ class Contact( DirtyFieldsMixin, models.Model ):
 	"""
 	Contacts model
 	"""
+	title = models.CharField( max_length=50, blank=True, db_index=True )
 	first_name = models.CharField( max_length=255, blank=True )
 	last_name = models.CharField( max_length=255, blank=True )
-	title = models.CharField( max_length=50, blank=True, db_index=True )
 	position = models.CharField( max_length=255, blank=True )
 	organisation = models.CharField( max_length=255, blank=True )
 	department = models.CharField( max_length=255, blank=True )
@@ -328,6 +343,9 @@ class Contact( DirtyFieldsMixin, models.Model ):
 	street_2 = models.CharField( max_length=255, blank=True )
 	city = models.CharField( max_length=255, blank=True, help_text="Including postal code, city and state." )
 	country = models.ForeignKey( Country, blank=True, null=True )
+	region = models.ForeignKey(Region, blank=True, null=True)
+	tax_code = models.CharField(_('Tax Code'), max_length=20, blank=True,
+		help_text=_('Tax Code for Argentina, Brazil, Paraguay, Peru (CUIT/CPF/RUC)'))
 
 	phone = models.CharField( max_length=255, blank=True )
 	website = models.CharField( 'Website', max_length=255, blank=True )
@@ -408,7 +426,7 @@ class Contact( DirtyFieldsMixin, models.Model ):
 					return code
 		return ''
 
-	ALLOWED_FIELDS = ['first_name', 'last_name', 'title', 'position', 'organisation', 'department', 'street_1', 'street_2', 'city', 'zip', 'state', 'country', 'phone', 'website', 'social', 'email', 'language' ]
+	ALLOWED_FIELDS = ['first_name', 'last_name', 'title', 'position', 'organisation', 'department', 'street_1', 'street_2', 'tax_code', 'city', 'zip', 'state', 'country', 'region', 'phone', 'website', 'social', 'email', 'language' ]
 
 	@classmethod
 	def get_allowed_extra_fields( cls ):
@@ -1058,6 +1076,7 @@ class ImportTemplate( models.Model ):
 		Review the data file according to the defined import template,
 		displaying the potential duplicates
 		"""
+		from djangoplicity.contacts.forms import ContactForm
 		imported = []
 		new = []
 		duplicates = []
@@ -1072,7 +1091,7 @@ class ImportTemplate( models.Model ):
 					contact = {
 						'row': unicode(i),
 						'contact_link': '<a href="%s">%s</a>' %
-								(url_reverse('admin:contacts_contact_change', args=[id]), id),
+						(url_reverse('admin:contacts_contact_change', args=[id]), id),
 						'data': data,
 					}
 					# Check that the contact still exists:
@@ -1214,6 +1233,8 @@ CONTACTS_FIELDS = [
 	( 'postal_code', 'Postal code' ),
 	( 'state', 'State' ),
 	( 'language', 'Language' ),
+	( 'tax_code', 'Tax Code' ),
+	( 'region', 'Region' ),
 ]
 # + Field.field_options() # Todo: needs to be dynamic since if extra field is added, then it will require server restart to have the list updated.
 CONTACTS_FIELDS.sort( key=lambda x: x[1] )
@@ -1552,8 +1573,19 @@ class Deduplication(models.Model):
 		number of duplicates
 		Only return max_display duplicates at a time
 		"""
+		from djangoplicity.contacts.forms import ContactForm
 		duplicate_contacts = json.loads(self.duplicate_contacts) if self.duplicate_contacts else {}
 		deduplicated_contacts = []
+
+		# Prefetch all contacts and duplicates to avoid hundreds of queries
+		# down the line
+		keys = duplicate_contacts.keys()
+		for v in duplicate_contacts.values():
+			keys += v.keys()
+		contacts = dict([
+			(str(c.pk), c) for c in
+			Contact.objects.filter(pk__in=keys).prefetch_related('groups')
+		])
 
 		# Load previously deduplicated contacts, including those from previous
 		# Deduplications, this is so that if a duplicated was ignored (for
@@ -1572,11 +1604,11 @@ class Deduplication(models.Model):
 		i = 0
 		for contact_id in duplicate_contacts:
 			try:
-				contact = Contact.objects.get(id=contact_id)
+				contact = contacts[contact_id]
 				fields = ('<a href="%s">%s</a>' % (url_reverse('admin:contacts_contact_change',
 								args=[contact_id]), contact_id), )
 				form = ContactForm(instance=contact, prefix='%s_%s' % (contact_id, contact_id))
-			except Contact.DoesNotExist:
+			except KeyError:
 				fields = ('<span style="color: red;">Contact %s disappeared!</span>' % contact_id, )
 				contact = None
 				form = None
@@ -1597,32 +1629,33 @@ class Deduplication(models.Model):
 
 			dups = []
 
-			for id, score in sorted(duplicate_contacts[contact_id].iteritems(),
+			for pk, score in sorted(duplicate_contacts[contact_id].iteritems(),
 					key=lambda(k, v): (v, k), reverse=True):
 
 				if score < self.min_score_display:
 					continue
 
 				try:
-					contact = Contact.objects.get(id=id)
+					contact = contacts[pk]
 					# Create a list of extra fields to display in the form
 					fields = ('<a href="%s">%s</a> (%.2f)' % (url_reverse('admin:contacts_contact_change',
-								args=[id]), id, score),)
-					form = ContactForm(instance=contact, prefix='%s_%s' % (contact_id, id))
-				except Contact.DoesNotExist:
-					fields = ('<span style="color: red">Contact %s disappeared! Please re-run deduplication</span>' % id,)
+								args=[pk]), pk, score),)
+					form = ContactForm(instance=contact, prefix='%s_%s' % (contact_id, pk))
+				except KeyError:
+					fields = ('<span style="color: red">Contact %s disappeared! Please re-run deduplication</span>' % pk,)
 					form = None
 
 				# Check if the contact has already been deduplicated:
 				deduplicated = False
-				if '%s_%s' % (contact_id, id) in deduplicated_contacts:
+				if '%s_%s' % (contact_id, pk) in deduplicated_contacts or \
+					'%s_%s' % (pk, contact_id) in deduplicated_contacts:
 					# Contact won't be displayed in form
 					deduplicated = True
 
 				dups.append({
 					'skip': deduplicated,
 					'fields': fields,
-					'contact_id': id,
+					'contact_id': pk,
 					'contact': contact,
 					'form': form,
 				})
@@ -1630,9 +1663,7 @@ class Deduplication(models.Model):
 			record['duplicates'] = dups
 
 			# If all the entries for the record have been deduplicated we can skip them:
-			skip = record['skip']
-			for dup in record['duplicates']:
-				skip = skip and dup['skip']
+			skip = all([d['skip'] for d in record['duplicates']])
 
 			if not skip:
 				# Deal with pagination:
@@ -1648,7 +1679,8 @@ class Deduplication(models.Model):
 		count_deduplicated = 0
 		for entry, dups in duplicate_contacts.items():
 			for d in dups:
-				if '%s_%s' % (entry, d) not in deduplicated_contacts:
+				if '%s_%s' % (entry, d) not in deduplicated_contacts and \
+					'%s_%s' % (d, entry) not in deduplicated_contacts:
 					break
 			else:
 				# All duplicates were already deduplicated
@@ -1693,12 +1725,6 @@ class Deduplication(models.Model):
 			self.save()
 
 		return resultlist
-
-
-class ContactForm(ModelForm):
-	class Meta:
-		model = Contact
-		exclude = ('extra_fields', )
 
 
 pre_delete.connect( Import.pre_delete_callback, sender=Import )

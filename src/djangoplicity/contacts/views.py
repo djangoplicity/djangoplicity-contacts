@@ -29,16 +29,17 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE
 
-from djangoplicity.contacts.models import Contact, ContactGroup
-from djangoplicity.contacts.forms import ContactPublicForm, GroupSubscribeForm
-from djangoplicity.contacts.signals import contact_added, contact_removed
-
 from django.contrib import messages
 from django.contrib.auth.models import User
 from django.contrib.admin.models import LogEntry, CHANGE
 from django.contrib.contenttypes.models import ContentType
-from django.http import Http404
-from django.views.generic import FormView, UpdateView
+from django.http import Http404, JsonResponse
+from django.utils.encoding import force_text
+from django.views.generic import DetailView, FormView, UpdateView
+
+from djangoplicity.contacts.models import Contact, ContactGroup, Country
+from djangoplicity.contacts.forms import ContactPublicForm, GroupSubscribeForm
+from djangoplicity.contacts.signals import contact_added, contact_removed
 
 
 class ContactPublicUpdate(UpdateView):
@@ -77,10 +78,10 @@ class ContactPublicUpdate(UpdateView):
 
 		for field, value in form.cleaned_data.items():
 			if value != getattr(obj, field):
-				changed_fields.append(form[field].label)
+				changed_fields.append(force_text(form[field].label))
 
 		if changed_fields:
-			change_message = 'Changed (from public interface) %s' % ', '.join(changed_fields)
+			change_message = 'Changed (from public edit) %s' % ', '.join(changed_fields)
 
 			# log_action expect a valid user_id, as the action is not done by a
 			# registered User we use the ID of an anonymous User if it exists,
@@ -177,3 +178,14 @@ class GroupSubscribe(FormView):
 		after a successful edit
 		'''
 		return self.request.path
+
+
+class RegionByCountryJSONView(DetailView):
+	model = Country
+
+	def render_to_response(self, context, **response_kwargs):
+		country = self.get_object()
+		return JsonResponse(
+			[{'pk': r.pk, 'name': r.name } for r in country.region_set.all()],
+			safe=False,
+		)
