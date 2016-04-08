@@ -37,7 +37,7 @@ Admin interfaces for contact models.
 from collections import OrderedDict
 from datetime import datetime
 
-from django.conf.urls import patterns, url
+from django.conf.urls import url
 from django.contrib import admin
 from django.http import Http404
 from django import forms
@@ -102,11 +102,11 @@ class ImportAdmin( admin.ModelAdmin ):
 
 	def get_urls( self ):
 		urls = super( ImportAdmin, self ).get_urls()
-		extra_urls = patterns( '',
-				url( r'^(?P<pk>[0-9]+)/preview/$', self.admin_site.admin_view( self.preview_view ), name='contacts_import_preview' ),
+		extra_urls = [
+			url( r'^(?P<pk>[0-9]+)/preview/$', self.admin_site.admin_view( self.preview_view ), name='contacts_import_preview' ),
 			url( r'^(?P<pk>[0-9]+)/import/$', self.admin_site.admin_view( self.import_view ), name='contacts_import' ),
 			url( r'^(?P<pk>[0-9]+)/review/$', self.admin_site.admin_view( self.review_view ), name='contacts_import_review' ),
-		)
+		]
 		return extra_urls + urls
 
 	def preview_view( self, request, pk=None ):
@@ -463,9 +463,9 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 
 	def get_urls( self ):
 		urls = super( ContactAdmin, self ).get_urls()
-		extra_urls = patterns( '',
-			( r'^(?P<pk>[0-9]+)/label/$', self.admin_site.admin_view( self.label_view ) ),
-		)
+		extra_urls = [
+			url( r'^(?P<pk>[0-9]+)/label/$', self.admin_site.admin_view( self.label_view ) ),
+		]
 		return extra_urls + urls
 
 	def label_view( self, request, pk=None ):
@@ -567,11 +567,11 @@ class DeduplicationAdmin(admin.ModelAdmin):
 
 	def get_urls(self):
 		urls = super(DeduplicationAdmin, self).get_urls()
-		extra_urls = patterns('',
+		extra_urls = [
 			url(r'^(?P<pk>[0-9]+)/run/$', self.admin_site.admin_view(self.run), name='contacts_deduplication_run'),
 			url(r'^(?P<pk>[0-9]+)/review/page/(?P<page>[0-9]+)/$', self.admin_site.admin_view(self.review_view), name='contacts_deduplication_review_page'),
 			url(r'^(?P<pk>[0-9]+)/review/$', self.admin_site.admin_view(self.review_view), name='contacts_deduplication_review'),
-		)
+		]
 		return extra_urls + urls
 
 	def run(self, request, pk=None):
