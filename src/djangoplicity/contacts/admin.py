@@ -41,7 +41,6 @@ from django.conf.urls import url
 from django.contrib import admin
 from django.http import Http404
 from django import forms
-from django.shortcuts import get_object_or_404
 from django.shortcuts import get_object_or_404, render, redirect
 # pylint: disable=E0611
 
@@ -464,7 +463,7 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 	def get_urls( self ):
 		urls = super( ContactAdmin, self ).get_urls()
 		extra_urls = [
-			url( r'^(?P<pk>[0-9]+)/label/$', self.admin_site.admin_view( self.label_view ) ),
+			url( r'^(?P<pk>[0-9]+)/label/$', self.admin_site.admin_view( self.label_view ), name='contacts_label' ),
 		]
 		return extra_urls + urls
 
@@ -523,7 +522,10 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 		Helper method to define an admin action for a specific label
 		"""
 		name = 'make_label_%s' % label.pk
-		action = lambda modeladmin, request, queryset: modeladmin.action_make_label( request, queryset, label=label )
+
+		def action(modeladmin, request, queryset):
+			return modeladmin.action_make_label( request, queryset, label=label )
+
 		return ( name, ( action, name, "Make labels for selected objects (%s)" % label.name ) )
 
 	def _make_group_action( self, group, remove=False ):
@@ -531,7 +533,10 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 		Helper method to define an admin action for a specific group
 		"""
 		name = 'unset_group_%s' % group.pk if remove else 'set_group_%s' % group.pk
-		action = lambda modeladmin, request, queryset: modeladmin.action_set_group( request, queryset, group=group, remove=remove )
+
+		def action(modeladmin, request, queryset):
+			return modeladmin.action_set_group( request, queryset, group=group, remove=remove )
+
 		return ( name, ( action, name, "%s group %s" % ("Unset" if remove else "Set", group.name) ) )
 
 	def get_actions( self, request ):
