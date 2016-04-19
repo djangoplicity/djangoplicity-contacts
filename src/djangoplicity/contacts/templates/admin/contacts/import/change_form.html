@@ -1,4 +1,4 @@
-{% extends "admin/change_form.html" %}{% load i18n %}
+{% extends "admin/change_form.html" %}{% load admin_urls i18n %}
 
 
 {% block object-tools %}
@@ -9,7 +9,7 @@
 	<li><a href="{% url 'admin_site:contacts_import_review' original.pk %}" class="historylink">Review duplicates</a></li>
 	{% endif %}
 	<li><a href="{% url 'admin_site:contacts_import_preview' original.pk %}" class="historylink">Preview</a></li>
-    <li><a href="history/" class="historylink">{% trans "History" %}</a></li>
+	<li><a href="{% url opts|admin_urlname:'history' original.pk|admin_urlquote %}" class="historylink">{% trans "History" %}</a></li>
     {% if has_absolute_url %}<li><a href="../../../r/{{ content_type_id }}/{{ object_id }}/" class="viewsitelink">{% trans "View on site" %}</a></li>{% endif%}
     {% endblock %}
   </ul>
