@@ -1059,7 +1059,7 @@ class ImportTemplate( models.Model ):
 		else:
 			value = None
 
-		if django_field[0].__class__ == models.fields.CharField:
+		if django_field.__class__ == models.fields.CharField:
 			type_ = 'textinput'
 		else:
 			type_ = 'text'
@@ -1275,7 +1275,7 @@ class ImportMapping( models.Model ):
 		Returns the actual field used in the Contact model
 		matching the ImportMapping field
 		'''
-		return Contact._meta.get_field_by_name(self.field)
+		return Contact._meta.get_field(self.field)
 
 	def get_country_value( self, value ):
 		"""
