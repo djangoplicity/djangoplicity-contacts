@@ -313,7 +313,8 @@ class ContactGroup( DirtyFieldsMixin, models.Model ):
 			if dirty_fields['order'] is None or dirty_fields['order'] - instance.order > 0:
 				# Order value was changed to a smaller value - hence we must update all contacts
 				# with a group_order greater than instance.order.
-				instance.contact_set.filter( group_order__gt=instance.order ).update( group_order=instance.order )
+				if instance.order is not None:
+					instance.contact_set.filter( group_order__gt=instance.order ).update( group_order=instance.order )
 			elif instance.order is None or dirty_fields['order'] - instance.order < 0:
 				# Order value was changed to a greater value - hence we must update all contacts
 				# with a group_order greater than the *old* instance.order
