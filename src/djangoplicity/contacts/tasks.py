@@ -43,6 +43,23 @@ from djangoplicity.actions.plugins import ActionPlugin  # pylint: disable=E0611
 from djangoplicity.utils.history import add_admin_history  # pylint: disable=E0611
 
 
+@task(ignore_result=True)
+def direct_import_data(import_pk):
+	from djangoplicity.contacts.models import Import
+	obj = Import.objects.get(pk=import_pk)
+
+	logger = direct_import_data.get_logger()
+
+	if obj.status == 'imported':
+		return
+
+	if obj.direct_import_data():
+		obj.save()
+		logger.warning('File was imported (pk=%s)' % obj.pk)
+	else:
+		logger.warning('File has already been imported (pk=%s)' % obj.pk)
+
+
 @task( ignore_result=True )
 def import_data( import_pk, request_POST ):
 	"""

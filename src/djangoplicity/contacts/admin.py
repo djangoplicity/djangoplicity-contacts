@@ -52,7 +52,8 @@ from djangoplicity.contacts.models import ContactGroup, Contact, Country, \
 	ContactGroupAction, ImportTemplate, ImportMapping, ImportSelector, \
 	ImportGroupMapping, Import, CONTACTS_FIELDS, Deduplication, \
 	Region
-from djangoplicity.contacts.tasks import import_data, contactgroup_change_check
+from djangoplicity.contacts.tasks import import_data, contactgroup_change_check, \
+	direct_import_data
 
 
 class ImportSelectorInlineAdmin( admin.TabularInline ):
@@ -86,10 +87,17 @@ class ImportGroupMappingInlineAdmin( admin.TabularInline ):
 	extra = 0
 
 
+def direct_import(modeladmin, request, queryset):
+	for i in queryset:
+		direct_import_data.delay(i.pk)
+direct_import.short_description = 'Import without deduplication'
+
+
 class ImportAdmin( admin.ModelAdmin ):
 	list_display = [ 'template', 'last_modified', 'created' ]
 	list_filter = [ 'last_modified', 'created' ]
 	readonly_fields = ['status', 'last_modified', 'created' ]
+	actions = [direct_import]
 	fieldsets = (
 		( None, {
 			'fields': ( 'template', 'data_file', )

@@ -526,7 +526,9 @@ class Contact( DirtyFieldsMixin, models.Model ):
 
 		ctry = None
 		if 'country' in kwargs:
-			if kwargs['country'] and len( kwargs['country'] ) == 2:
+			if kwargs['country'] and isinstance(kwargs['country'], int):
+				ctry = Country.objects.get(pk=kwargs['country'])
+			elif kwargs['country'] and len( kwargs['country'] ) == 2:
 				ctry = Country.objects.get( iso_code=kwargs['country'].upper() )
 			elif kwargs['country']:
 				ctry = Country.objects.get( name__iexact=kwargs['country'] )
@@ -878,7 +880,7 @@ DUPLICATE_HANDLING = [
 # Tue Mar 12 18:50:35 CET 2013 - Mathias Andre
 # Disabled "simple" import for now as it was broken by
 # the updated duplicate merging changes
-#	( 'none', 'Import all - no duplicate detection' ),
+	( 'none', 'Import all - no duplicate detection' ),
 	( 'smart', 'Detect duplicates and wait for review' ),
 ]
 
@@ -1150,6 +1152,35 @@ class ImportTemplate( models.Model ):
 
 		return (mapping, imported, new, duplicates)
 
+	def direct_import_data(self, filename):
+		"""
+		Import the data file according to the defined import template
+		without duplicate handling
+		"""
+		if self.tag_import:
+			import_grp, _created = ContactGroup.objects.get_or_create( name='Import %s at %s' % ( self.name, datetime.now().replace( microsecond=0 ) ) )
+		else:
+			import_grp = None
+
+		extra_groups = list( self.extra_groups.all().values_list( 'name', flat=True ) )
+		_frozen_set = set( self.frozen_groups.all().values_list( 'pk', flat=True ) )
+
+		i = 0
+		for data in self.extract_data( filename ):
+			if data:
+				i += 1
+				if 'groups' in data and data['groups']:
+					data['groups'] += extra_groups
+				else:
+					data['groups'] = extra_groups
+
+				# Add import group if needed
+				if import_grp:
+					data['groups'].append( import_grp.name )
+
+				obj = Contact.create_object( **data )
+				logger.info( "Creating contact %s" % obj.pk )
+
 	def import_data( self, import_contacts ):
 		"""
 		Import the give data according to the given import template
@@ -1290,7 +1321,7 @@ class ImportMapping( models.Model ):
 				ImportMapping._country_cache['iso'][c.iso_code.lower()] = c.pk
 				ImportMapping._country_cache['name'][c.name.lower()] = c.pk
 
-		if type(value) is not unicode:
+		if not isinstance(value, unicode):
 			value = unicode(value)
 		value = value.lower().strip()
 		if len( value ) == 2 and value in ImportMapping._country_cache['iso']:
@@ -1338,7 +1369,7 @@ class ImportMapping( models.Model ):
 				if trail[0] == 'country':
 					return self.get_country_value( val )
 				if trail[0] == 'language':
-					if type(val) is not unicode:
+					if not isinstance(val, unicode):
 						val = unicode(val)
 					return val.lower()
 			# Excel uses float for many numbers.
@@ -1422,6 +1453,7 @@ DEDUPLICATION_STATUS = [
 	( 'new', 'New' ),
 	( 'processing', 'Processing' ),
 	( 'review', 'Review' ),
+	( 'imported', 'Imported' ),
 ]
 
 
@@ -1457,6 +1489,13 @@ class Import( models.Model ):
 		duplicate_contacts = json.loads(self.duplicate_contacts) if self.duplicate_contacts else {}
 		imported_contacts = json.loads(self.imported_contacts) if self.imported_contacts else {}
 		return self.template.review_data( self.data_file.path, duplicate_contacts, imported_contacts )
+
+	def direct_import_data(self):
+		if self.status != 'imported':
+			self.template.direct_import_data(self.data_file.path)
+			self.status = 'imported'
+			return True
+		return False
 
 	def import_data( self, import_contacts ):
 		"""

@@ -38,8 +38,8 @@
 	<strong>Template:</strong> <a href="{% url 'admin:contacts_importtemplate_change' object.template.pk %}">{{object.template}}</a><br />
 	<strong>Tag import:</strong> {{object.template.tag_import|yesno}}<br />
 	<strong>Extra groups:</strong> {% for g in object.template.extra_groups.all%}{% if not forloop.first%}, {%endif%}{{ g }}{% endfor %}<br />
-	<strong>Duplicate handling:</strong> {{object.template.get_duplicate_handling_display}}<br /> 
-	<strong>Selector columns:</strong> {% for s in object.template.get_selectors %}{{s.header}} ("{{s.value}}"){% endfor%}<br /> 
+	<strong>Duplicate handling:</strong> {{object.template.get_duplicate_handling_display}}<br />
+	<strong>Selector columns:</strong> {% for s in object.template.get_selectors %}{{s.header}} ("{{s.value}}"){% endfor%}<br />
 </p>
 <div id="content-main">
     {% if error %}
@@ -68,10 +68,12 @@
       {% endblock %}
 		<p class="paginator">
 			{{rows|length}} rows
-			<input type="submit" name="_import" class="default" value="{% if object.template.duplicate_handling == "smart" %}Prepare {% endif %}Import">
+			{% if object.template.duplicate_handling == "smart" %}
+				<input type="submit" name="_import" class="default" value="Prepare Import">
+		{% endif %}
 		</p>
       </form>
     </div>
-    
+
   </div>
 {% endblock %}
