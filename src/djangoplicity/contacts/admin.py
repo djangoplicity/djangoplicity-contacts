@@ -357,7 +357,7 @@ class RegionAdmin(admin.ModelAdmin):
 	'''
 	list_display = ['country', 'name', 'local_name', 'code']
 	list_filter = ['country']
-	search_fields = ['country', 'name', 'local_name', 'code']
+	search_fields = ['country__name', 'name', 'local_name', 'code']
 	list_select_related = ['country']
 	readonly_fields = ['country', 'name', 'local_name', 'code']
 
