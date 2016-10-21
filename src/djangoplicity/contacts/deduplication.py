@@ -39,7 +39,8 @@ Usage::
 ``data'' is a dictionary with the following keys:
 	* ``name'' - full name including civil titles like Dr., Mr., Ms. etc.
 	* ``address_lines'' - a list of address lines, e.g. ['organisation','department','street 1', 'street 2']
-	* ``city'' - zip/post code, city and county in one line.
+	* ``city''
+	* ``zip''
 	* ``country'' - country iso code (upper case)
 
 ``search_space'' is a list of dictionaries like data. The dictionary can be created from
@@ -353,13 +354,14 @@ def _preprocess_name( name ):
 
 
 def _preprocess_city( city, isocode ):
-	if type(city) is not unicode:
+	if not isinstance(type(city), unicode):
 		# If we only have number (e.g. zip)
 		# then it will be exported as int and
 		# strip() will fail
 		city = unicode(city)
 	# FIXME:
 	return city
+
 	if isocode and city.strip().lower().startswith( isocode.lower() ):
 		return city[len(isocode):]
 	else:
@@ -380,17 +382,6 @@ def _prepare_str(s):
 	return re.sub(r'\s+', ' ', s)
 
 
-#def similar_name( a, b, ratio_limit=0.90 ):
-#	"""
-#	Determine if two names are similar. Note, two
-#	empty names are not similar.
-#	"""
-#	a = _preprocess_name( a )
-#	b = _preprocess_name( b )
-#
-#	seq = difflib.SequenceMatcher( a=a.lower(), b=b.lower() )
-#	return seq.ratio() > ratio_limit
-
 def similar_text( a, b, ratio_limit=0.90 ):
 	"""
 	Determine if two names are similar. Note, two
@@ -399,77 +390,7 @@ def similar_text( a, b, ratio_limit=0.90 ):
 	seq = difflib.SequenceMatcher( a=a.lower(), b=b.lower() )
 	return seq.ratio() > ratio_limit
 
-#def similar( a, b ):
-#	"""
-#	Compare two objects to determine if they are similar.
-#
-#	Algorithm:
-#	- Exclude contacts where country and name doesn't match.
-#	- Introduce large penalty if one name is blank and the other not.
-#	- Introduce penalty if city doesn't match
-#	- Introduce small penalty if an address line does not match.
-#
-#	Note the comparison is not symmetrical - i.e A can be similar to B,
-#	but B not similar to A
-#
-#	Function returns a ratio between 0.0 and 1.0, where 1.0 means a nearly
-#	perfect match.
-#	"""
-#	c = 0
-#	t = 0
-#	# Country
-#	if a['country'] and a['country'].strip() != "":
-#		if a['country'] != b['country']:
-#			return 0.0
-#		c += 1
-#		t += 1
-#
-#	# Name
-#	if a['name'].strip() != "":
-#		if not similar_name( a['name'], b['name'] ):
-#			return 0.0
-#		c += 1
-#		t += 1
-#	elif b['name'].strip() != "":
-#		# A empty, b not, so introduce large penalty.
-#		c -= 2
-#
-#	# City
-#	if a['city'].strip() != "":
-#		t += 1
-#		if not similar_text( _preprocess_city( a['city'], a['country'] ), _preprocess_city( b['city'], b['country'] ), ratio_limit=0.85 ):
-#			c -= 1 # Penalty if city does not match
-#		else:
-#			c += 1
-#
-#	# Address lines
-#	if len( a['address_lines'] ) > 0:
-#		for l in a['address_lines']:
-#			t += 1
-#			for l2 in b['address_lines']:
-#				if similar_text( l, l2, ratio_limit=0.8 ):
-#					c += 1
-#					break
-#
-#	return float(c)/float(t)
 
-
-#def find_duplicates( obj, search_space, ratio_limit=0.3 ):
-#	"""
-#	Return a list of possible duplicates of obj in the search space
-#	"""
-#	dups = []
-#
-#	for s in search_space:
-#		ratio = similar( obj, s )
-#		if ratio > ratio_limit:
-#			dups.append( (ratio,s) )
-#
-#	dups.sort( key=lambda x: x[0] )
-#	dups.reverse()
-#	#dups = [x[1] for x in dups]
-#	return dups
-#
 def similar_name(a, b, ratio_limit=0.8):
 	"""
 	Compare first name and last name, returns 0.8 if both match,
@@ -550,10 +471,10 @@ def similar(a, b):
 	# optional fields defined as Field
 	emails = ['email', 'second_email', 'third_email']
 	for email_a in emails:
-		if not email_a in a or a[email_a].strip() == '':
+		if email_a not in a or a[email_a].strip() == '':
 			continue
 		for email_b in emails or b[email_b].strip() == '':
-			if not email_b in b:
+			if email_b not in b:
 				continue
 			if similar_text(a[email_a], b[email_b],
 							ratio_limit=0.95):

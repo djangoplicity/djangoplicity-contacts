@@ -342,7 +342,8 @@ class Contact( DirtyFieldsMixin, models.Model ):
 	department = models.CharField( max_length=255, blank=True )
 	street_1 = models.CharField( max_length=255, blank=True )
 	street_2 = models.CharField( max_length=255, blank=True )
-	city = models.CharField( max_length=255, blank=True, help_text="Including postal code, city and state." )
+	zip = models.CharField( max_length=10, blank=True, help_text=_('ZIP/Postcal code'))
+	city = models.CharField( max_length=255, blank=True )
 	country = models.ForeignKey( Country, blank=True, null=True )
 	region = models.ForeignKey(Region, blank=True, null=True)
 	tax_code = models.CharField(_('Tax Code'), max_length=20, blank=True,
@@ -515,7 +516,7 @@ class Contact( DirtyFieldsMixin, models.Model ):
 			* street_1
 			* street_2
 			* city
-			* zip, postal_code, state, city - since the contacts only have a city field, these will be concatenated, also country must be set
+			* zip
 			* country (2 letter ISO code)
 			* phone
 			* website
@@ -536,28 +537,7 @@ class Contact( DirtyFieldsMixin, models.Model ):
 			changed = True
 			del kwargs['country']
 
-		if self.country:
-			zip_code = kwargs.get( 'zip', None )
-			postal_code = kwargs.get( 'postal_code', None )
-			state = kwargs.get( 'state', None )
-			city = kwargs.get( 'city', None )
-
-			if zip_code or postal_code or state or city:
-				if self.country.zip_after_city:
-					self.city = "  ".join( [unicode(x) for x in filter( lambda x: x, [city, state, zip_code, postal_code, ] ) ] )
-				else:
-					self.city = "  ".join( [unicode(x) for x in filter( lambda x: x, [zip_code, postal_code, city, state, ] ) ] )
-				changed = True
-		elif 'city' in kwargs:
-			self.city = kwargs['city']
-			changed = True
-
-		# Delete keys that have already been dealt with.
-		for k in ['zip', 'postal_code', 'state', 'city']:
-			if k in kwargs:
-				del kwargs[k]
-
-		# The rest is simply setting the fields
+		# Set the fields
 		for field, val in kwargs.items():
 			if field in self.ALLOWED_FIELDS:
 				setattr( self, field, val )
@@ -1262,7 +1242,6 @@ CONTACTS_FIELDS = [
 	( 'title', 'Title' ),
 	( 'website', 'Website' ),
 	( 'zip', 'ZIP code' ),
-	( 'postal_code', 'Postal code' ),
 	( 'state', 'State' ),
 	( 'language', 'Language' ),
 	( 'tax_code', 'Tax Code' ),

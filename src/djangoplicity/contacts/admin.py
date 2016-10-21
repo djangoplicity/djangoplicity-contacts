@@ -436,10 +436,10 @@ class ContactFieldInlineAdmin( admin.TabularInline ):
 
 class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 	form = ContactAdminForm
-	list_display = ['id', 'title', 'last_name', 'first_name', 'position', 'organisation', 'department', 'tags', 'group_order', 'street_1', 'street_2', 'tax_code', 'city', 'country', 'region', 'language', 'email', 'phone', 'website', 'created', 'last_modified' ]
+	list_display = ['id', 'title', 'last_name', 'first_name', 'position', 'organisation', 'department', 'tags', 'group_order', 'street_1', 'street_2', 'tax_code', 'city', 'zip', 'country', 'region', 'language', 'email', 'phone', 'website', 'created', 'last_modified' ]
 	list_editable = ['title', 'first_name', 'last_name', 'position', 'email', 'organisation', 'department', 'street_1', 'street_2', 'city', 'phone', 'website', 'language', ]
 	list_filter = ['last_modified', 'groups__category__name', 'groups', 'country__groups', 'extra_fields__name', 'country', 'language', 'title' ]
-	search_fields = ['first_name', 'last_name', 'title', 'position', 'email', 'organisation', 'department', 'street_1', 'street_2', 'city', 'phone', 'website', 'social', ]
+	search_fields = ['first_name', 'last_name', 'title', 'position', 'email', 'organisation', 'department', 'street_1', 'street_2', 'city', 'zip', 'phone', 'website', 'social', ]
 	fieldsets = (
 		( None, {
 			'fields': ( ( 'id', 'created', 'last_modified' ), )
@@ -448,7 +448,7 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 			'fields': ( ( 'title', 'first_name', 'last_name' ), 'position', )
 		} ),
 		( 'Address', {
-			'fields': ( 'organisation', 'department', 'street_1', 'street_2', 'tax_code', 'city', 'country', 'region' )
+			'fields': ( 'organisation', 'department', 'street_1', 'street_2', 'tax_code', 'city', 'zip', 'country', 'region' )
 		} ),
 		( 'Groups', {
 			'fields': ( 'groups', )
