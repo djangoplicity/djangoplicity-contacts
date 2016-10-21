@@ -11,7 +11,10 @@
 			{% if obj.department %}<para style="sendto">{{ obj.department|truncatechars:52 }}</para>{% endif %}
 			{% if obj.street_1 %}<para style="sendto">{{ obj.street_1|truncatechars:52 }}</para>{% endif %}
 			{% if obj.street_2 %}<para style="sendto">{{ obj.street_2|truncatechars:52 }}</para>{% endif %}
-			{% if obj.city %}<para style="sendto">{{ obj.city }}</para>{% endif %}
+			{% if obj.city %}<para style="sendto">
+				{% if obj.zip and not obj.country.zip_after_city %}{{ obj.zip }} {% endif %}
+				{{ obj.city }}</para>{% endif %}
+				{% if obj.zip and obj.country.zip_after_city %}{{ obj.zip }} {% endif %}
 			{% if obj.country %}<para style="sendto">{{ obj.country|upper }}</para>{% endif %}
 		</td>
 	</tr>
