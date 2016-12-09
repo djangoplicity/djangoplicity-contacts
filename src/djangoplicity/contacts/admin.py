@@ -34,18 +34,20 @@
 Admin interfaces for contact models.
 """
 
+import StringIO
 from collections import OrderedDict
 from datetime import datetime
 
 from django.conf.urls import url
 from django.contrib import admin
-from django.http import Http404
+from django.http import Http404, HttpResponse
 from django import forms
 from django.shortcuts import get_object_or_404, render, redirect
 # pylint: disable=E0611
 
 from djangoplicity.admincomments.admin import AdminCommentInline, \
 	AdminCommentMixin
+from djangoplicity.contacts.exporter import ExcelExporter
 from djangoplicity.contacts.forms import ContactAdminForm, ContactForm
 from djangoplicity.contacts.models import ContactGroup, Contact, Country, \
 	CountryGroup, GroupCategory, ContactField, Field, Label, PostalZone, \
@@ -90,6 +92,8 @@ class ImportGroupMappingInlineAdmin( admin.TabularInline ):
 def direct_import(modeladmin, request, queryset):
 	for i in queryset:
 		direct_import_data.delay(i.pk)
+
+
 direct_import.short_description = 'Import without deduplication'
 
 
@@ -511,6 +515,38 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 		"""
 		return label.get_label_render().render_http_response( queryset, 'contact_labels.pdf' )
 
+	def action_export_xls(self, modeladmin, request, queryset):
+		output = StringIO.StringIO()
+
+		title = 'Contacts'
+		fields = ('id', 'title', 'first_name', 'last_name', 'position',
+			'organisation', 'department', 'street_1', 'street_2', 'zip',
+			'city', 'country', 'region', 'tax_code', 'phone', 'website',
+			'social', 'email', 'language')
+		many2many_fields = ('groups', )
+
+		exporter = ExcelExporter(
+			filename_or_stream=output,
+			title=title,
+			header=[(field, None) for field in fields + many2many_fields]
+		)
+
+		for c in queryset:
+			data = dict([
+				(field, getattr(c, field)) for field in fields
+			])
+			for field in many2many_fields:
+				data[field] = ', '.join([
+					unicode(value) for value in getattr(c, field).all()
+				])
+			exporter.writedata(data)
+
+		exporter.save()
+
+		response = HttpResponse(output.getvalue(), content_type='application/vnd.ms-excel')
+		response['Content-Disposition'] = 'attachment; filename={}.xls'.format(title)
+		return response
+
 	def action_set_group( self, request, queryset, group=None, remove=False ):
 		"""
 		Action method for set/removing groups to contacts.
@@ -552,6 +588,7 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 		Dynamically add admin actions for creating labels based on enabled labels.
 		"""
 		actions = super( ContactAdmin, self ).get_actions( request )
+		actions['export_xls'] = (self.action_export_xls, 'export_xls', 'Export selected contacts to XLS')
 		actions.update( OrderedDict( [self._make_label_action( l ) for l in Label.objects.filter( enabled=True ).order_by( 'name' )] ) )
 		actions.update( OrderedDict( [self._make_group_action( g, remove=False ) for g in ContactGroup.objects.all().order_by( 'name' )] ) )
 		actions.update( OrderedDict( [self._make_group_action( g, remove=True ) for g in ContactGroup.objects.all().order_by( 'name' )] ) )
