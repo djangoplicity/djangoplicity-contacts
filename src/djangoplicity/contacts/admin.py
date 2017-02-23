@@ -48,7 +48,8 @@ from django.shortcuts import get_object_or_404, render, redirect
 from djangoplicity.admincomments.admin import AdminCommentInline, \
 	AdminCommentMixin
 from djangoplicity.contacts.exporter import ExcelExporter
-from djangoplicity.contacts.forms import ContactAdminForm, ContactForm
+from djangoplicity.contacts.forms import ContactAdminForm, ContactForm, \
+	ContactListAdminForm
 from djangoplicity.contacts.models import ContactGroup, Contact, Country, \
 	CountryGroup, GroupCategory, ContactField, Field, Label, PostalZone, \
 	ContactGroupAction, ImportTemplate, ImportMapping, ImportSelector, \
@@ -441,7 +442,7 @@ class ContactFieldInlineAdmin( admin.TabularInline ):
 class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 	form = ContactAdminForm
 	list_display = ['id', 'title', 'last_name', 'first_name', 'position', 'organisation', 'department', 'tags', 'group_order', 'street_1', 'street_2', 'tax_code', 'city', 'zip', 'country', 'region', 'language', 'email', 'phone', 'website', 'created', 'last_modified' ]
-	list_editable = ['title', 'first_name', 'last_name', 'position', 'email', 'organisation', 'department', 'street_1', 'street_2', 'city', 'phone', 'website', 'language', ]
+	list_editable = ['title', 'first_name', 'last_name', 'position', 'email', 'organisation', 'department', 'street_1', 'street_2', 'city', 'zip', 'phone', 'website', 'language', ]
 	list_filter = ['last_modified', 'groups__category__name', 'groups', 'country__groups', 'extra_fields__name', 'country', 'language', 'title' ]
 	search_fields = ['first_name', 'last_name', 'title', 'position', 'email', 'organisation', 'department', 'street_1', 'street_2', 'city', 'zip', 'phone', 'website', 'social', ]
 	fieldsets = (
@@ -478,6 +479,9 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 			url( r'^(?P<pk>[0-9]+)/label/$', self.admin_site.admin_view( self.label_view ), name='contacts_label' ),
 		]
 		return extra_urls + urls
+
+	def get_changelist_form(self, request, **kwargs):
+		return ContactListAdminForm
 
 	def label_view( self, request, pk=None ):
 		"""
