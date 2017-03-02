@@ -248,9 +248,9 @@ class Every6HourAction( PeriodicAction ):
 	on_event_name = 'periodic_6hr'
 
 
-class EveryDayAction( PeriodicAction ):
-	run_every = timedelta( hours=24 )
-	on_event_name = 'periodic_24hr'
+#class EveryDayAction( PeriodicAction ):
+#	run_every = timedelta( hours=24 )
+#	on_event_name = 'periodic_24hr'
 
 
 #
