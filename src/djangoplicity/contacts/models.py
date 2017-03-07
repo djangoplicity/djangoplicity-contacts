@@ -28,7 +28,6 @@
 # IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE
-#
 
 
 from datetime import datetime
@@ -674,10 +673,10 @@ class ContactField( models.Model ):
 	class Meta:
 		unique_together = ( 'field', 'contact' )
 
-#
+
 # More advanced stuff - configurable actions to be execute once
 # contacts are added/removed from groups (e.g subscribe to mailman).
-#
+
 ACTION_EVENTS = (
 	( 'contact_added', 'Contact added to group' ),
 	( 'contact_removed', 'Contact removed from group' ),
@@ -951,6 +950,8 @@ class ImportTemplate( models.Model ):
 		Transform the incoming data according to
 		the defined data mapping.
 		"""
+		# TODO: this should be cleaned up to avoid the pylint warning
+		# pylint: disable=too-many-nested-blocks
 		if self.is_selected( incoming_data ):
 			outgoing_data = [] if as_list else {}
 			for m in self.get_mapping():
@@ -1159,7 +1160,7 @@ class ImportTemplate( models.Model ):
 					data['groups'].append( import_grp.name )
 
 				obj = Contact.create_object( **data )
-				logger.info( "Creating contact %s" % obj.pk )
+				logger.info( "Creating contact %s", obj.pk )
 
 	def import_data( self, import_contacts ):
 		"""
@@ -1223,6 +1224,7 @@ class ImportTemplate( models.Model ):
 				duplicate_contacts[i] = keys
 
 		return duplicate_contacts
+
 
 CONTACTS_FIELDS = [
 	( 'city', 'City' ),
@@ -1553,6 +1555,12 @@ class Deduplication(models.Model):
 		else:
 			contacts = Contact.objects.all().select_related('country')
 
+		# Get set of known deduplicated contacts
+		deduplicated_contacts = set()
+		for d in Deduplication.objects.filter(status='review'):
+			if d.deduplicated_contacts:
+				deduplicated_contacts.update(json.loads(d.deduplicated_contacts))
+
 		for contact in contacts:
 			# Remove the current contact from the search space:
 			del search_space[contact.id]
@@ -1566,6 +1574,11 @@ class Deduplication(models.Model):
 			keys = {}
 			for dup in dups:
 				duplicate_id = dup[1]['contact_object'].pk
+				if '%s_%s' % (contact.pk, duplicate_id) in deduplicated_contacts or \
+					'%s_%s' % (duplicate_id, contact.pk) in deduplicated_contacts:
+					# This pair was already deduplicated
+					logger.info('Ignore deduplicated: %s, %s', contact.pk, duplicate_id)
+					continue
 				keys[duplicate_id] = dup[0]
 
 			if keys:
@@ -1573,7 +1586,7 @@ class Deduplication(models.Model):
 				message = ''
 				for key in keys:
 					message += '%d (%.2f), ' % (key, keys[key])
-					logger.warning("Found duplicates for deduplication %s: %s", self.pk, message)
+					logger.info("Found duplicates for deduplication %s: %s", self.pk, message)
 
 		# Deduplications can take many hours to complete, and we risk running
 		# into a 'MySQL server has gone away' error, so we close the DB
@@ -1594,33 +1607,38 @@ class Deduplication(models.Model):
 		"""
 		from djangoplicity.contacts.forms import ContactForm
 		duplicate_contacts = json.loads(self.duplicate_contacts) if self.duplicate_contacts else {}
-		deduplicated_contacts = []
 
-		# Prefetch all contacts and duplicates to avoid hundreds of queries
-		# down the line
-		keys = duplicate_contacts.keys()
-		for v in duplicate_contacts.values():
-			keys += v.keys()
-		contacts = dict([
-			(str(c.pk), c) for c in
-			Contact.objects.filter(pk__in=keys).prefetch_related('groups')
+		# Load previously deduplicated contacts
+		deduplicated_contacts = set()
+		if self.deduplicated_contacts:
+			deduplicated_contacts.update(json.loads(self.deduplicated_contacts))
+
+		# Remove duplicated contacts
+		duplicate_contacts = dict([
+			(k, v) for k, v in duplicate_contacts.items()
+			if '%s_%s' % (k, k) not in deduplicated_contacts
 		])
 
-		# Load previously deduplicated contacts, including those from previous
-		# Deduplications, this is so that if a duplicated was ignored (for
-		# example because it was a false positive) it won't appear every time
-		# we run the deduplication again
-		for d in Deduplication.objects.filter(status='review'):
-			if d.deduplicated_contacts:
-				deduplicated_contacts += json.loads(d.deduplicated_contacts)
+		total_duplicates = len(duplicate_contacts)
 
-		# Convert deduplicated_contacts to a set() to remove duplicates and
-		# provide faster lookups
-		deduplicated_contacts = set(deduplicated_contacts)
+		# Paginate
+		start = (page - 1) * self.max_display
+		end = page * self.max_display
+		duplicate_contacts = dict([
+			(k, v) for k, v in duplicate_contacts.items()
+		][start:end])
 
 		duplicates = []
 
-		i = 0
+		# Prefetch Contacts
+		keys = []
+		for k, v in duplicate_contacts.items():
+			keys.append(k)
+			keys += v.keys()
+		contacts = Contact.objects.filter(pk__in=keys).prefetch_related(
+			'groups', 'country').select_related('country', 'region')
+		contacts = dict([(str(c.pk), c) for c in contacts])
+
 		for contact_id in duplicate_contacts:
 			try:
 				contact = contacts[contact_id]
@@ -1632,14 +1650,7 @@ class Deduplication(models.Model):
 				contact = None
 				form = None
 
-			# Check if the contact has already been deduplicated:
-			deduplicated = False
-			if '%s_%s' % (contact_id, contact_id) in deduplicated_contacts:
-				# Contact won't be displayed in form
-				deduplicated = True
-
 			record = {
-				'skip': deduplicated,
 				'fields': fields,
 				'contact_id': contact_id,
 				'contact': contact,
@@ -1664,15 +1675,7 @@ class Deduplication(models.Model):
 					fields = ('<span style="color: red">Contact %s disappeared! Please re-run deduplication</span>' % pk,)
 					form = None
 
-				# Check if the contact has already been deduplicated:
-				deduplicated = False
-				if '%s_%s' % (contact_id, pk) in deduplicated_contacts or \
-					'%s_%s' % (pk, contact_id) in deduplicated_contacts:
-					# Contact won't be displayed in form
-					deduplicated = True
-
 				dups.append({
-					'skip': deduplicated,
 					'fields': fields,
 					'contact_id': pk,
 					'contact': contact,
@@ -1681,32 +1684,9 @@ class Deduplication(models.Model):
 
 			record['duplicates'] = dups
 
-			# If all the entries for the record have been deduplicated we can skip them:
-			skip = all([d['skip'] for d in record['duplicates']])
+			duplicates.append(record)
 
-			if not skip:
-				# Deal with pagination:
-				if i < page * self.max_display - self.max_display:
-					i += 1
-					continue
-				duplicates.append(record)
-				i += 1
-				if i >= page * self.max_display:
-					break
-
-		# Count how many contacts were already fully deduplicated
-		count_deduplicated = 0
-		for entry, dups in duplicate_contacts.items():
-			for d in dups:
-				if '%s_%s' % (entry, d) not in deduplicated_contacts and \
-					'%s_%s' % (d, entry) not in deduplicated_contacts:
-					break
-			else:
-				# All duplicates were already deduplicated
-				continue
-			count_deduplicated += 1
-
-		return duplicates, count_deduplicated
+		return duplicates, total_duplicates
 
 	def deduplicate_data(self, update, delete, ignore):
 		'''
