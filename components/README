@@ -1,0 +1,27 @@
+This directory is meant to store static files that need to be processed such
+as original images to convert to sprites, SCSS files that will be converted
+to CSS, etc.
+
+SCSS
+====
+SCSS is a CSS extension which makes writing CSS files much easier. It supports
+variables, inheritance, etc.
+More info at:
+http://sass-lang.com/
+
+The .scss files are stored in src/djangoplicity-contacts/components/scss/
+
+During development run the following command to automatically rebuild the
+output css file:
+
+sass --watch  components/scss/review.scss:src/djangoplicity/contacts/static/css/review.css
+
+Both the input scss and the output css files should be commited to the
+repository.
+
+ReactJS
+=======
+We use NPM to compile the reactJS files into a single js output:
+
+cd components/npm/
+webpack -w

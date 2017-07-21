@@ -1,0 +1,44 @@
+{% extends "admin/base_site.html" %}
+{% load admin_list i18n %}
+{% load static %}
+
+{% block extrastyle %}
+	{{ block.super }}
+	<link rel="stylesheet" type="text/css" href="{{STATIC_URL}}admin/css/changelists.css" />
+	{{ media.css }}
+    <style>
+      #changelist table thead th:first-child {width: inherit}
+    </style>
+	<link rel="stylesheet" type="text/css" href="{% static 'css/review.css' %}" />
+{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+{{ media.js }}
+{% endblock %}
+
+{% block bodyclass %}change-list{% endblock %}
+
+{% block breadcrumbs %}{% with search as original %}
+<div class="breadcrumbs">
+     <a href="../../../../">{% trans "Home" %}</a> &rsaquo;
+     <a href="../../../">{{ app_label|capfirst|escape }}</a> &rsaquo;
+     <a href="../../">{{ opts.verbose_name_plural|capfirst }}</a> &rsaquo;
+     <a href="../">{{ object|truncatewords:"18" }}</a> &rsaquo;
+     {% trans "Review" %}
+</div>
+{% endwith %}
+{% endblock %}
+
+
+{% block coltype %}flex{% endblock %}
+{% block site_title %}Contacts Import Review{% endblock %}
+
+{% block content %}
+<div id="review">
+</div>
+<script>
+	const importPK = {{object.pk}};
+</script>
+<script src="{% static 'js/review.js' %}"></script>
+{% endblock %}

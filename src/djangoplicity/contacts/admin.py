@@ -72,7 +72,9 @@ class ImportMappingForm( forms.ModelForm ):
 
 	def __init__( self, *args, **kwargs ):
 		super( ImportMappingForm, self ).__init__( *args, **kwargs )
-		self.fields['field'].choices = [( '', '---------' )] + CONTACTS_FIELDS + Field.field_options()
+		contact_fields = CONTACTS_FIELDS[:]
+		contact_fields.sort( key=lambda x: x[1] )
+		self.fields['field'].choices = [( '', '---------' )] + contact_fields + Field.field_options()
 
 	class Meta:
 		model = ImportMapping
@@ -118,6 +120,7 @@ class ImportAdmin( admin.ModelAdmin ):
 			url( r'^(?P<pk>[0-9]+)/preview/$', self.admin_site.admin_view( self.preview_view ), name='contacts_import_preview' ),
 			url( r'^(?P<pk>[0-9]+)/import/$', self.admin_site.admin_view( self.import_view ), name='contacts_import' ),
 			url( r'^(?P<pk>[0-9]+)/review/$', self.admin_site.admin_view( self.review_view ), name='contacts_import_review' ),
+			url( r'^(?P<pk>[0-9]+)/live/$', self.admin_site.admin_view( self.live_review_view ), name='contacts_import_live_review' ),
 		]
 		return extra_urls + urls
 
@@ -269,6 +272,16 @@ class ImportAdmin( admin.ModelAdmin ):
 				)
 		else:
 			raise Http404
+
+	def live_review_view(self, request, pk=None):
+		obj = get_object_or_404(Import, pk=pk )
+
+		return render(request, 'admin/contacts/import/live-review.html', {
+			'object': obj,
+			'messages': [],
+			'app_label': obj._meta.app_label,
+			'opts': obj._meta,
+		})
 
 	def review_view( self, request, pk=None ):
 		"""

@@ -1227,31 +1227,28 @@ class ImportTemplate( models.Model ):
 
 
 CONTACTS_FIELDS = [
-	( 'city', 'City' ),
-	( 'groups', 'Contact groups' ),
-	( 'country', 'Country' ),
-	( 'department', 'Department' ),
-	( 'email', 'Email' ),
+	( 'title', 'Title' ),
 	( 'first_name', 'First name' ),
-	( 'pk', 'Id' ),
 	( 'last_name', 'Last name' ),
-	( 'organisation', 'Organisation' ),
-	( 'phone', 'Phone' ),
 	( 'position', 'Position' ),
-	( 'social', 'Social' ),
+	( 'organisation', 'Organisation' ),
+	( 'department', 'Department' ),
 	( 'street_1', 'Street 1' ),
 	( 'street_2', 'Street 2' ),
-	( 'title', 'Title' ),
-	( 'website', 'Website' ),
 	( 'zip', 'ZIP code' ),
-	( 'state', 'State' ),
-	( 'language', 'Language' ),
-	( 'tax_code', 'Tax Code' ),
+	( 'city', 'City' ),
+	( 'country', 'Country' ),
 	( 'region', 'Region' ),
+	( 'tax_code', 'Tax Code' ),
+	( 'phone', 'Phone' ),
+	( 'website', 'Website' ),
+	( 'social', 'Social' ),
+	( 'email', 'Email' ),
+	( 'language', 'Language' ),
+	( 'groups', 'Contact groups' ),
+	( 'pk', 'Id' ),
 ]
 # + Field.field_options() # Todo: needs to be dynamic since if extra field is added, then it will require server restart to have the list updated.
-CONTACTS_FIELDS.sort( key=lambda x: x[1] )
-#	return CONTACTS_FIELDS
 
 
 class ImportMapping( models.Model ):
