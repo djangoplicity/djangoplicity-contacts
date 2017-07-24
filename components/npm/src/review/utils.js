@@ -27,3 +27,16 @@ export function dataToNewContacts(importData) {
 
 	return newContacts;
 }
+
+export function updateContact(action, newContacts) {
+	// Update the field given in action
+	let index = newContacts.findIndex(contact => contact.row === action.row);
+
+	return [
+		...newContacts.slice(0, index),
+		Object.assign({}, newContacts[index], {
+			[action.field]: action.data
+		}),
+		...newContacts.slice(index + 1)
+	];
+}

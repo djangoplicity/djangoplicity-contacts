@@ -1,15 +1,19 @@
 import { combineReducers } from 'redux';
 
 import {
+	EDIT_FIELD,
 	RECEIVE_IMPORT,
 	REQUEST_IMPORT,
+	START_EDIT_FIELD,
+	STOP_EDIT_FIELD,
 } from './actions';
 
-import { dataToNewContacts } from './utils';
+import { dataToNewContacts, updateContact } from './utils';
 
 
 const defaultUI = {
-	loading: false
+	loading: false,
+	fieldEdit: null
 };
 
 function ui(state=defaultUI, action) {
@@ -22,6 +26,19 @@ function ui(state=defaultUI, action) {
 		case REQUEST_IMPORT:
 			return Object.assign({}, state, {
 				loading: true
+			});
+
+		case START_EDIT_FIELD:
+			return Object.assign({}, state, {
+				fieldEdit: {
+					row: action.row,
+					field: action.field
+				}
+			});
+
+		case STOP_EDIT_FIELD:
+			return Object.assign({}, state, {
+				fieldEdit: null
 			});
 
 		default:
@@ -41,6 +58,9 @@ function importData(state={}, action) {
 
 function newContacts(state=[], action) {
 	switch (action.type) {
+		case EDIT_FIELD:
+			return updateContact(action, state);
+
 		case RECEIVE_IMPORT:
 			return dataToNewContacts(action.json);
 

@@ -36,7 +36,13 @@ import json
 from rest_framework import serializers
 
 from djangoplicity.contacts.models import Country, Region, Import, \
-	ImportMapping, CONTACTS_FIELDS
+	ImportMapping, ContactGroup, CONTACTS_FIELDS
+
+
+class ContactGroupSerializer(serializers.ModelSerializer):
+	class Meta:
+		model = ContactGroup
+		fields = ('pk', 'name')
 
 
 class CountrySerializer(serializers.ModelSerializer):
@@ -64,6 +70,7 @@ class ImportSerializer(serializers.ModelSerializer):
 	contact_fields = serializers.SerializerMethodField(read_only=True)
 	countries = serializers.SerializerMethodField(read_only=True)
 	regions = serializers.SerializerMethodField(read_only=True)
+	groups = serializers.SerializerMethodField(read_only=True)
 
 	def get_data(self, obj):
 		mapping, rows = obj.preview_data()
@@ -96,7 +103,12 @@ class ImportSerializer(serializers.ModelSerializer):
 		regions = Region.objects.all()
 		return RegionSerializer(regions, many=True).data
 
+	def get_groups(self, obj):
+		groups = ContactGroup.objects.all()
+		return ContactGroupSerializer(groups, many=True).data
+
 	class Meta:
 		model = Import
 		fields = ('status', 'template', 'data', 'duplicate_contacts',
-			'imported_contacts', 'contact_fields', 'countries', 'regions')
+			'imported_contacts', 'contact_fields', 'countries', 'regions',
+			'groups')
