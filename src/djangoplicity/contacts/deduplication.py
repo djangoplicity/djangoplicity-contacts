@@ -28,7 +28,8 @@
 # IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE
-#
+
+from __future__ import unicode_literals
 
 """
 Module to help find contact duplicates.
@@ -438,13 +439,13 @@ def similar_address(a, b, no_name, ratio_limit=0.8):
 	address_a = ''
 	address_b = ''
 	if 'street_1' in a:
-		address_a += a['street_1']
+		address_a += unicode(a['street_1'])
 		if 'street_1' in b:
-			address_b += b['street_1']
+			address_b += unicode(b['street_1'])
 	if 'street_2' in a:
-		address_a += a['street_2']
+		address_a += unicode(a['street_2'])
 		if 'street_2' in b:
-			address_b += b['street_2']
+			address_b += unicode(b['street_2'])
 
 	address_a = _prepare_str(address_a)
 	address_b = _prepare_str(address_b)
