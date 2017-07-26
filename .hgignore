@@ -1,6 +1,8 @@
-
 syntax: regexp
 ^src/djangoplicity_contacts\.egg-info$
+
 syntax: glob
 *.pyc
 .nfs*
+node_modules/*
+.sass-cache/*
