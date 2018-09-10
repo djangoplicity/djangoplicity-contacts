@@ -32,9 +32,10 @@
 from djangoplicity.contacts.views import ContactPublicUpdate, \
 	RegionByCountryJSONView
 
-from django.conf.urls import url
+from django.conf.urls import url, include
 
 urlpatterns = [
 	url( r'^edit/(?P<uid>.*)/$', ContactPublicUpdate.as_view(), name='public_contact_edit' ),
 	url(r'^countryregions/(?P<pk>[0-9]+)/json/$', RegionByCountryJSONView.as_view(), kwargs={}, name='region_by_country'),
+	url(r'^api/', include('djangoplicity.contacts.api.urls')),
 ]

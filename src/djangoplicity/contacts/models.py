@@ -28,7 +28,6 @@
 # IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE
-#
 
 
 from datetime import datetime
@@ -313,7 +312,8 @@ class ContactGroup( DirtyFieldsMixin, models.Model ):
 			if dirty_fields['order'] is None or dirty_fields['order'] - instance.order > 0:
 				# Order value was changed to a smaller value - hence we must update all contacts
 				# with a group_order greater than instance.order.
-				instance.contact_set.filter( group_order__gt=instance.order ).update( group_order=instance.order )
+				if instance.order is not None:
+					instance.contact_set.filter( group_order__gt=instance.order ).update( group_order=instance.order )
 			elif instance.order is None or dirty_fields['order'] - instance.order < 0:
 				# Order value was changed to a greater value - hence we must update all contacts
 				# with a group_order greater than the *old* instance.order
@@ -341,7 +341,8 @@ class Contact( DirtyFieldsMixin, models.Model ):
 	department = models.CharField( max_length=255, blank=True )
 	street_1 = models.CharField( max_length=255, blank=True )
 	street_2 = models.CharField( max_length=255, blank=True )
-	city = models.CharField( max_length=255, blank=True, help_text="Including postal code, city and state." )
+	zip = models.CharField( max_length=10, blank=True, help_text=_('ZIP/Postcal code'))
+	city = models.CharField( max_length=255, blank=True )
 	country = models.ForeignKey( Country, blank=True, null=True )
 	region = models.ForeignKey(Region, blank=True, null=True)
 	tax_code = models.CharField(_('Tax Code'), max_length=20, blank=True,
@@ -514,7 +515,7 @@ class Contact( DirtyFieldsMixin, models.Model ):
 			* street_1
 			* street_2
 			* city
-			* zip, postal_code, state, city - since the contacts only have a city field, these will be concatenated, also country must be set
+			* zip
 			* country (2 letter ISO code)
 			* phone
 			* website
@@ -525,7 +526,9 @@ class Contact( DirtyFieldsMixin, models.Model ):
 
 		ctry = None
 		if 'country' in kwargs:
-			if kwargs['country'] and len( kwargs['country'] ) == 2:
+			if kwargs['country'] and isinstance(kwargs['country'], int):
+				ctry = Country.objects.get(pk=kwargs['country'])
+			elif kwargs['country'] and len( kwargs['country'] ) == 2:
 				ctry = Country.objects.get( iso_code=kwargs['country'].upper() )
 			elif kwargs['country']:
 				ctry = Country.objects.get( name__iexact=kwargs['country'] )
@@ -533,28 +536,7 @@ class Contact( DirtyFieldsMixin, models.Model ):
 			changed = True
 			del kwargs['country']
 
-		if self.country:
-			zip_code = kwargs.get( 'zip', None )
-			postal_code = kwargs.get( 'postal_code', None )
-			state = kwargs.get( 'state', None )
-			city = kwargs.get( 'city', None )
-
-			if zip_code or postal_code or state or city:
-				if self.country.zip_after_city:
-					self.city = "  ".join( [unicode(x) for x in filter( lambda x: x, [city, state, zip_code, postal_code, ] ) ] )
-				else:
-					self.city = "  ".join( [unicode(x) for x in filter( lambda x: x, [zip_code, postal_code, city, state, ] ) ] )
-				changed = True
-		elif 'city' in kwargs:
-			self.city = kwargs['city']
-			changed = True
-
-		# Delete keys that have already been dealt with.
-		for k in ['zip', 'postal_code', 'state', 'city']:
-			if k in kwargs:
-				del kwargs[k]
-
-		# The rest is simply setting the fields
+		# Set the fields
 		for field, val in kwargs.items():
 			if field in self.ALLOWED_FIELDS:
 				setattr( self, field, val )
@@ -691,10 +673,10 @@ class ContactField( models.Model ):
 	class Meta:
 		unique_together = ( 'field', 'contact' )
 
-#
+
 # More advanced stuff - configurable actions to be execute once
 # contacts are added/removed from groups (e.g subscribe to mailman).
-#
+
 ACTION_EVENTS = (
 	( 'contact_added', 'Contact added to group' ),
 	( 'contact_removed', 'Contact removed from group' ),
@@ -877,7 +859,7 @@ DUPLICATE_HANDLING = [
 # Tue Mar 12 18:50:35 CET 2013 - Mathias Andre
 # Disabled "simple" import for now as it was broken by
 # the updated duplicate merging changes
-#	( 'none', 'Import all - no duplicate detection' ),
+	( 'none', 'Import all - no duplicate detection' ),
 	( 'smart', 'Detect duplicates and wait for review' ),
 ]
 
@@ -968,6 +950,8 @@ class ImportTemplate( models.Model ):
 		Transform the incoming data according to
 		the defined data mapping.
 		"""
+		# TODO: this should be cleaned up to avoid the pylint warning
+		# pylint: disable=too-many-nested-blocks
 		if self.is_selected( incoming_data ):
 			outgoing_data = [] if as_list else {}
 			for m in self.get_mapping():
@@ -1059,7 +1043,7 @@ class ImportTemplate( models.Model ):
 		else:
 			value = None
 
-		if django_field[0].__class__ == models.fields.CharField:
+		if django_field.__class__ == models.fields.CharField:
 			type_ = 'textinput'
 		else:
 			type_ = 'text'
@@ -1149,6 +1133,35 @@ class ImportTemplate( models.Model ):
 
 		return (mapping, imported, new, duplicates)
 
+	def direct_import_data(self, filename):
+		"""
+		Import the data file according to the defined import template
+		without duplicate handling
+		"""
+		if self.tag_import:
+			import_grp, _created = ContactGroup.objects.get_or_create( name='Import %s at %s' % ( self.name, datetime.now().replace( microsecond=0 ) ) )
+		else:
+			import_grp = None
+
+		extra_groups = list( self.extra_groups.all().values_list( 'name', flat=True ) )
+		_frozen_set = set( self.frozen_groups.all().values_list( 'pk', flat=True ) )
+
+		i = 0
+		for data in self.extract_data( filename ):
+			if data:
+				i += 1
+				if 'groups' in data and data['groups']:
+					data['groups'] += extra_groups
+				else:
+					data['groups'] = extra_groups
+
+				# Add import group if needed
+				if import_grp:
+					data['groups'].append( import_grp.name )
+
+				obj = Contact.create_object( **data )
+				logger.info( "Creating contact %s", obj.pk )
+
 	def import_data( self, import_contacts ):
 		"""
 		Import the give data according to the given import template
@@ -1212,33 +1225,30 @@ class ImportTemplate( models.Model ):
 
 		return duplicate_contacts
 
+
 CONTACTS_FIELDS = [
-	( 'city', 'City' ),
-	( 'groups', 'Contact groups' ),
-	( 'country', 'Country' ),
-	( 'department', 'Department' ),
-	( 'email', 'Email' ),
+	( 'title', 'Title' ),
 	( 'first_name', 'First name' ),
-	( 'pk', 'Id' ),
 	( 'last_name', 'Last name' ),
-	( 'organisation', 'Organisation' ),
-	( 'phone', 'Phone' ),
 	( 'position', 'Position' ),
-	( 'social', 'Social' ),
+	( 'organisation', 'Organisation' ),
+	( 'department', 'Department' ),
 	( 'street_1', 'Street 1' ),
 	( 'street_2', 'Street 2' ),
-	( 'title', 'Title' ),
-	( 'website', 'Website' ),
 	( 'zip', 'ZIP code' ),
-	( 'postal_code', 'Postal code' ),
-	( 'state', 'State' ),
-	( 'language', 'Language' ),
-	( 'tax_code', 'Tax Code' ),
+	( 'city', 'City' ),
+	( 'country', 'Country' ),
 	( 'region', 'Region' ),
+	( 'tax_code', 'Tax Code' ),
+	( 'phone', 'Phone' ),
+	( 'website', 'Website' ),
+	( 'social', 'Social' ),
+	( 'email', 'Email' ),
+	( 'language', 'Language' ),
+	( 'groups', 'Contact groups' ),
+	( 'pk', 'Id' ),
 ]
 # + Field.field_options() # Todo: needs to be dynamic since if extra field is added, then it will require server restart to have the list updated.
-CONTACTS_FIELDS.sort( key=lambda x: x[1] )
-#	return CONTACTS_FIELDS
 
 
 class ImportMapping( models.Model ):
@@ -1275,7 +1285,7 @@ class ImportMapping( models.Model ):
 		Returns the actual field used in the Contact model
 		matching the ImportMapping field
 		'''
-		return Contact._meta.get_field_by_name(self.field)
+		return Contact._meta.get_field(self.field)
 
 	def get_country_value( self, value ):
 		"""
@@ -1289,7 +1299,7 @@ class ImportMapping( models.Model ):
 				ImportMapping._country_cache['iso'][c.iso_code.lower()] = c.pk
 				ImportMapping._country_cache['name'][c.name.lower()] = c.pk
 
-		if type(value) is not unicode:
+		if not isinstance(value, unicode):
 			value = unicode(value)
 		value = value.lower().strip()
 		if len( value ) == 2 and value in ImportMapping._country_cache['iso']:
@@ -1337,7 +1347,7 @@ class ImportMapping( models.Model ):
 				if trail[0] == 'country':
 					return self.get_country_value( val )
 				if trail[0] == 'language':
-					if type(val) is not unicode:
+					if not isinstance(val, unicode):
 						val = unicode(val)
 					return val.lower()
 			# Excel uses float for many numbers.
@@ -1421,6 +1431,7 @@ DEDUPLICATION_STATUS = [
 	( 'new', 'New' ),
 	( 'processing', 'Processing' ),
 	( 'review', 'Review' ),
+	( 'imported', 'Imported' ),
 ]
 
 
@@ -1456,6 +1467,13 @@ class Import( models.Model ):
 		duplicate_contacts = json.loads(self.duplicate_contacts) if self.duplicate_contacts else {}
 		imported_contacts = json.loads(self.imported_contacts) if self.imported_contacts else {}
 		return self.template.review_data( self.data_file.path, duplicate_contacts, imported_contacts )
+
+	def direct_import_data(self):
+		if self.status != 'imported':
+			self.template.direct_import_data(self.data_file.path)
+			self.status = 'imported'
+			return True
+		return False
 
 	def import_data( self, import_contacts ):
 		"""
@@ -1534,6 +1552,12 @@ class Deduplication(models.Model):
 		else:
 			contacts = Contact.objects.all().select_related('country')
 
+		# Get set of known deduplicated contacts
+		deduplicated_contacts = set()
+		for d in Deduplication.objects.filter(status='review'):
+			if d.deduplicated_contacts:
+				deduplicated_contacts.update(json.loads(d.deduplicated_contacts))
+
 		for contact in contacts:
 			# Remove the current contact from the search space:
 			del search_space[contact.id]
@@ -1547,6 +1571,11 @@ class Deduplication(models.Model):
 			keys = {}
 			for dup in dups:
 				duplicate_id = dup[1]['contact_object'].pk
+				if '%s_%s' % (contact.pk, duplicate_id) in deduplicated_contacts or \
+					'%s_%s' % (duplicate_id, contact.pk) in deduplicated_contacts:
+					# This pair was already deduplicated
+					logger.info('Ignore deduplicated: %s, %s', contact.pk, duplicate_id)
+					continue
 				keys[duplicate_id] = dup[0]
 
 			if keys:
@@ -1554,7 +1583,7 @@ class Deduplication(models.Model):
 				message = ''
 				for key in keys:
 					message += '%d (%.2f), ' % (key, keys[key])
-					logger.warning("Found duplicates for deduplication %s: %s", self.pk, message)
+					logger.info("Found duplicates for deduplication %s: %s", self.pk, message)
 
 		# Deduplications can take many hours to complete, and we risk running
 		# into a 'MySQL server has gone away' error, so we close the DB
@@ -1575,33 +1604,38 @@ class Deduplication(models.Model):
 		"""
 		from djangoplicity.contacts.forms import ContactForm
 		duplicate_contacts = json.loads(self.duplicate_contacts) if self.duplicate_contacts else {}
-		deduplicated_contacts = []
 
-		# Prefetch all contacts and duplicates to avoid hundreds of queries
-		# down the line
-		keys = duplicate_contacts.keys()
-		for v in duplicate_contacts.values():
-			keys += v.keys()
-		contacts = dict([
-			(str(c.pk), c) for c in
-			Contact.objects.filter(pk__in=keys).prefetch_related('groups')
+		# Load previously deduplicated contacts
+		deduplicated_contacts = set()
+		if self.deduplicated_contacts:
+			deduplicated_contacts.update(json.loads(self.deduplicated_contacts))
+
+		# Remove duplicated contacts
+		duplicate_contacts = dict([
+			(k, v) for k, v in duplicate_contacts.items()
+			if '%s_%s' % (k, k) not in deduplicated_contacts
 		])
 
-		# Load previously deduplicated contacts, including those from previous
-		# Deduplications, this is so that if a duplicated was ignored (for
-		# example because it was a false positive) it won't appear every time
-		# we run the deduplication again
-		for d in Deduplication.objects.filter(status='review'):
-			if d.deduplicated_contacts:
-				deduplicated_contacts += json.loads(d.deduplicated_contacts)
+		total_duplicates = len(duplicate_contacts)
 
-		# Convert deduplicated_contacts to a set() to remove duplicates and
-		# provide faster lookups
-		deduplicated_contacts = set(deduplicated_contacts)
+		# Paginate
+		start = (page - 1) * self.max_display
+		end = page * self.max_display
+		duplicate_contacts = dict([
+			(k, v) for k, v in duplicate_contacts.items()
+		][start:end])
 
 		duplicates = []
 
-		i = 0
+		# Prefetch Contacts
+		keys = []
+		for k, v in duplicate_contacts.items():
+			keys.append(k)
+			keys += v.keys()
+		contacts = Contact.objects.filter(pk__in=keys).prefetch_related(
+			'groups', 'country').select_related('country', 'region')
+		contacts = dict([(str(c.pk), c) for c in contacts])
+
 		for contact_id in duplicate_contacts:
 			try:
 				contact = contacts[contact_id]
@@ -1613,14 +1647,7 @@ class Deduplication(models.Model):
 				contact = None
 				form = None
 
-			# Check if the contact has already been deduplicated:
-			deduplicated = False
-			if '%s_%s' % (contact_id, contact_id) in deduplicated_contacts:
-				# Contact won't be displayed in form
-				deduplicated = True
-
 			record = {
-				'skip': deduplicated,
 				'fields': fields,
 				'contact_id': contact_id,
 				'contact': contact,
@@ -1645,15 +1672,7 @@ class Deduplication(models.Model):
 					fields = ('<span style="color: red">Contact %s disappeared! Please re-run deduplication</span>' % pk,)
 					form = None
 
-				# Check if the contact has already been deduplicated:
-				deduplicated = False
-				if '%s_%s' % (contact_id, pk) in deduplicated_contacts or \
-					'%s_%s' % (pk, contact_id) in deduplicated_contacts:
-					# Contact won't be displayed in form
-					deduplicated = True
-
 				dups.append({
-					'skip': deduplicated,
 					'fields': fields,
 					'contact_id': pk,
 					'contact': contact,
@@ -1662,32 +1681,9 @@ class Deduplication(models.Model):
 
 			record['duplicates'] = dups
 
-			# If all the entries for the record have been deduplicated we can skip them:
-			skip = all([d['skip'] for d in record['duplicates']])
+			duplicates.append(record)
 
-			if not skip:
-				# Deal with pagination:
-				if i < page * self.max_display - self.max_display:
-					i += 1
-					continue
-				duplicates.append(record)
-				i += 1
-				if i >= page * self.max_display:
-					break
-
-		# Count how many contacts were already fully deduplicated
-		count_deduplicated = 0
-		for entry, dups in duplicate_contacts.items():
-			for d in dups:
-				if '%s_%s' % (entry, d) not in deduplicated_contacts and \
-					'%s_%s' % (d, entry) not in deduplicated_contacts:
-					break
-			else:
-				# All duplicates were already deduplicated
-				continue
-			count_deduplicated += 1
-
-		return duplicates, count_deduplicated
+		return duplicates, total_duplicates
 
 	def deduplicate_data(self, update, delete, ignore):
 		'''

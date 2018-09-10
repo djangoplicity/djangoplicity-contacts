@@ -1,5 +1,6 @@
 {% extends "admin/base_site.html" %}
 {% load admin_list i18n djangoplicity_text_utils %}
+{% load staticfiles %}
 
 {% block extrastyle %}
   {{ block.super }}
@@ -223,7 +224,7 @@
   </div>
 {% endif %}
 
-<script type="text/javascript" src="{{STATIC_URL}}djangoplicity/js/jquery-1.7.1.min.js"></script>
+<script type="text/javascript" src="{% static "jquery/jquery-1.11.1.min.js" %}"></script>
 <script type="text/javascript">
 function toggle_background(td){
 	// This functions toggles the background color for checkboxes tds,

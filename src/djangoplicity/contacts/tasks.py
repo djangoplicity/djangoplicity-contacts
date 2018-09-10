@@ -33,14 +33,31 @@
 from celery.task import PeriodicTask, task
 from datetime import timedelta
 
+from django.apps import apps
 from django.contrib.sites.models import Site
 from django.core.exceptions import ImproperlyConfigured
 from django.core.mail import send_mail
 from django.core.urlresolvers import reverse
-from django.db import models
 
 from djangoplicity.actions.plugins import ActionPlugin  # pylint: disable=E0611
 from djangoplicity.utils.history import add_admin_history  # pylint: disable=E0611
+
+
+@task(ignore_result=True)
+def direct_import_data(import_pk):
+	from djangoplicity.contacts.models import Import
+	obj = Import.objects.get(pk=import_pk)
+
+	logger = direct_import_data.get_logger()
+
+	if obj.status == 'imported':
+		return
+
+	if obj.direct_import_data():
+		obj.save()
+		logger.warning('File was imported (pk=%s)' % obj.pk)
+	else:
+		logger.warning('File has already been imported (pk=%s)' % obj.pk)
 
 
 @task( ignore_result=True )
@@ -257,7 +274,7 @@ class ContactAction( ActionPlugin ):
 		"""
 		Helper method to get the object by model_identifier and primiary key ( e.g "contacts.contact" and 2579 )
 		"""
-		Model = models.get_model( *model_identifier.split( "." ) )
+		Model = apps.get_model( *model_identifier.split( "." ) )
 		return Model.objects.get( pk=pk )
 
 

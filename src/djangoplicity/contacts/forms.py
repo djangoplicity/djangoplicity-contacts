@@ -78,9 +78,20 @@ class RegionWidget(widgets.Select):
 		return mark_safe('\n'.join(output))
 
 
+class ContactListAdminForm(forms.ModelForm):
+	zip = forms.CharField(required=False,
+		widget=widgets.TextInput(attrs={'size': '8'}))
+
+	class Meta:
+		model = Contact
+		fields = '__all__'
+
+
 class ContactAdminForm(forms.ModelForm):
 	region = forms.ModelChoiceField(queryset=Region.objects.all(),
 				widget=RegionWidget(), required=False)
+	zip = forms.CharField(required=False,
+		widget=widgets.TextInput(attrs={'size': '8'}))
 
 	def __init__(self, *args, **kwargs):
 		'''

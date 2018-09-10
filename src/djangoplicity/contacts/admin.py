@@ -34,26 +34,29 @@
 Admin interfaces for contact models.
 """
 
+import StringIO
 from collections import OrderedDict
 from datetime import datetime
 
 from django.conf.urls import url
 from django.contrib import admin
-from django.http import Http404
+from django.http import Http404, HttpResponse
 from django import forms
-from django.shortcuts import get_object_or_404
 from django.shortcuts import get_object_or_404, render, redirect
 # pylint: disable=E0611
 
 from djangoplicity.admincomments.admin import AdminCommentInline, \
 	AdminCommentMixin
-from djangoplicity.contacts.forms import ContactAdminForm, ContactForm
+from djangoplicity.contacts.exporter import ExcelExporter
+from djangoplicity.contacts.forms import ContactAdminForm, ContactForm, \
+	ContactListAdminForm
 from djangoplicity.contacts.models import ContactGroup, Contact, Country, \
 	CountryGroup, GroupCategory, ContactField, Field, Label, PostalZone, \
 	ContactGroupAction, ImportTemplate, ImportMapping, ImportSelector, \
 	ImportGroupMapping, Import, CONTACTS_FIELDS, Deduplication, \
 	Region
-from djangoplicity.contacts.tasks import import_data, contactgroup_change_check
+from djangoplicity.contacts.tasks import import_data, contactgroup_change_check, \
+	direct_import_data
 
 
 class ImportSelectorInlineAdmin( admin.TabularInline ):
@@ -69,7 +72,9 @@ class ImportMappingForm( forms.ModelForm ):
 
 	def __init__( self, *args, **kwargs ):
 		super( ImportMappingForm, self ).__init__( *args, **kwargs )
-		self.fields['field'].choices = [( '', '---------' )] + CONTACTS_FIELDS + Field.field_options()
+		contact_fields = CONTACTS_FIELDS[:]
+		contact_fields.sort( key=lambda x: x[1] )
+		self.fields['field'].choices = [( '', '---------' )] + contact_fields + Field.field_options()
 
 	class Meta:
 		model = ImportMapping
@@ -87,10 +92,19 @@ class ImportGroupMappingInlineAdmin( admin.TabularInline ):
 	extra = 0
 
 
+def direct_import(modeladmin, request, queryset):
+	for i in queryset:
+		direct_import_data.delay(i.pk)
+
+
+direct_import.short_description = 'Import without deduplication'
+
+
 class ImportAdmin( admin.ModelAdmin ):
 	list_display = [ 'template', 'last_modified', 'created' ]
 	list_filter = [ 'last_modified', 'created' ]
 	readonly_fields = ['status', 'last_modified', 'created' ]
+	actions = [direct_import]
 	fieldsets = (
 		( None, {
 			'fields': ( 'template', 'data_file', )
@@ -106,6 +120,7 @@ class ImportAdmin( admin.ModelAdmin ):
 			url( r'^(?P<pk>[0-9]+)/preview/$', self.admin_site.admin_view( self.preview_view ), name='contacts_import_preview' ),
 			url( r'^(?P<pk>[0-9]+)/import/$', self.admin_site.admin_view( self.import_view ), name='contacts_import' ),
 			url( r'^(?P<pk>[0-9]+)/review/$', self.admin_site.admin_view( self.review_view ), name='contacts_import_review' ),
+			url( r'^(?P<pk>[0-9]+)/live/$', self.admin_site.admin_view( self.live_review_view ), name='contacts_import_live_review' ),
 		]
 		return extra_urls + urls
 
@@ -258,6 +273,16 @@ class ImportAdmin( admin.ModelAdmin ):
 		else:
 			raise Http404
 
+	def live_review_view(self, request, pk=None):
+		obj = get_object_or_404(Import, pk=pk )
+
+		return render(request, 'admin/contacts/import/live-review.html', {
+			'object': obj,
+			'messages': [],
+			'app_label': obj._meta.app_label,
+			'opts': obj._meta,
+		})
+
 	def review_view( self, request, pk=None ):
 		"""
 		Run a duplicate detection tasks in the background
@@ -350,7 +375,7 @@ class RegionAdmin(admin.ModelAdmin):
 	'''
 	list_display = ['country', 'name', 'local_name', 'code']
 	list_filter = ['country']
-	search_fields = ['country', 'name', 'local_name', 'code']
+	search_fields = ['country__name', 'name', 'local_name', 'code']
 	list_select_related = ['country']
 	readonly_fields = ['country', 'name', 'local_name', 'code']
 
@@ -429,10 +454,10 @@ class ContactFieldInlineAdmin( admin.TabularInline ):
 
 class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 	form = ContactAdminForm
-	list_display = ['id', 'title', 'last_name', 'first_name', 'position', 'organisation', 'department', 'tags', 'group_order', 'street_1', 'street_2', 'tax_code', 'city', 'country', 'region', 'language', 'email', 'phone', 'website', 'created', 'last_modified' ]
-	list_editable = ['title', 'first_name', 'last_name', 'position', 'email', 'organisation', 'department', 'street_1', 'street_2', 'city', 'phone', 'website', 'language', ]
+	list_display = ['id', 'title', 'last_name', 'first_name', 'position', 'organisation', 'department', 'tags', 'group_order', 'street_1', 'street_2', 'tax_code', 'city', 'zip', 'country', 'region', 'language', 'email', 'phone', 'website', 'created', 'last_modified' ]
+	list_editable = ['title', 'first_name', 'last_name', 'position', 'email', 'organisation', 'department', 'street_1', 'street_2', 'city', 'zip', 'phone', 'website', 'language', ]
 	list_filter = ['last_modified', 'groups__category__name', 'groups', 'country__groups', 'extra_fields__name', 'country', 'language', 'title' ]
-	search_fields = ['first_name', 'last_name', 'title', 'position', 'email', 'organisation', 'department', 'street_1', 'street_2', 'city', 'phone', 'website', 'social', ]
+	search_fields = ['first_name', 'last_name', 'title', 'position', 'email', 'organisation', 'department', 'street_1', 'street_2', 'city', 'zip', 'phone', 'website', 'social', ]
 	fieldsets = (
 		( None, {
 			'fields': ( ( 'id', 'created', 'last_modified' ), )
@@ -441,7 +466,7 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 			'fields': ( ( 'title', 'first_name', 'last_name' ), 'position', )
 		} ),
 		( 'Address', {
-			'fields': ( 'organisation', 'department', 'street_1', 'street_2', 'tax_code', 'city', 'country', 'region' )
+			'fields': ( 'organisation', 'department', 'street_1', 'street_2', 'tax_code', 'city', 'zip', 'country', 'region' )
 		} ),
 		( 'Groups', {
 			'fields': ( 'groups', )
@@ -464,9 +489,12 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 	def get_urls( self ):
 		urls = super( ContactAdmin, self ).get_urls()
 		extra_urls = [
-			url( r'^(?P<pk>[0-9]+)/label/$', self.admin_site.admin_view( self.label_view ) ),
+			url( r'^(?P<pk>[0-9]+)/label/$', self.admin_site.admin_view( self.label_view ), name='contacts_label' ),
 		]
 		return extra_urls + urls
+
+	def get_changelist_form(self, request, **kwargs):
+		return ContactListAdminForm
 
 	def label_view( self, request, pk=None ):
 		"""
@@ -504,6 +532,38 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 		"""
 		return label.get_label_render().render_http_response( queryset, 'contact_labels.pdf' )
 
+	def action_export_xls(self, modeladmin, request, queryset):
+		output = StringIO.StringIO()
+
+		title = 'Contacts'
+		fields = ('id', 'title', 'first_name', 'last_name', 'position',
+			'organisation', 'department', 'street_1', 'street_2', 'zip',
+			'city', 'country', 'region', 'tax_code', 'phone', 'website',
+			'social', 'email', 'language')
+		many2many_fields = ('groups', )
+
+		exporter = ExcelExporter(
+			filename_or_stream=output,
+			title=title,
+			header=[(field, None) for field in fields + many2many_fields]
+		)
+
+		for c in queryset:
+			data = dict([
+				(field, getattr(c, field)) for field in fields
+			])
+			for field in many2many_fields:
+				data[field] = ', '.join([
+					unicode(value) for value in getattr(c, field).all()
+				])
+			exporter.writedata(data)
+
+		exporter.save()
+
+		response = HttpResponse(output.getvalue(), content_type='application/vnd.ms-excel')
+		response['Content-Disposition'] = 'attachment; filename={}.xls'.format(title)
+		return response
+
 	def action_set_group( self, request, queryset, group=None, remove=False ):
 		"""
 		Action method for set/removing groups to contacts.
@@ -523,7 +583,10 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 		Helper method to define an admin action for a specific label
 		"""
 		name = 'make_label_%s' % label.pk
-		action = lambda modeladmin, request, queryset: modeladmin.action_make_label( request, queryset, label=label )
+
+		def action(modeladmin, request, queryset):
+			return modeladmin.action_make_label( request, queryset, label=label )
+
 		return ( name, ( action, name, "Make labels for selected objects (%s)" % label.name ) )
 
 	def _make_group_action( self, group, remove=False ):
@@ -531,7 +594,10 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 		Helper method to define an admin action for a specific group
 		"""
 		name = 'unset_group_%s' % group.pk if remove else 'set_group_%s' % group.pk
-		action = lambda modeladmin, request, queryset: modeladmin.action_set_group( request, queryset, group=group, remove=remove )
+
+		def action(modeladmin, request, queryset):
+			return modeladmin.action_set_group( request, queryset, group=group, remove=remove )
+
 		return ( name, ( action, name, "%s group %s" % ("Unset" if remove else "Set", group.name) ) )
 
 	def get_actions( self, request ):
@@ -539,6 +605,7 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
 		Dynamically add admin actions for creating labels based on enabled labels.
 		"""
 		actions = super( ContactAdmin, self ).get_actions( request )
+		actions['export_xls'] = (self.action_export_xls, 'export_xls', 'Export selected contacts to XLS')
 		actions.update( OrderedDict( [self._make_label_action( l ) for l in Label.objects.filter( enabled=True ).order_by( 'name' )] ) )
 		actions.update( OrderedDict( [self._make_group_action( g, remove=False ) for g in ContactGroup.objects.all().order_by( 'name' )] ) )
 		actions.update( OrderedDict( [self._make_group_action( g, remove=True ) for g in ContactGroup.objects.all().order_by( 'name' )] ) )
