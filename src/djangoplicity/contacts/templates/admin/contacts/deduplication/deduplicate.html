@@ -34,44 +34,44 @@
 
 {% block content %}
 {% if errorlist %}
-	<h1>Deduplication failed!</h1>
-	<br />
-	<p>Press the <em>Back</em> button of your browser and fix the following errors:</p>
-	<ul>
-		{% for line in errorlist %}
-		<li>
-			<h3>Contact: {{ line.contact }} ({{ line.contact.id }})</h3>
-			<ul>
-				{% for error in line.errors %}
-				<li><strong>{{ error.field }}:</strong> {{ error.value }}<br />{{ error.error.0 }}</li>
-				{% endfor %}
-			</ul>
-		</li>
-		{% endfor %}
-	</ul>
+    <h1>Deduplication failed!</h1>
+    <br />
+    <p>Press the <em>Back</em> button of your browser and fix the following errors:</p>
+    <ul>
+        {% for line in errorlist %}
+        <li>
+            <h3>Contact: {{ line.contact }} ({{ line.contact.id }})</h3>
+            <ul>
+                {% for error in line.errors %}
+                <li><strong>{{ error.field }}:</strong> {{ error.value }}<br />{{ error.error.0 }}</li>
+                {% endfor %}
+            </ul>
+        </li>
+        {% endfor %}
+    </ul>
 {% else %}
-	<h1>Contacts Import Complete</h1>
-	<br />
-	<p>
-		{% if resultlist.errors %}
-		<h2>Errors:</h2>
-		<ul>
-			{% for error in resultlist.errors %}
-				<li>{{ error|safe }}</li>
-			{% endfor %}
-		</ul>
-		{% endif %}
-		{% if resultlist.messages %}
-		<h2>Messages:</h2>
-		<ul>
-			{% for message in resultlist.messages %}
-				<li>{{ message|safe }}</li>
-			{% endfor %}
-		</ul>
-		{% endif %}
-	</p>
-	<p>
-	<a href="{% url 'admin:contacts_deduplication_review' object.pk %}">Back to review page</a>
-	</p>
+    <h1>Contacts Import Complete</h1>
+    <br />
+    <p>
+        {% if resultlist.errors %}
+        <h2>Errors:</h2>
+        <ul>
+            {% for error in resultlist.errors %}
+                <li>{{ error|safe }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+        {% if resultlist.messages %}
+        <h2>Messages:</h2>
+        <ul>
+            {% for message in resultlist.messages %}
+                <li>{{ message|safe }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+    </p>
+    <p>
+    <a href="{% url 'admin:contacts_deduplication_review' object.pk %}">Back to review page</a>
+    </p>
 {% endif %}
 {% endblock %}

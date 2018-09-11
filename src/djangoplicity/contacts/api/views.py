@@ -39,14 +39,14 @@ from djangoplicity.contacts.api.serializers import ImportSerializer
 
 
 class ImportDetail(APIView):
-	def get_object(self, pk):
-		try:
-			return Import.objects.get(pk=pk)
-		except Import.DoesNotExist:
-			raise Http404
+    def get_object(self, pk):
+        try:
+            return Import.objects.get(pk=pk)
+        except Import.DoesNotExist:
+            raise Http404
 
-	def get(self, request, pk, format=None):
-		obj = self.get_object(pk)
-		serializer = ImportSerializer(obj)
+    def get(self, request, pk, format=None):
+        obj = self.get_object(pk)
+        serializer = ImportSerializer(obj)
 
-		return Response(serializer.data)
+        return Response(serializer.data)

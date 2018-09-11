@@ -3,13 +3,13 @@
 {% load static %}
 
 {% block extrastyle %}
-	{{ block.super }}
-	<link rel="stylesheet" type="text/css" href="{{STATIC_URL}}admin/css/changelists.css" />
-	{{ media.css }}
+    {{ block.super }}
+    <link rel="stylesheet" type="text/css" href="{{STATIC_URL}}admin/css/changelists.css" />
+    {{ media.css }}
     <style>
       #changelist table thead th:first-child {width: inherit}
     </style>
-	<link rel="stylesheet" type="text/css" href="{% static 'css/review.css' %}" />
+    <link rel="stylesheet" type="text/css" href="{% static 'css/review.css' %}" />
 {% endblock %}
 
 {% block extrahead %}
@@ -38,7 +38,7 @@
 <div id="review">
 </div>
 <script>
-	const importPK = {{object.pk}};
+    const importPK = {{object.pk}};
 </script>
 <script src="{% static 'js/review.js' %}"></script>
 {% endblock %}
