@@ -69,7 +69,7 @@ class RegionWidget(widgets.Select):
 			for region in obj.country.region_set.all():
 				self.choices.append((region.pk, region.name))
 
-		final_attrs = self.build_attrs(attrs, name=name)
+		final_attrs = self.build_attrs(attrs, {'name': name})
 		output = [format_html('<select{}>', flatatt(final_attrs))]
 		options = self.render_options(choices, [value])
 		if options:
