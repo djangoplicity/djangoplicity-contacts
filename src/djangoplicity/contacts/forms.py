@@ -34,11 +34,8 @@ from crispy_forms.layout import Submit
 
 from django import forms
 from django.forms import ModelForm, widgets
-from django.forms.utils import flatatt
-from django.utils.html import format_html
-from django.utils.safestring import mark_safe
 
-from djangoplicity.contacts.models import Contact, Region
+from djangoplicity.contacts.models import Contact
 
 
 class ContactForm(ModelForm):
@@ -52,32 +49,6 @@ class ContactForm(ModelForm):
         exclude = ('extra_fields', )
 
 
-class RegionWidget(widgets.Select):
-    def render(self, name, value, attrs=None, choices=()):
-        self.choices = [(u'', u'---------')]
-        if value is None:
-            # No Region currently selected, if a country is selected
-            # then list regions from said country
-            value = ''
-            instance = self.form.instance
-            if instance and instance.country:
-                for region in instance.country.region_set.all():
-                    self.choices.append((region.pk, region.name))
-        else:
-            # Only list the regions from the current region's country
-            obj = Region.objects.get(pk=value)
-            for region in obj.country.region_set.all():
-                self.choices.append((region.pk, region.name))
-
-        final_attrs = self.build_attrs(attrs, {'name': name})
-        output = [format_html('<select{}>', flatatt(final_attrs))]
-        options = self.render_options(choices, [value])
-        if options:
-            output.append(options)
-        output.append('</select>')
-        return mark_safe('\n'.join(output))
-
-
 class ContactListAdminForm(forms.ModelForm):
     zip = forms.CharField(required=False,
         widget=widgets.TextInput(attrs={'size': '8'}))
@@ -88,17 +59,10 @@ class ContactListAdminForm(forms.ModelForm):
 
 
 class ContactAdminForm(forms.ModelForm):
-    region = forms.ModelChoiceField(queryset=Region.objects.all(),
-                widget=RegionWidget(), required=False)
+    #  region = forms.ModelChoiceField(queryset=Region.objects.all(),
+    #              widget=RegionWidget(), required=False)
     zip = forms.CharField(required=False,
         widget=widgets.TextInput(attrs={'size': '8'}))
-
-    def __init__(self, *args, **kwargs):
-        '''
-        Allow Region widget to access form
-        '''
-        super(ContactAdminForm, self).__init__(*args, **kwargs)
-        self.fields['region'].widget.form = self
 
     class Meta:
         model = Contact
@@ -106,13 +70,9 @@ class ContactAdminForm(forms.ModelForm):
 
 
 class ContactPublicForm(forms.ModelForm):
-    region = forms.ModelChoiceField(queryset=Region.objects.all(),
-                widget=RegionWidget(), required=False)
-
     def __init__(self, *args, **kwargs):
         super(ContactPublicForm, self).__init__(*args, **kwargs)
         # Allow Region widget to access form
-        self.fields['region'].widget.form = self
         self.helper = FormHelper()
         self.helper.form_class = 'form-horizontal'
         self.helper.label_class = 'col-md-2'

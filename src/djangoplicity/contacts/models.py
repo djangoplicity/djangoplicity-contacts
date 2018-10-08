@@ -188,14 +188,14 @@ class Country( models.Model ):
     postal_zone = models.ForeignKey( PostalZone, null=True, blank=True )
     groups = models.ManyToManyField( CountryGroup, blank=True )
 
-    def get_zip_city( self, zip, city ):
+    def get_zip_city( self, zip_, city ):
         """
         Method to combine ZIP/post case and city for a country.
         """
         if self.zip_after_city:
-            return ( "%s %s" % ( city, zip ) ).strip()
+            return ( "%s %s" % ( city, zip_ ) ).strip()
         else:
-            return ( "%s %s" % ( zip, city ) ).strip()
+            return ( "%s %s" % ( zip_, city ) ).strip()
 
     @classmethod
     def country_index( cls ):
