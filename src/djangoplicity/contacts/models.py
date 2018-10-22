@@ -1409,7 +1409,7 @@ class ImportGroupMapping( models.Model ):
         self.mapping.clear_groupmap_cache()
 
 
-upload_dir = os.path.join( settings.TMP_DIR, 'contacts_import' )
+upload_dir = os.path.join( settings.SHARED_DIR, 'contacts_import' )
 upload_fs = FileSystemStorage( location=upload_dir, base_url=None )
 
 
