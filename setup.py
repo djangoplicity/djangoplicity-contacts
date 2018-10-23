@@ -33,27 +33,27 @@
 from setuptools import setup, find_packages
 
 setup(
-	name='djangoplicity-contacts',
-	version='0.1',
-	packages=find_packages('src'),
-	package_dir={ '': 'src' },
-	include_package_data=True,
-	zip_safe=False,
-	namespace_packages=['djangoplicity'],
+    name='djangoplicity-contacts',
+    version='0.1',
+    packages=find_packages('src'),
+    package_dir={ '': 'src' },
+    include_package_data=True,
+    zip_safe=False,
+    namespace_packages=['djangoplicity'],
     install_requires=[
-		'setuptools',
-		'django-crispy-forms',
-		'django-dirtyfields',
-		'hashids',
-		'xlrd',
-		'xlwt',
-	],
+        'setuptools',
+        'django-crispy-forms',
+        'django-dirtyfields',
+        'hashids',
+        'xlrd',
+        'xlwt',
+    ],
 
-	# metadata for upload to PyPI
-	author='European Southern Observatory',
-	author_email='information@eso.org',
-	description='Djangoplicity application for managing contacts (features include label generation)',
-	license="New BSD License",
-	keywords="django djangoplicity contacts labels pdf",
-	url="http://www.djangoplicity.org"
+    # metadata for upload to PyPI
+    author='European Southern Observatory',
+    author_email='information@eso.org',
+    description='Djangoplicity application for managing contacts (features include label generation)',
+    license="New BSD License",
+    keywords="django djangoplicity contacts labels pdf",
+    url="http://www.djangoplicity.org"
 )

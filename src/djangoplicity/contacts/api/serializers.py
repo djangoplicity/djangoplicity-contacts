@@ -36,79 +36,79 @@ import json
 from rest_framework import serializers
 
 from djangoplicity.contacts.models import Country, Region, Import, \
-	ImportMapping, ContactGroup, CONTACTS_FIELDS
+    ImportMapping, ContactGroup, CONTACTS_FIELDS
 
 
 class ContactGroupSerializer(serializers.ModelSerializer):
-	class Meta:
-		model = ContactGroup
-		fields = ('pk', 'name')
+    class Meta:
+        model = ContactGroup
+        fields = ('pk', 'name')
 
 
 class CountrySerializer(serializers.ModelSerializer):
-	class Meta:
-		model = Country
-		fields = ('pk', 'name')
+    class Meta:
+        model = Country
+        fields = ('pk', 'name')
 
 
 class RegionSerializer(serializers.ModelSerializer):
-	class Meta:
-		model = Region
-		fields = ('pk', 'name', 'country')
+    class Meta:
+        model = Region
+        fields = ('pk', 'name', 'country')
 
 
 class MappingSerializer(serializers.ModelSerializer):
-	class Meta:
-		model = ImportMapping
-		fields = ('header', 'field', 'group_separator')
+    class Meta:
+        model = ImportMapping
+        fields = ('header', 'field', 'group_separator')
 
 
 class ImportSerializer(serializers.ModelSerializer):
-	data = serializers.SerializerMethodField(read_only=True)
-	duplicate_contacts = serializers.SerializerMethodField(read_only=True)
-	imported_contacts = serializers.SerializerMethodField(read_only=True)
-	contact_fields = serializers.SerializerMethodField(read_only=True)
-	countries = serializers.SerializerMethodField(read_only=True)
-	regions = serializers.SerializerMethodField(read_only=True)
-	groups = serializers.SerializerMethodField(read_only=True)
+    data = serializers.SerializerMethodField(read_only=True)
+    duplicate_contacts = serializers.SerializerMethodField(read_only=True)
+    imported_contacts = serializers.SerializerMethodField(read_only=True)
+    contact_fields = serializers.SerializerMethodField(read_only=True)
+    countries = serializers.SerializerMethodField(read_only=True)
+    regions = serializers.SerializerMethodField(read_only=True)
+    groups = serializers.SerializerMethodField(read_only=True)
 
-	def get_data(self, obj):
-		mapping, rows = obj.preview_data()
+    def get_data(self, obj):
+        mapping, rows = obj.preview_data()
 
-		return {
-			'rows': rows,
-			'mapping': MappingSerializer(mapping[1:], many=True).data,
-		}
+        return {
+            'rows': rows,
+            'mapping': MappingSerializer(mapping[1:], many=True).data,
+        }
 
-	def get_duplicate_contacts(self, obj):
-		if obj.duplicate_contacts:
-			return json.loads(obj.duplicate_contacts)
-		else:
-			return {}
+    def get_duplicate_contacts(self, obj):
+        if obj.duplicate_contacts:
+            return json.loads(obj.duplicate_contacts)
+        else:
+            return {}
 
-	def get_imported_contacts(self, obj):
-		if obj.imported_contacts:
-			return json.loads(obj.imported_contacts)
-		else:
-			return {}
+    def get_imported_contacts(self, obj):
+        if obj.imported_contacts:
+            return json.loads(obj.imported_contacts)
+        else:
+            return {}
 
-	def get_contact_fields(self, obj):
-		return [f for f in CONTACTS_FIELDS if f[0] != 'pk']
+    def get_contact_fields(self, obj):
+        return [f for f in CONTACTS_FIELDS if f[0] != 'pk']
 
-	def get_countries(self, obj):
-		countries = Country.objects.all()
-		return CountrySerializer(countries, many=True).data
+    def get_countries(self, obj):
+        countries = Country.objects.all()
+        return CountrySerializer(countries, many=True).data
 
-	def get_regions(self, obj):
-		regions = Region.objects.all()
-		return RegionSerializer(regions, many=True).data
+    def get_regions(self, obj):
+        regions = Region.objects.all()
+        return RegionSerializer(regions, many=True).data
 
-	def get_groups(self, obj):
-		groups = ContactGroup.objects.all()
-		return ContactGroupSerializer(groups, many=True).data
+    def get_groups(self, obj):
+        groups = ContactGroup.objects.all()
+        return ContactGroupSerializer(groups, many=True).data
 
-	class Meta:
-		model = Import
-		fields = ('status', 'template', 'data', 'duplicate_contacts',
-			'imported_contacts', 'contact_fields', 'countries', 'regions',
-			'groups')
+    class Meta:
+        model = Import
+        fields = ('status', 'template', 'data', 'duplicate_contacts',
+            'imported_contacts', 'contact_fields', 'countries', 'regions',
+            'groups')

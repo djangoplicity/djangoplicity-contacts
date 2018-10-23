@@ -34,187 +34,187 @@ from django.test import TestCase
 from djangoplicity.contacts.models import Contact, ContactGroup
 
 class OrderPropagationTestCase( TestCase ):
-	"""
-	Testing that the ContactGroup.order is propagated 
-	correctly to Contact.group_order.
-	"""
+    """
+    Testing that the ContactGroup.order is propagated 
+    correctly to Contact.group_order.
+    """
 
-	def _clean( self ):
-		"""
-		Setup contacts and groups
-		"""
-		ContactGroup.objects.all().delete()
-		Contact.objects.all().delete()
-		Contact.groups.through.objects.all().delete()
+    def _clean( self ):
+        """
+        Setup contacts and groups
+        """
+        ContactGroup.objects.all().delete()
+        Contact.objects.all().delete()
+        Contact.groups.through.objects.all().delete()
 
-		self.c1 = Contact()
-		self.c2 = Contact()
-		self.contacts = [self.c1, self.c2]
+        self.c1 = Contact()
+        self.c2 = Contact()
+        self.contacts = [self.c1, self.c2]
 
-		self.g1 = ContactGroup( name='g1', order=1 )
-		self.g2 = ContactGroup( name='g2', order=2 )
-		self.g3 = ContactGroup( name='g3', order=3 )
-		self.groups = [self.g1, self.g2, self.g3]
+        self.g1 = ContactGroup( name='g1', order=1 )
+        self.g2 = ContactGroup( name='g2', order=2 )
+        self.g3 = ContactGroup( name='g3', order=3 )
+        self.groups = [self.g1, self.g2, self.g3]
 
-		for x in self.contacts + self.groups:
-			x.save()
+        for x in self.contacts + self.groups:
+            x.save()
 
-	def _check( self, contact, expected ):
-		"""
-		Check value of Contact.group_order
-		"""
-		self.assertEqual( Contact.objects.get( pk=contact.pk ).group_order, expected )
+    def _check( self, contact, expected ):
+        """
+        Check value of Contact.group_order
+        """
+        self.assertEqual( Contact.objects.get( pk=contact.pk ).group_order, expected )
 
-	def test_add_group( self ):
-		"""
-		Adding groups to a contact and propagating the ContactGroup.order value
-		"""
-		self._clean()
+    def test_add_group( self ):
+        """
+        Adding groups to a contact and propagating the ContactGroup.order value
+        """
+        self._clean()
 
-		# Initial condition
-		self._check( self.c1, None )
+        # Initial condition
+        self._check( self.c1, None )
 
-		# New order value
-		self.c1.groups.add( self.g2 )
-		self._check( self.c1, self.g2.order )
+        # New order value
+        self.c1.groups.add( self.g2 )
+        self._check( self.c1, self.g2.order )
 
-		# Lower order value
-		self.c1.groups.add( self.g1 )
-		self._check( self.c1, self.g1.order )
+        # Lower order value
+        self.c1.groups.add( self.g1 )
+        self._check( self.c1, self.g1.order )
 
-		# Higher order value
-		self.c1.groups.add( self.g3 )
-		self._check( self.c1, self.g1.order )
+        # Higher order value
+        self.c1.groups.add( self.g3 )
+        self._check( self.c1, self.g1.order )
 
-	def test_remove_group( self ):
-		"""
-		Removing groups from a contact and propagating the ContactGroup.order value
-		"""
-		self._clean()
+    def test_remove_group( self ):
+        """
+        Removing groups from a contact and propagating the ContactGroup.order value
+        """
+        self._clean()
 
-		# Remove group with higher value - group_order value does *not* change
-		self.c1.groups.add( self.g1 )
-		self.c1.groups.add( self.g2 )
-		self._check( self.c1, self.g1.order )
+        # Remove group with higher value - group_order value does *not* change
+        self.c1.groups.add( self.g1 )
+        self.c1.groups.add( self.g2 )
+        self._check( self.c1, self.g1.order )
 
-		self.c1.groups.remove( self.g2 )
-		self._check( self.c1, self.g1.order )
+        self.c1.groups.remove( self.g2 )
+        self._check( self.c1, self.g1.order )
 
-		# Remove group with lower value - group_order value *does* change
-		self.c2.groups.add( self.g1 )
-		self.c2.groups.add( self.g2 )
-		self._check( self.c2, self.g1.order )
+        # Remove group with lower value - group_order value *does* change
+        self.c2.groups.add( self.g1 )
+        self.c2.groups.add( self.g2 )
+        self._check( self.c2, self.g1.order )
 
-		self.c2.groups.remove( self.g1 )
-		self._check( self.c2, self.g2.order )
-		
-	def test_clear_groups( self ):
-		"""
-		Removing groups from a contact and propagating the ContactGroup.order value
-		"""
-		self._clean()
+        self.c2.groups.remove( self.g1 )
+        self._check( self.c2, self.g2.order )
+        
+    def test_clear_groups( self ):
+        """
+        Removing groups from a contact and propagating the ContactGroup.order value
+        """
+        self._clean()
 
-		# Remove group with higher value - group_order value does *not* change
-		self.c1.groups.add( self.g1 )
-		self.c1.groups.add( self.g2 )
-		self._check( self.c1, self.g1.order )
+        # Remove group with higher value - group_order value does *not* change
+        self.c1.groups.add( self.g1 )
+        self.c1.groups.add( self.g2 )
+        self._check( self.c1, self.g1.order )
 
-		self.c1.groups.clear()
-		self._check( self.c1, None )
-		
+        self.c1.groups.clear()
+        self._check( self.c1, None )
+        
 
-	def test_change_group( self ):
-		"""
-		Changing the order value
-		"""
-		self._clean()
-		
-		self.c1.groups.add( self.g1 )
-		self.c1.groups.add( self.g2 )
-		self.c2.groups.add( self.g2 )
-		self.c2.groups.add( self.g3 )
-		self._check( self.c1, self.g1.order )
-		self._check( self.c2, self.g2.order )
-		
-		# No propagation
-		self.g1.name = 'TEST'
-		self.g1.save()
-		self._check( self.c1, self.g1.order )
-		self._check( self.c2, self.g2.order )
-		
-		# Change to a lower value - group_order value updated to new value
-		self.g1.order = 0
-		self.g1.save()
-		
-		self._check( self.c1, self.g1.order )
-		self._check( self.c2, self.g2.order )
-		
-		self.g1.order = 1
-		self.g1.save()
-		
-		self._check( self.c1, self.g1.order )
-		self._check( self.c2, self.g2.order )
-		
-		# Change to a higher value - group_order value is updated to a another groups value
-		self.g1.order = 4
-		self.g1.save()
-		
-		self._check( self.c1, self.g2.order )
-		self._check( self.c2, self.g2.order )
-		
-		# Change to a higher value - no changes
-		self.g1.order = 5
-		self.g1.save()
-		
-		self._check( self.c1, self.g2.order )
-		self._check( self.c2, self.g2.order )
-		
-		# Change multiple
-		self.g2.order = 1
-		self.g2.save()
-		
-		self._check( self.c1, self.g2.order )
-		self._check( self.c2, self.g2.order )
-		
-		self.g1.order = 0
-		self.g1.save()
-		
-		self._check( self.c1, self.g1.order )
-		self._check( self.c2, self.g2.order )
+    def test_change_group( self ):
+        """
+        Changing the order value
+        """
+        self._clean()
+        
+        self.c1.groups.add( self.g1 )
+        self.c1.groups.add( self.g2 )
+        self.c2.groups.add( self.g2 )
+        self.c2.groups.add( self.g3 )
+        self._check( self.c1, self.g1.order )
+        self._check( self.c2, self.g2.order )
+        
+        # No propagation
+        self.g1.name = 'TEST'
+        self.g1.save()
+        self._check( self.c1, self.g1.order )
+        self._check( self.c2, self.g2.order )
+        
+        # Change to a lower value - group_order value updated to new value
+        self.g1.order = 0
+        self.g1.save()
+        
+        self._check( self.c1, self.g1.order )
+        self._check( self.c2, self.g2.order )
+        
+        self.g1.order = 1
+        self.g1.save()
+        
+        self._check( self.c1, self.g1.order )
+        self._check( self.c2, self.g2.order )
+        
+        # Change to a higher value - group_order value is updated to a another groups value
+        self.g1.order = 4
+        self.g1.save()
+        
+        self._check( self.c1, self.g2.order )
+        self._check( self.c2, self.g2.order )
+        
+        # Change to a higher value - no changes
+        self.g1.order = 5
+        self.g1.save()
+        
+        self._check( self.c1, self.g2.order )
+        self._check( self.c2, self.g2.order )
+        
+        # Change multiple
+        self.g2.order = 1
+        self.g2.save()
+        
+        self._check( self.c1, self.g2.order )
+        self._check( self.c2, self.g2.order )
+        
+        self.g1.order = 0
+        self.g1.save()
+        
+        self._check( self.c1, self.g1.order )
+        self._check( self.c2, self.g2.order )
 
 
-	def test_delete_group( self ):
-		"""
-		Deleting a group
-		"""
-		self._clean()
-		
-		self.c1.groups.add( self.g1 )
-		self.c1.groups.add( self.g2 )
-		self.c2.groups.add( self.g2 )
-		self.c2.groups.add( self.g3 )
-		self._check( self.c1, self.g1.order )
-		self._check( self.c2, self.g2.order )
+    def test_delete_group( self ):
+        """
+        Deleting a group
+        """
+        self._clean()
+        
+        self.c1.groups.add( self.g1 )
+        self.c1.groups.add( self.g2 )
+        self.c2.groups.add( self.g2 )
+        self.c2.groups.add( self.g3 )
+        self._check( self.c1, self.g1.order )
+        self._check( self.c2, self.g2.order )
 
-		self.g1.delete()
-		
-		self._check( self.c1, self.g2.order )
-		self._check( self.c2, self.g2.order )
-		
-		self.g3.delete()
-		
-		self._check( self.c1, self.g2.order )
-		self._check( self.c2, self.g2.order )
-		
-		self.g2.delete()
-		
-		self._check( self.c1, None )
-		self._check( self.c2, None )
-		
-		
-	def test_delete_group_null( self ):
-		self._clean()
-		
-		grp = ContactGroup( name='g1', order=None )
-		grp.save()
-		grp.delete()
+        self.g1.delete()
+        
+        self._check( self.c1, self.g2.order )
+        self._check( self.c2, self.g2.order )
+        
+        self.g3.delete()
+        
+        self._check( self.c1, self.g2.order )
+        self._check( self.c2, self.g2.order )
+        
+        self.g2.delete()
+        
+        self._check( self.c1, None )
+        self._check( self.c2, None )
+        
+        
+    def test_delete_group_null( self ):
+        self._clean()
+        
+        grp = ContactGroup( name='g1', order=None )
+        grp.save()
+        grp.delete()

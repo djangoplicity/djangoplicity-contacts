@@ -40,37 +40,37 @@
       {% endblock %}
       <form id="changelist-form" action="" method="post"{% if cl.formset.is_multipart %} enctype="multipart/form-data"{% endif %}>{% csrf_token %}
       {% block result_list %}
-          	{% if labels %}
-			<table cellspacing="0" id="result_list">
-			<thead>
-			<tr>
-			<th>Label name</th>
-			<th>Paper</th>
-			<th>Repeat</th>
-			<th></th>
-			</tr>
-			</thead>
-			<tbody>
-			{% for label in labels %}
-			<tr class="{% cycle 'row1' 'row2' %}">
-			<td>{{label.name}}</td>
-			<td>{{label.get_paper_display}}</td>
-			<td>{{label.repeat}}</td>
-			<td><a href="?label={{label.pk}}">Download</a></td>
-			</tr>
-			{% endfor %}
-			</tbody>
-			</table>
-			{% endif %}
+            {% if labels %}
+            <table cellspacing="0" id="result_list">
+            <thead>
+            <tr>
+            <th>Label name</th>
+            <th>Paper</th>
+            <th>Repeat</th>
+            <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for label in labels %}
+            <tr class="{% cycle 'row1' 'row2' %}">
+            <td>{{label.name}}</td>
+            <td>{{label.get_paper_display}}</td>
+            <td>{{label.repeat}}</td>
+            <td><a href="?label={{label.pk}}">Download</a></td>
+            </tr>
+            {% endfor %}
+            </tbody>
+            </table>
+            {% endif %}
 
       {% endblock %}
-		<p class="paginator">
-		{% if objects.has_other_pages %}
-		{% for i in objects.paginator.page_range %}
-		{% if objects.number == i %}<span class="this-page">{{i}}</span>{% else %}<a href="?p={{i}}">{{i}}</a> {% endif %}		
-		{% endfor %}
-		{% endif %}
-		</p>
+        <p class="paginator">
+        {% if objects.has_other_pages %}
+        {% for i in objects.paginator.page_range %}
+        {% if objects.number == i %}<span class="this-page">{{i}}</span>{% else %}<a href="?p={{i}}">{{i}}</a> {% endif %}      
+        {% endfor %}
+        {% endif %}
+        </p>
       </form>
     </div>
   </div>

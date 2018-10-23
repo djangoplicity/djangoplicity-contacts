@@ -5,11 +5,11 @@
 {% if change %}{% if not is_popup %}
   <ul class="object-tools">
     {% block object-tools-items %}
-	{% if original.last_deduplication %}
-	<li><a href="{% url 'admin_site:contacts_import_review' original.pk %}" class="historylink">Review duplicates</a></li>
-	{% endif %}
-	<li><a href="{% url 'admin_site:contacts_import_preview' original.pk %}" class="historylink">Preview</a></li>
-	<li><a href="{% url opts|admin_urlname:'history' original.pk|admin_urlquote %}" class="historylink">{% trans "History" %}</a></li>
+    {% if original.last_deduplication %}
+    <li><a href="{% url 'admin_site:contacts_import_review' original.pk %}" class="historylink">Review duplicates</a></li>
+    {% endif %}
+    <li><a href="{% url 'admin_site:contacts_import_preview' original.pk %}" class="historylink">Preview</a></li>
+    <li><a href="{% url opts|admin_urlname:'history' original.pk|admin_urlquote %}" class="historylink">{% trans "History" %}</a></li>
     {% if has_absolute_url %}<li><a href="../../../r/{{ content_type_id }}/{{ object_id }}/" class="viewsitelink">{% trans "View on site" %}</a></li>{% endif%}
     {% endblock %}
   </ul>

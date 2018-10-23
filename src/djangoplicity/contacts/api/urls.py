@@ -37,7 +37,7 @@ from djangoplicity.contacts.api.views import ImportDetail
 
 
 urlpatterns = [
-	url(r'^imports/(?P<pk>[0-9]+)/$', ImportDetail.as_view()),
+    url(r'^imports/(?P<pk>[0-9]+)/$', ImportDetail.as_view()),
 ]
 
 urlpatterns = format_suffix_patterns(urlpatterns)

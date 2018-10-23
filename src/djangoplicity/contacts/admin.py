@@ -46,750 +46,750 @@ from django.shortcuts import get_object_or_404, render, redirect
 # pylint: disable=E0611
 
 from djangoplicity.admincomments.admin import AdminCommentInline, \
-	AdminCommentMixin
+    AdminCommentMixin
 from djangoplicity.contacts.exporter import ExcelExporter
 from djangoplicity.contacts.forms import ContactAdminForm, ContactForm, \
-	ContactListAdminForm
+    ContactListAdminForm
 from djangoplicity.contacts.models import ContactGroup, Contact, Country, \
-	CountryGroup, GroupCategory, ContactField, Field, Label, PostalZone, \
-	ContactGroupAction, ImportTemplate, ImportMapping, ImportSelector, \
-	ImportGroupMapping, Import, CONTACTS_FIELDS, Deduplication, \
-	Region
+    CountryGroup, GroupCategory, ContactField, Field, Label, PostalZone, \
+    ContactGroupAction, ImportTemplate, ImportMapping, ImportSelector, \
+    ImportGroupMapping, Import, CONTACTS_FIELDS, Deduplication, \
+    Region
 from djangoplicity.contacts.tasks import import_data, contactgroup_change_check, \
-	direct_import_data
+    direct_import_data
 
 
 class ImportSelectorInlineAdmin( admin.TabularInline ):
-	model = ImportSelector
-	extra = 0
+    model = ImportSelector
+    extra = 0
 
 
 class ImportMappingForm( forms.ModelForm ):
-	"""
-	Form to dynamically set the field choices for an import mapping.
-	"""
-	field = forms.TypedChoiceField()
+    """
+    Form to dynamically set the field choices for an import mapping.
+    """
+    field = forms.TypedChoiceField()
 
-	def __init__( self, *args, **kwargs ):
-		super( ImportMappingForm, self ).__init__( *args, **kwargs )
-		contact_fields = CONTACTS_FIELDS[:]
-		contact_fields.sort( key=lambda x: x[1] )
-		self.fields['field'].choices = [( '', '---------' )] + contact_fields + Field.field_options()
+    def __init__( self, *args, **kwargs ):
+        super( ImportMappingForm, self ).__init__( *args, **kwargs )
+        contact_fields = CONTACTS_FIELDS[:]
+        contact_fields.sort( key=lambda x: x[1] )
+        self.fields['field'].choices = [( '', '---------' )] + contact_fields + Field.field_options()
 
-	class Meta:
-		model = ImportMapping
-		fields = '__all__'
+    class Meta:
+        model = ImportMapping
+        fields = '__all__'
 
 
 class ImportMappingInlineAdmin( admin.TabularInline ):
-	model = ImportMapping
-	form = ImportMappingForm
-	extra = 0
+    model = ImportMapping
+    form = ImportMappingForm
+    extra = 0
 
 
 class ImportGroupMappingInlineAdmin( admin.TabularInline ):
-	model = ImportGroupMapping
-	extra = 0
+    model = ImportGroupMapping
+    extra = 0
 
 
 def direct_import(modeladmin, request, queryset):
-	for i in queryset:
-		direct_import_data.delay(i.pk)
+    for i in queryset:
+        direct_import_data.delay(i.pk)
 
 
 direct_import.short_description = 'Import without deduplication'
 
 
 class ImportAdmin( admin.ModelAdmin ):
-	list_display = [ 'template', 'last_modified', 'created' ]
-	list_filter = [ 'last_modified', 'created' ]
-	readonly_fields = ['status', 'last_modified', 'created' ]
-	actions = [direct_import]
-	fieldsets = (
-		( None, {
-			'fields': ( 'template', 'data_file', )
-		} ),
-		( 'Status', {
-			'fields': ( 'status', 'last_modified', 'created' )
-		} ),
-	)
+    list_display = [ 'template', 'last_modified', 'created' ]
+    list_filter = [ 'last_modified', 'created' ]
+    readonly_fields = ['status', 'last_modified', 'created' ]
+    actions = [direct_import]
+    fieldsets = (
+        ( None, {
+            'fields': ( 'template', 'data_file', )
+        } ),
+        ( 'Status', {
+            'fields': ( 'status', 'last_modified', 'created' )
+        } ),
+    )
 
-	def get_urls( self ):
-		urls = super( ImportAdmin, self ).get_urls()
-		extra_urls = [
-			url( r'^(?P<pk>[0-9]+)/preview/$', self.admin_site.admin_view( self.preview_view ), name='contacts_import_preview' ),
-			url( r'^(?P<pk>[0-9]+)/import/$', self.admin_site.admin_view( self.import_view ), name='contacts_import' ),
-			url( r'^(?P<pk>[0-9]+)/review/$', self.admin_site.admin_view( self.review_view ), name='contacts_import_review' ),
-			url( r'^(?P<pk>[0-9]+)/live/$', self.admin_site.admin_view( self.live_review_view ), name='contacts_import_live_review' ),
-		]
-		return extra_urls + urls
+    def get_urls( self ):
+        urls = super( ImportAdmin, self ).get_urls()
+        extra_urls = [
+            url( r'^(?P<pk>[0-9]+)/preview/$', self.admin_site.admin_view( self.preview_view ), name='contacts_import_preview' ),
+            url( r'^(?P<pk>[0-9]+)/import/$', self.admin_site.admin_view( self.import_view ), name='contacts_import' ),
+            url( r'^(?P<pk>[0-9]+)/review/$', self.admin_site.admin_view( self.review_view ), name='contacts_import_review' ),
+            url( r'^(?P<pk>[0-9]+)/live/$', self.admin_site.admin_view( self.live_review_view ), name='contacts_import_live_review' ),
+        ]
+        return extra_urls + urls
 
-	def preview_view( self, request, pk=None ):
-		"""
-		Show preview of imports based on template
-		"""
-		obj = get_object_or_404( Import, pk=pk )
+    def preview_view( self, request, pk=None ):
+        """
+        Show preview of imports based on template
+        """
+        obj = get_object_or_404( Import, pk=pk )
 
-		try:
-			mapping, rows = obj.preview_data()
-			return render(request,
-				"admin/contacts/import/preview.html",
-				{
-					'columns': mapping,
-					'rows': rows,
-					'object': obj,
-					'messages': [],
-					'app_label': obj._meta.app_label,
-					'opts': obj._meta,
-				}
-			)
-		except Exception, e:
-			return render(request,
-				"admin/contacts/import/preview.html",
-				{
-					'error': e.message,
-					'object': obj,
-					'messages': [],
-					'app_label': obj._meta.app_label,
-					'opts': obj._meta,
-				}
-			)
+        try:
+            mapping, rows = obj.preview_data()
+            return render(request,
+                "admin/contacts/import/preview.html",
+                {
+                    'columns': mapping,
+                    'rows': rows,
+                    'object': obj,
+                    'messages': [],
+                    'app_label': obj._meta.app_label,
+                    'opts': obj._meta,
+                }
+            )
+        except Exception, e:
+            return render(request,
+                "admin/contacts/import/preview.html",
+                {
+                    'error': e.message,
+                    'object': obj,
+                    'messages': [],
+                    'app_label': obj._meta.app_label,
+                    'opts': obj._meta,
+                }
+            )
 
-	@classmethod
-	def clean_import_data(cls, request_POST):
-		'''
-		Clean the POST data to be used by import_data
-		Returns: dict of dicts:
-		{'line_number ': {
-			'target: 'new' or 'id'	# Create new contact or update 'id'
-			'form': {}				# ContactForm for the given contact
-		}, }
-		'''
-		contacts = {}
-		# Identify which entries need to be imported:
-		for key in request_POST:
-			if not key.startswith('_selected_import_'):
-				continue
+    @classmethod
+    def clean_import_data(cls, request_POST):
+        '''
+        Clean the POST data to be used by import_data
+        Returns: dict of dicts:
+        {'line_number ': {
+            'target: 'new' or 'id'  # Create new contact or update 'id'
+            'form': {}              # ContactForm for the given contact
+        }, }
+        '''
+        contacts = {}
+        # Identify which entries need to be imported:
+        for key in request_POST:
+            if not key.startswith('_selected_import_'):
+                continue
 
-			if request_POST.get(key) != 'on':
-				# This should never happen...
-				continue
+            if request_POST.get(key) != 'on':
+                # This should never happen...
+                continue
 
-			import_id = key.split('_selected_import_')[1]
+            import_id = key.split('_selected_import_')[1]
 
-			# Identify if a new contact should be created or an existing one updated:
-			contacts[import_id] = {
-				'target': request_POST.get('_selected_merge_contact_%s' % import_id),
-				'post': request_POST.copy(),
-				# Make a copy of post data so we can handle each entry separately
-			}
+            # Identify if a new contact should be created or an existing one updated:
+            contacts[import_id] = {
+                'target': request_POST.get('_selected_merge_contact_%s' % import_id),
+                'post': request_POST.copy(),
+                # Make a copy of post data so we can handle each entry separately
+            }
 
-		for contact in contacts:
-			target = contacts[contact]['target']
-			if not target:
-				contacts[contact]['form'] = None
-				continue
+        for contact in contacts:
+            target = contacts[contact]['target']
+            if not target:
+                contacts[contact]['form'] = None
+                continue
 
-			# Generate prefix to be used in form:
-			prefix = '%s_%s' % (contact, target)
+            # Generate prefix to be used in form:
+            prefix = '%s_%s' % (contact, target)
 
-			# Remove data from other contacts from the post data:
-			keys_to_delete = []
-			for key in contacts[contact]['post']:
-				if not key.startswith(prefix):
-					keys_to_delete.append(key)
-			for key in keys_to_delete:
-				del contacts[contact]['post'][key]
+            # Remove data from other contacts from the post data:
+            keys_to_delete = []
+            for key in contacts[contact]['post']:
+                if not key.startswith(prefix):
+                    keys_to_delete.append(key)
+            for key in keys_to_delete:
+                del contacts[contact]['post'][key]
 
-			# Fetch the existing contact if updating:
-			if target != 'new':
-				original_contact = Contact.objects.get(id=target.split('_')[1])
-				form = ContactForm(contacts[contact]['post'],
-									instance=original_contact,
-									prefix=prefix)
-			else:
-				form = ContactForm(contacts[contact]['post'], prefix=prefix)
+            # Fetch the existing contact if updating:
+            if target != 'new':
+                original_contact = Contact.objects.get(id=target.split('_')[1])
+                form = ContactForm(contacts[contact]['post'],
+                                    instance=original_contact,
+                                    prefix=prefix)
+            else:
+                form = ContactForm(contacts[contact]['post'], prefix=prefix)
 
-			contacts[contact]['form'] = form
+            contacts[contact]['form'] = form
 
-		return contacts
+        return contacts
 
-	def import_view( self, request, pk=None ):
-		"""
-		Import the data in the DB
-		"""
-		obj = get_object_or_404( Import, pk=pk )
+    def import_view( self, request, pk=None ):
+        """
+        Import the data in the DB
+        """
+        obj = get_object_or_404( Import, pk=pk )
 
-		# Import in background
-		if request.method == "POST":
+        # Import in background
+        if request.method == "POST":
 
-			import_contacts = self.clean_import_data(request.POST)
+            import_contacts = self.clean_import_data(request.POST)
 
-			# Check that all the forms are valid, if not create
-			# a list of error messages
-			errorlist = []
-			for line, contact in import_contacts.iteritems():
-				if not contact['form']:
-					continue
-				if not contact['form'].is_valid():
-					# Convert the ErrorList to a dict including the field value for the template:
-					errors = []
-					for field, error in contact['form']._errors.iteritems():
-						errors.append({
-							'field': field,
-							'error': error,
-							'value': contact['form'][field].value,
-						})
+            # Check that all the forms are valid, if not create
+            # a list of error messages
+            errorlist = []
+            for line, contact in import_contacts.iteritems():
+                if not contact['form']:
+                    continue
+                if not contact['form'].is_valid():
+                    # Convert the ErrorList to a dict including the field value for the template:
+                    errors = []
+                    for field, error in contact['form']._errors.iteritems():
+                        errors.append({
+                            'field': field,
+                            'error': error,
+                            'value': contact['form'][field].value,
+                        })
 
-					errorlist.append({
-						'line': line,
-						'errors': errors,
-						'value': contact['form']
-					})
+                    errorlist.append({
+                        'line': line,
+                        'errors': errors,
+                        'value': contact['form']
+                    })
 
-			if not errorlist:
-				# request.POST is a QueryDict, and it can't be serialized easily
-				# so we convert it to a dict. All the values are single values
-				# except for the groups so we look at the key name to figure out
-				# how to extract the values from the QueryDict
-				d = {}
-				for key in request.POST:
-					if key.endswith('-groups'):
-						d[key] = request.POST.getlist(key)
-					else:
-						d[key] = request.POST[key]
-				import_data.delay( obj.pk, d )
+            if not errorlist:
+                # request.POST is a QueryDict, and it can't be serialized easily
+                # so we convert it to a dict. All the values are single values
+                # except for the groups so we look at the key name to figure out
+                # how to extract the values from the QueryDict
+                d = {}
+                for key in request.POST:
+                    if key.endswith('-groups'):
+                        d[key] = request.POST.getlist(key)
+                    else:
+                        d[key] = request.POST[key]
+                import_data.delay( obj.pk, d )
 
-			return render(request,
-					"admin/contacts/import/import.html",
-					{
-						'object': obj,
-						'errorlist': errorlist,
-						'messages': [],
-						'app_label': obj._meta.app_label,
-						'opts': obj._meta,
-					}
-				)
-		else:
-			raise Http404
+            return render(request,
+                    "admin/contacts/import/import.html",
+                    {
+                        'object': obj,
+                        'errorlist': errorlist,
+                        'messages': [],
+                        'app_label': obj._meta.app_label,
+                        'opts': obj._meta,
+                    }
+                )
+        else:
+            raise Http404
 
-	def live_review_view(self, request, pk=None):
-		obj = get_object_or_404(Import, pk=pk )
+    def live_review_view(self, request, pk=None):
+        obj = get_object_or_404(Import, pk=pk )
 
-		return render(request, 'admin/contacts/import/live-review.html', {
-			'object': obj,
-			'messages': [],
-			'app_label': obj._meta.app_label,
-			'opts': obj._meta,
-		})
+        return render(request, 'admin/contacts/import/live-review.html', {
+            'object': obj,
+            'messages': [],
+            'app_label': obj._meta.app_label,
+            'opts': obj._meta,
+        })
 
-	def review_view( self, request, pk=None ):
-		"""
-		Run a duplicate detection tasks in the background
-		"""
-		obj = get_object_or_404( Import, pk=pk )
+    def review_view( self, request, pk=None ):
+        """
+        Run a duplicate detection tasks in the background
+        """
+        obj = get_object_or_404( Import, pk=pk )
 
-		# Prepare the smart import in the background
-		if not obj.last_deduplication or request.method == "POST":
-			if obj.status != 'processing':
-				obj.status = 'processing'
-				obj.last_deduplication = datetime.now()
-				obj.save()
+        # Prepare the smart import in the background
+        if not obj.last_deduplication or request.method == "POST":
+            if obj.status != 'processing':
+                obj.status = 'processing'
+                obj.last_deduplication = datetime.now()
+                obj.save()
 
-			from djangoplicity.contacts.tasks import prepare_import
-			prepare_import.delay( obj.pk, request.user.email )
+            from djangoplicity.contacts.tasks import prepare_import
+            prepare_import.delay( obj.pk, request.user.email )
 
-		mapping, imported, new, duplicates = obj.review_data()
+        mapping, imported, new, duplicates = obj.review_data()
 
-		# The page rendering will be very slow if we have too many contacts
-		# so we limit it to 50 new or duplicates
-		partial = False
-		if len(new) > 50:
-			new = new[:50]
-			partial = True
-		if len(duplicates) > 50:
-			duplicates = duplicates[:50]
-			partial = True
+        # The page rendering will be very slow if we have too many contacts
+        # so we limit it to 50 new or duplicates
+        partial = False
+        if len(new) > 50:
+            new = new[:50]
+            partial = True
+        if len(duplicates) > 50:
+            duplicates = duplicates[:50]
+            partial = True
 
-		return render(request, 'admin/contacts/import/review.html',
-				{
-					'columns': mapping,
-					'imported': imported,
-					'new': new,
-					'duplicates': duplicates,
-					'object': obj,
-					'messages': [],
-					'app_label': obj._meta.app_label,
-					'opts': obj._meta,
-					'partial': partial,
-				}
-			)
+        return render(request, 'admin/contacts/import/review.html',
+                {
+                    'columns': mapping,
+                    'imported': imported,
+                    'new': new,
+                    'duplicates': duplicates,
+                    'object': obj,
+                    'messages': [],
+                    'app_label': obj._meta.app_label,
+                    'opts': obj._meta,
+                    'partial': partial,
+                }
+            )
 
 
 class ImportTemplateAdmin( admin.ModelAdmin ):
-	list_display = ['name', 'duplicate_handling', 'tag_import', ]
-	list_editable = ['duplicate_handling', 'tag_import', ]
-	search_fields = ['name', ]
-	filter_horizontal = ['extra_groups', 'frozen_groups']
-	fieldsets = (
-		( None, {
-			'fields': ( 'name', 'tag_import', 'extra_groups' )
-		} ),
-		( 'Duplicate handling', {
-			'fields': ( 'duplicate_handling', 'frozen_groups' )
-		} ),
-	)
-	inlines = [ImportSelectorInlineAdmin, ImportMappingInlineAdmin]
+    list_display = ['name', 'duplicate_handling', 'tag_import', ]
+    list_editable = ['duplicate_handling', 'tag_import', ]
+    search_fields = ['name', ]
+    filter_horizontal = ['extra_groups', 'frozen_groups']
+    fieldsets = (
+        ( None, {
+            'fields': ( 'name', 'tag_import', 'extra_groups' )
+        } ),
+        ( 'Duplicate handling', {
+            'fields': ( 'duplicate_handling', 'frozen_groups' )
+        } ),
+    )
+    inlines = [ImportSelectorInlineAdmin, ImportMappingInlineAdmin]
 
 
 class ImportMappingAdmin( admin.ModelAdmin ):
-	list_display = ['template', 'header', 'group_separator', ]
-	list_editable = ['header', 'group_separator', ]
-	search_fields = ['header', 'field', 'group_separator', ]
-	readonly_fields = ['template']
-	fieldsets = (
-		( None, {
-			'fields': ( 'template', 'header', 'group_separator' )
-		} ),
-	)
-	inlines = [ImportGroupMappingInlineAdmin]
+    list_display = ['template', 'header', 'group_separator', ]
+    list_editable = ['header', 'group_separator', ]
+    search_fields = ['header', 'field', 'group_separator', ]
+    readonly_fields = ['template']
+    fieldsets = (
+        ( None, {
+            'fields': ( 'template', 'header', 'group_separator' )
+        } ),
+    )
+    inlines = [ImportGroupMappingInlineAdmin]
 
-	def get_queryset( self, request ):
-		qs = super( ImportMappingAdmin, self ).get_queryset( request )
-		qs = qs.filter( field='groups' )
-		return qs
+    def get_queryset( self, request ):
+        qs = super( ImportMappingAdmin, self ).get_queryset( request )
+        qs = qs.filter( field='groups' )
+        return qs
 
 
 class CountryAdmin( admin.ModelAdmin ):
-	list_display = ['name', 'iso_code', 'postal_zone', 'dialing_code', 'zip_after_city' ]
-	list_editable = ['iso_code', 'postal_zone', 'dialing_code', 'zip_after_city' ]
-	list_filter = ['groups', 'postal_zone', 'zip_after_city']
-	search_fields = ['name', 'iso_code', 'dialing_code', ]
-	filter_horizontal = ['groups']
+    list_display = ['name', 'iso_code', 'postal_zone', 'dialing_code', 'zip_after_city' ]
+    list_editable = ['iso_code', 'postal_zone', 'dialing_code', 'zip_after_city' ]
+    list_filter = ['groups', 'postal_zone', 'zip_after_city']
+    search_fields = ['name', 'iso_code', 'dialing_code', ]
+    filter_horizontal = ['groups']
 
 
 class RegionAdmin(admin.ModelAdmin):
-	'''
-	Regions are updated with the update_regions management country and any
-	edit in the admin is disabled
-	'''
-	list_display = ['country', 'name', 'local_name', 'code']
-	list_filter = ['country']
-	search_fields = ['country__name', 'name', 'local_name', 'code']
-	list_select_related = ['country']
-	readonly_fields = ['country', 'name', 'local_name', 'code']
+    '''
+    Regions are updated with the update_regions management country and any
+    edit in the admin is disabled
+    '''
+    list_display = ['country', 'name', 'local_name', 'code']
+    list_filter = ['country']
+    search_fields = ['country__name', 'name', 'local_name', 'code']
+    list_select_related = ['country']
+    readonly_fields = ['country', 'name', 'local_name', 'code']
 
-	def has_add_permission(self, request):
-		return False
+    def has_add_permission(self, request):
+        return False
 
-	def has_delete_permission(self, request, obj=None):
-		return False
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 class GroupCategoryAdmin( admin.ModelAdmin ):
-	list_display = ['name', ]
-	search_fields = ['name', ]
+    list_display = ['name', ]
+    search_fields = ['name', ]
 
 
 class PostalZoneAdmin( admin.ModelAdmin ):
-	list_display = ['name', ]
-	search_fields = ['name', ]
+    list_display = ['name', ]
+    search_fields = ['name', ]
 
 
 class FieldAdmin( admin.ModelAdmin ):
-	list_display = ['slug', 'name', 'blank' ]
-	search_fields = ['slug', 'name', ]
+    list_display = ['slug', 'name', 'blank' ]
+    search_fields = ['slug', 'name', ]
 
 
 class LabelAdmin( admin.ModelAdmin ):
-	list_display = ['name', 'paper', 'repeat', 'enabled' ]
-	search_fields = ['name', 'style', 'template' ]
-	list_filter = [ 'enabled', 'paper' ]
-	fieldsets = (
-		( None, {
-			'fields': ( ( 'name', 'repeat', 'enabled' ), )
-		} ),
-		( 'Label template', {
-			'fields': ( 'paper', 'style', 'template', )
-		} ),
-	)
+    list_display = ['name', 'paper', 'repeat', 'enabled' ]
+    search_fields = ['name', 'style', 'template' ]
+    list_filter = [ 'enabled', 'paper' ]
+    fieldsets = (
+        ( None, {
+            'fields': ( ( 'name', 'repeat', 'enabled' ), )
+        } ),
+        ( 'Label template', {
+            'fields': ( 'paper', 'style', 'template', )
+        } ),
+    )
 
 
 class CountryGroupAdmin( admin.ModelAdmin ):
-	list_display = ['id', 'name', 'category' ]
-	list_editable = ['name', 'category' ]
-	search_fields = ['name', 'category__name' ]
-	list_filter = ['category', ]
+    list_display = ['id', 'name', 'category' ]
+    list_editable = ['name', 'category' ]
+    search_fields = ['name', 'category__name' ]
+    list_filter = ['category', ]
 
 
 class ContactGroupAdmin( admin.ModelAdmin ):
-	list_display = ['id', 'name', 'category', 'order' ]
-	list_editable = ['name', 'category', 'order' ]
-	search_fields = ['name', 'category__name' ]
-	list_filter = ['category', ]
-	ordering = ['name', ]
+    list_display = ['id', 'name', 'category', 'order' ]
+    list_editable = ['name', 'category', 'order' ]
+    search_fields = ['name', 'category__name' ]
+    list_filter = ['category', ]
+    ordering = ['name', ]
 
-	def get_queryset(self, request):
-		return super(ContactGroupAdmin, self).get_queryset(request).select_related('category')
+    def get_queryset(self, request):
+        return super(ContactGroupAdmin, self).get_queryset(request).select_related('category')
 
-	def formfield_for_dbfield(self, db_field, **kwargs):
-		'''
-		Cache the category choices to speed up admin list view
-		'''
-		request = kwargs['request']
-		formfield = super(ContactGroupAdmin, self).formfield_for_dbfield(db_field, **kwargs)
-		if db_field.name in ('category', ):
-			choices_cache = getattr(request, '%s_choices_cache' % db_field.name, None)
-			if choices_cache is not None:
-				formfield.choices = choices_cache
-			else:
-				setattr(request, '%s_choices_cache' % db_field.name, formfield.choices)
-		return formfield
+    def formfield_for_dbfield(self, db_field, **kwargs):
+        '''
+        Cache the category choices to speed up admin list view
+        '''
+        request = kwargs['request']
+        formfield = super(ContactGroupAdmin, self).formfield_for_dbfield(db_field, **kwargs)
+        if db_field.name in ('category', ):
+            choices_cache = getattr(request, '%s_choices_cache' % db_field.name, None)
+            if choices_cache is not None:
+                formfield.choices = choices_cache
+            else:
+                setattr(request, '%s_choices_cache' % db_field.name, formfield.choices)
+        return formfield
 
 
 class ContactFieldInlineAdmin( admin.TabularInline ):
-	model = ContactField
-	extra = 1
+    model = ContactField
+    extra = 1
 
 
 class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
-	form = ContactAdminForm
-	list_display = ['id', 'title', 'last_name', 'first_name', 'position', 'organisation', 'department', 'tags', 'group_order', 'street_1', 'street_2', 'tax_code', 'city', 'zip', 'country', 'region', 'language', 'email', 'phone', 'website', 'created', 'last_modified' ]
-	list_editable = ['title', 'first_name', 'last_name', 'position', 'email', 'organisation', 'department', 'street_1', 'street_2', 'city', 'zip', 'phone', 'website', 'language', ]
-	list_filter = ['last_modified', 'groups__category__name', 'groups', 'country__groups', 'extra_fields__name', 'country', 'language', 'title' ]
-	search_fields = ['first_name', 'last_name', 'title', 'position', 'email', 'organisation', 'department', 'street_1', 'street_2', 'city', 'zip', 'phone', 'website', 'social', ]
-	fieldsets = (
-		( None, {
-			'fields': ( ( 'id', 'created', 'last_modified' ), )
-		} ),
-		( 'Person', {
-			'fields': ( ( 'title', 'first_name', 'last_name' ), 'position', )
-		} ),
-		( 'Address', {
-			'fields': ( 'organisation', 'department', 'street_1', 'street_2', 'tax_code', 'city', 'zip', 'country', 'region' )
-		} ),
-		( 'Groups', {
-			'fields': ( 'groups', )
-		} ),
-		( 'Contact', {
-			'fields': ( 'email', 'phone', 'website', 'social', 'language' )
-		} ),
-	)
-	filter_horizontal = ['groups']
-	readonly_fields = ['id', 'created', 'last_modified']
-	inlines = [ ContactFieldInlineAdmin, AdminCommentInline, ]
-	list_select_related = True
+    form = ContactAdminForm
+    list_display = ['id', 'title', 'last_name', 'first_name', 'position', 'organisation', 'department', 'tags', 'group_order', 'street_1', 'street_2', 'tax_code', 'city', 'zip', 'country', 'region', 'language', 'email', 'phone', 'website', 'created', 'last_modified' ]
+    list_editable = ['title', 'first_name', 'last_name', 'position', 'email', 'organisation', 'department', 'street_1', 'street_2', 'city', 'zip', 'phone', 'website', 'language', ]
+    list_filter = ['last_modified', 'groups__category__name', 'groups', 'country__groups', 'extra_fields__name', 'country', 'language', 'title' ]
+    search_fields = ['first_name', 'last_name', 'title', 'position', 'email', 'organisation', 'department', 'street_1', 'street_2', 'city', 'zip', 'phone', 'website', 'social', ]
+    fieldsets = (
+        ( None, {
+            'fields': ( ( 'id', 'created', 'last_modified' ), )
+        } ),
+        ( 'Person', {
+            'fields': ( ( 'title', 'first_name', 'last_name' ), 'position', )
+        } ),
+        ( 'Address', {
+            'fields': ( 'organisation', 'department', 'street_1', 'street_2', 'tax_code', 'city', 'zip', 'country', 'region' )
+        } ),
+        ( 'Groups', {
+            'fields': ( 'groups', )
+        } ),
+        ( 'Contact', {
+            'fields': ( 'email', 'phone', 'website', 'social', 'language' )
+        } ),
+    )
+    filter_horizontal = ['groups']
+    readonly_fields = ['id', 'created', 'last_modified']
+    inlines = [ ContactFieldInlineAdmin, AdminCommentInline, ]
+    list_select_related = True
 
-	def get_queryset(self, request):
-		return super(ContactAdmin, self).get_queryset(request).select_related('country').prefetch_related('groups')
+    def get_queryset(self, request):
+        return super(ContactAdmin, self).get_queryset(request).select_related('country').prefetch_related('groups')
 
-	def tags( self, obj ):
-		return ", ".join( [unicode(x) for x in obj.groups.all()] )
+    def tags( self, obj ):
+        return ", ".join( [unicode(x) for x in obj.groups.all()] )
 
-	def get_urls( self ):
-		urls = super( ContactAdmin, self ).get_urls()
-		extra_urls = [
-			url( r'^(?P<pk>[0-9]+)/label/$', self.admin_site.admin_view( self.label_view ), name='contacts_label' ),
-		]
-		return extra_urls + urls
+    def get_urls( self ):
+        urls = super( ContactAdmin, self ).get_urls()
+        extra_urls = [
+            url( r'^(?P<pk>[0-9]+)/label/$', self.admin_site.admin_view( self.label_view ), name='contacts_label' ),
+        ]
+        return extra_urls + urls
 
-	def get_changelist_form(self, request, **kwargs):
-		return ContactListAdminForm
+    def get_changelist_form(self, request, **kwargs):
+        return ContactListAdminForm
 
-	def label_view( self, request, pk=None ):
-		"""
-		Generate labels or show list of available labels
-		"""
-		# Get contact
-		qs = Contact.objects.filter( pk=pk )
-		if len(qs) == 0:
-			raise Http404
-		else:
-			obj = qs[0]
+    def label_view( self, request, pk=None ):
+        """
+        Generate labels or show list of available labels
+        """
+        # Get contact
+        qs = Contact.objects.filter( pk=pk )
+        if len(qs) == 0:
+            raise Http404
+        else:
+            obj = qs[0]
 
-		# Get label
-		try:
-			label = Label.objects.get( pk=request.GET.get( 'label', None ), enabled=True )
-			return label.get_label_render().render_http_response( qs, 'contact_label_%s.pdf' % obj.pk )
-		except Label.DoesNotExist:
-			# No label, so display list of available labels
-			labels = Label.objects.filter( enabled=True ).order_by( 'name' )
+        # Get label
+        try:
+            label = Label.objects.get( pk=request.GET.get( 'label', None ), enabled=True )
+            return label.get_label_render().render_http_response( qs, 'contact_label_%s.pdf' % obj.pk )
+        except Label.DoesNotExist:
+            # No label, so display list of available labels
+            labels = Label.objects.filter( enabled=True ).order_by( 'name' )
 
-			return render(request,
-				"admin/contacts/contact/labels.html",
-				{
-					'labels': labels,
-					'object': obj,
-					'messages': [],
-					'app_label': obj._meta.app_label,
-					'opts': obj._meta,
-				}
-			)
+            return render(request,
+                "admin/contacts/contact/labels.html",
+                {
+                    'labels': labels,
+                    'object': obj,
+                    'messages': [],
+                    'app_label': obj._meta.app_label,
+                    'opts': obj._meta,
+                }
+            )
 
-	def action_make_label( self, request, queryset, label=None ):
-		"""
-		Action method for generating a PDF
-		"""
-		return label.get_label_render().render_http_response( queryset, 'contact_labels.pdf' )
+    def action_make_label( self, request, queryset, label=None ):
+        """
+        Action method for generating a PDF
+        """
+        return label.get_label_render().render_http_response( queryset, 'contact_labels.pdf' )
 
-	def action_export_xls(self, modeladmin, request, queryset):
-		output = StringIO.StringIO()
+    def action_export_xls(self, modeladmin, request, queryset):
+        output = StringIO.StringIO()
 
-		title = 'Contacts'
-		fields = ('id', 'title', 'first_name', 'last_name', 'position',
-			'organisation', 'department', 'street_1', 'street_2', 'zip',
-			'city', 'country', 'region', 'tax_code', 'phone', 'website',
-			'social', 'email', 'language')
-		many2many_fields = ('groups', )
+        title = 'Contacts'
+        fields = ('id', 'title', 'first_name', 'last_name', 'position',
+            'organisation', 'department', 'street_1', 'street_2', 'zip',
+            'city', 'country', 'region', 'tax_code', 'phone', 'website',
+            'social', 'email', 'language')
+        many2many_fields = ('groups', )
 
-		exporter = ExcelExporter(
-			filename_or_stream=output,
-			title=title,
-			header=[(field, None) for field in fields + many2many_fields]
-		)
+        exporter = ExcelExporter(
+            filename_or_stream=output,
+            title=title,
+            header=[(field, None) for field in fields + many2many_fields]
+        )
 
-		for c in queryset:
-			data = dict([
-				(field, getattr(c, field)) for field in fields
-			])
-			for field in many2many_fields:
-				data[field] = ', '.join([
-					unicode(value) for value in getattr(c, field).all()
-				])
-			exporter.writedata(data)
+        for c in queryset:
+            data = dict([
+                (field, getattr(c, field)) for field in fields
+            ])
+            for field in many2many_fields:
+                data[field] = ', '.join([
+                    unicode(value) for value in getattr(c, field).all()
+                ])
+            exporter.writedata(data)
 
-		exporter.save()
+        exporter.save()
 
-		response = HttpResponse(output.getvalue(), content_type='application/vnd.ms-excel')
-		response['Content-Disposition'] = 'attachment; filename={}.xls'.format(title)
-		return response
+        response = HttpResponse(output.getvalue(), content_type='application/vnd.ms-excel')
+        response['Content-Disposition'] = 'attachment; filename={}.xls'.format(title)
+        return response
 
-	def action_set_group( self, request, queryset, group=None, remove=False ):
-		"""
-		Action method for set/removing groups to contacts.
-		"""
-		for obj in queryset:
-			contactgroup_change_check.apply_async(
-				(list(obj.groups.values_list('id', flat=True)), obj.pk, obj.email),
-				countdown=20,
-			)
-			if remove:
-				obj.groups.remove( group )
-			else:
-				obj.groups.add( group )
+    def action_set_group( self, request, queryset, group=None, remove=False ):
+        """
+        Action method for set/removing groups to contacts.
+        """
+        for obj in queryset:
+            contactgroup_change_check.apply_async(
+                (list(obj.groups.values_list('id', flat=True)), obj.pk, obj.email),
+                countdown=20,
+            )
+            if remove:
+                obj.groups.remove( group )
+            else:
+                obj.groups.add( group )
 
-	def _make_label_action( self, label ):
-		"""
-		Helper method to define an admin action for a specific label
-		"""
-		name = 'make_label_%s' % label.pk
+    def _make_label_action( self, label ):
+        """
+        Helper method to define an admin action for a specific label
+        """
+        name = 'make_label_%s' % label.pk
 
-		def action(modeladmin, request, queryset):
-			return modeladmin.action_make_label( request, queryset, label=label )
+        def action(modeladmin, request, queryset):
+            return modeladmin.action_make_label( request, queryset, label=label )
 
-		return ( name, ( action, name, "Make labels for selected objects (%s)" % label.name ) )
+        return ( name, ( action, name, "Make labels for selected objects (%s)" % label.name ) )
 
-	def _make_group_action( self, group, remove=False ):
-		"""
-		Helper method to define an admin action for a specific group
-		"""
-		name = 'unset_group_%s' % group.pk if remove else 'set_group_%s' % group.pk
+    def _make_group_action( self, group, remove=False ):
+        """
+        Helper method to define an admin action for a specific group
+        """
+        name = 'unset_group_%s' % group.pk if remove else 'set_group_%s' % group.pk
 
-		def action(modeladmin, request, queryset):
-			return modeladmin.action_set_group( request, queryset, group=group, remove=remove )
+        def action(modeladmin, request, queryset):
+            return modeladmin.action_set_group( request, queryset, group=group, remove=remove )
 
-		return ( name, ( action, name, "%s group %s" % ("Unset" if remove else "Set", group.name) ) )
+        return ( name, ( action, name, "%s group %s" % ("Unset" if remove else "Set", group.name) ) )
 
-	def get_actions( self, request ):
-		"""
-		Dynamically add admin actions for creating labels based on enabled labels.
-		"""
-		actions = super( ContactAdmin, self ).get_actions( request )
-		actions['export_xls'] = (self.action_export_xls, 'export_xls', 'Export selected contacts to XLS')
-		actions.update( OrderedDict( [self._make_label_action( l ) for l in Label.objects.filter( enabled=True ).order_by( 'name' )] ) )
-		actions.update( OrderedDict( [self._make_group_action( g, remove=False ) for g in ContactGroup.objects.all().order_by( 'name' )] ) )
-		actions.update( OrderedDict( [self._make_group_action( g, remove=True ) for g in ContactGroup.objects.all().order_by( 'name' )] ) )
+    def get_actions( self, request ):
+        """
+        Dynamically add admin actions for creating labels based on enabled labels.
+        """
+        actions = super( ContactAdmin, self ).get_actions( request )
+        actions['export_xls'] = (self.action_export_xls, 'export_xls', 'Export selected contacts to XLS')
+        actions.update( OrderedDict( [self._make_label_action( l ) for l in Label.objects.filter( enabled=True ).order_by( 'name' )] ) )
+        actions.update( OrderedDict( [self._make_group_action( g, remove=False ) for g in ContactGroup.objects.all().order_by( 'name' )] ) )
+        actions.update( OrderedDict( [self._make_group_action( g, remove=True ) for g in ContactGroup.objects.all().order_by( 'name' )] ) )
 
-		return actions
+        return actions
 
-	class Media:
-		# Javascript to collapse filter pane in admin
-		js = [
-			'djangoplicity/js/list_filter_collapse.js',
-			'contacts/js/contacts.js',
-		]
+    class Media:
+        # Javascript to collapse filter pane in admin
+        js = [
+            'djangoplicity/js/list_filter_collapse.js',
+            'contacts/js/contacts.js',
+        ]
 
 
 class ContactGroupActionAdmin( admin.ModelAdmin ):
-	list_display = ('group', 'on_event', 'action', )
-	list_filter = ('on_event', 'action', 'group', )
-	search_fields = ('group__name', 'action__name', )
+    list_display = ('group', 'on_event', 'action', )
+    list_filter = ('on_event', 'action', 'group', )
+    search_fields = ('group__name', 'action__name', )
 
 
 class DeduplicationAdmin(admin.ModelAdmin):
-	list_display = ('id', 'last_deduplication', )
-	exclude = ('last_deduplication', )
-	readonly_fields = ('status', 'duplicate_contacts', 'deduplicated_contacts', )
-	filter_horizontal = ('groups', )
+    list_display = ('id', 'last_deduplication', )
+    exclude = ('last_deduplication', )
+    readonly_fields = ('status', 'duplicate_contacts', 'deduplicated_contacts', )
+    filter_horizontal = ('groups', )
 
-	def get_urls(self):
-		urls = super(DeduplicationAdmin, self).get_urls()
-		extra_urls = [
-			url(r'^(?P<pk>[0-9]+)/run/$', self.admin_site.admin_view(self.run), name='contacts_deduplication_run'),
-			url(r'^(?P<pk>[0-9]+)/review/page/(?P<page>[0-9]+)/$', self.admin_site.admin_view(self.review_view), name='contacts_deduplication_review_page'),
-			url(r'^(?P<pk>[0-9]+)/review/$', self.admin_site.admin_view(self.review_view), name='contacts_deduplication_review'),
-		]
-		return extra_urls + urls
+    def get_urls(self):
+        urls = super(DeduplicationAdmin, self).get_urls()
+        extra_urls = [
+            url(r'^(?P<pk>[0-9]+)/run/$', self.admin_site.admin_view(self.run), name='contacts_deduplication_run'),
+            url(r'^(?P<pk>[0-9]+)/review/page/(?P<page>[0-9]+)/$', self.admin_site.admin_view(self.review_view), name='contacts_deduplication_review_page'),
+            url(r'^(?P<pk>[0-9]+)/review/$', self.admin_site.admin_view(self.review_view), name='contacts_deduplication_review'),
+        ]
+        return extra_urls + urls
 
-	def run(self, request, pk=None):
-		'''
-		Run deduplication tasks for given groups
-		'''
+    def run(self, request, pk=None):
+        '''
+        Run deduplication tasks for given groups
+        '''
 
-		dedup = get_object_or_404(Deduplication, pk=pk)
+        dedup = get_object_or_404(Deduplication, pk=pk)
 
-		# Run the deduplication in the background
-		if dedup.status != 'processing':
-			dedup.status = 'processing'
-			dedup.last_deduplication = datetime.now()
-			dedup.save()
+        # Run the deduplication in the background
+        if dedup.status != 'processing':
+            dedup.status = 'processing'
+            dedup.last_deduplication = datetime.now()
+            dedup.save()
 
-			from djangoplicity.contacts.tasks import run_deduplication
-			run_deduplication.delay(dedup.pk, request.user.email)
+            from djangoplicity.contacts.tasks import run_deduplication
+            run_deduplication.delay(dedup.pk, request.user.email)
 
-		return redirect('admin:contacts_deduplication_review', pk=dedup.pk)
+        return redirect('admin:contacts_deduplication_review', pk=dedup.pk)
 
-	def review_view(self, request, pk=None, page=1):
-		page = int(page)
-		if request.method == "POST":
-			return self.deduplicate_view(request, pk)
+    def review_view(self, request, pk=None, page=1):
+        page = int(page)
+        if request.method == "POST":
+            return self.deduplicate_view(request, pk)
 
-		dedup = get_object_or_404(Deduplication, pk=pk)
+        dedup = get_object_or_404(Deduplication, pk=pk)
 
-		duplicates, total_duplicates = dedup.review_data(page)
+        duplicates, total_duplicates = dedup.review_data(page)
 
-		return render(request,
-			"admin/contacts/deduplication/review.html",
-			{
-				'object': dedup,
-				'messages': [],
-				'app_label': dedup._meta.app_label,
-				'opts': dedup._meta,
-				'duplicates': duplicates,
-				'total_duplicates': total_duplicates,
-				'page': page,
-				'pages': range(1, (total_duplicates / dedup.max_display + 2)),
-			}
-		)
+        return render(request,
+            "admin/contacts/deduplication/review.html",
+            {
+                'object': dedup,
+                'messages': [],
+                'app_label': dedup._meta.app_label,
+                'opts': dedup._meta,
+                'duplicates': duplicates,
+                'total_duplicates': total_duplicates,
+                'page': page,
+                'pages': range(1, (total_duplicates / dedup.max_display + 2)),
+            }
+        )
 
-	def deduplicate_view(self, request, pk=None):
-		dedup = get_object_or_404(Deduplication, pk=pk)
+    def deduplicate_view(self, request, pk=None):
+        dedup = get_object_or_404(Deduplication, pk=pk)
 
-		update, delete, ignore = self._clean_deduplicate_data(request)
+        update, delete, ignore = self._clean_deduplicate_data(request)
 
-		# Check that all the update forms are valid, if not create
-		# a list of error messages
-		errorlist = []
-		for dummy, contact in update.iteritems():
-			if not contact['form'].is_valid():
-				# Convert the ErrorList to a dict including the field value for the template:
-				errors = []
-				for field, error in contact['form']._errors.iteritems():
-					errors.append({
-						'field': field,
-						'error': error,
-						'value': contact['form'][field].value,
-					})
+        # Check that all the update forms are valid, if not create
+        # a list of error messages
+        errorlist = []
+        for dummy, contact in update.iteritems():
+            if not contact['form'].is_valid():
+                # Convert the ErrorList to a dict including the field value for the template:
+                errors = []
+                for field, error in contact['form']._errors.iteritems():
+                    errors.append({
+                        'field': field,
+                        'error': error,
+                        'value': contact['form'][field].value,
+                    })
 
-				errorlist.append({
-					'contact': contact['contact'],
-					'errors': errors,
-					'value': contact['form']
-				})
+                errorlist.append({
+                    'contact': contact['contact'],
+                    'errors': errors,
+                    'value': contact['form']
+                })
 
-		resultlist = []
-		if not errorlist:
-			resultlist = dedup.deduplicate_data(update, delete, ignore)
+        resultlist = []
+        if not errorlist:
+            resultlist = dedup.deduplicate_data(update, delete, ignore)
 
-		return render(request,
-				"admin/contacts/deduplication/deduplicate.html",
-				{
-					'object': dedup,
-					'errorlist': errorlist,
-					'resultlist': resultlist,
-					'messages': [],
-					'app_label': dedup._meta.app_label,
-					'opts': dedup._meta,
-				}
-			)
+        return render(request,
+                "admin/contacts/deduplication/deduplicate.html",
+                {
+                    'object': dedup,
+                    'errorlist': errorlist,
+                    'resultlist': resultlist,
+                    'messages': [],
+                    'app_label': dedup._meta.app_label,
+                    'opts': dedup._meta,
+                }
+            )
 
-	def _clean_deduplicate_data(self, request):
-		'''
-		Clean the POST data to be used by deduplicate_view
-		'''
-		update = {}
-		delete = []
-		ignore = []
+    def _clean_deduplicate_data(self, request):
+        '''
+        Clean the POST data to be used by deduplicate_view
+        '''
+        update = {}
+        delete = []
+        ignore = []
 
-		for key in request.POST:
-			if not key.startswith('action_contact_'):
-				continue
+        for key in request.POST:
+            if not key.startswith('action_contact_'):
+                continue
 
-			# The key will of the form action_contact_22400_22400 or
-			# action_contact_22400_29985, for the "original" contact
-			# and for a potential duplicate
-			target = key[len('action_contact_'):]
+            # The key will of the form action_contact_22400_22400 or
+            # action_contact_22400_29985, for the "original" contact
+            # and for a potential duplicate
+            target = key[len('action_contact_'):]
 
-			action = request.POST.get(key)
+            action = request.POST.get(key)
 
-			if action == 'delete':
-				delete.append(target)
-				continue
-			if action == 'ignore':
-				ignore.append(target)
-				continue
+            if action == 'delete':
+                delete.append(target)
+                continue
+            if action == 'ignore':
+                ignore.append(target)
+                continue
 
-			# If we reach this point then action == 'update'
+            # If we reach this point then action == 'update'
 
-			# Make a copy of post data so we can handle each
-			# entry separately
-			update[target] = {'post': request.POST.copy()}
+            # Make a copy of post data so we can handle each
+            # entry separately
+            update[target] = {'post': request.POST.copy()}
 
-		for target in update:
-			# Remove data from other contacts from the post data:
-			keys_to_delete = []
-			for key in update[target]['post']:
-				if not key.startswith(target):
-					keys_to_delete.append(key)
-			for key in keys_to_delete:
-				del update[target]['post'][key]
+        for target in update:
+            # Remove data from other contacts from the post data:
+            keys_to_delete = []
+            for key in update[target]['post']:
+                if not key.startswith(target):
+                    keys_to_delete.append(key)
+            for key in keys_to_delete:
+                del update[target]['post'][key]
 
-			original_contact = Contact.objects.get(id=target.split('_')[1])
-			form = ContactForm(update[target]['post'],
-								instance=original_contact,
-								prefix=target)
+            original_contact = Contact.objects.get(id=target.split('_')[1])
+            form = ContactForm(update[target]['post'],
+                                instance=original_contact,
+                                prefix=target)
 
-			update[target]['contact'] = original_contact
-			update[target]['form'] = form
+            update[target]['contact'] = original_contact
+            update[target]['form'] = form
 
-		return update, delete, ignore
+        return update, delete, ignore
 
 
 def register_with_admin( admin_site ):
-	admin_site.register( Label, LabelAdmin )
-	admin_site.register( Field, FieldAdmin )
-	admin_site.register( Country, CountryAdmin )
-	admin_site.register( GroupCategory, GroupCategoryAdmin )
-	admin_site.register( CountryGroup, CountryGroupAdmin )
-	admin_site.register( ContactGroup, ContactGroupAdmin )
-	admin_site.register( Contact, ContactAdmin )
-	admin_site.register( PostalZone, PostalZoneAdmin )
-	admin_site.register( Region, RegionAdmin )
-	admin_site.register( ContactGroupAction, ContactGroupActionAdmin )
-	admin_site.register( ImportTemplate, ImportTemplateAdmin )
-	admin_site.register( ImportMapping, ImportMappingAdmin )
-	admin_site.register( Import, ImportAdmin )
-	admin_site.register( Deduplication, DeduplicationAdmin )
+    admin_site.register( Label, LabelAdmin )
+    admin_site.register( Field, FieldAdmin )
+    admin_site.register( Country, CountryAdmin )
+    admin_site.register( GroupCategory, GroupCategoryAdmin )
+    admin_site.register( CountryGroup, CountryGroupAdmin )
+    admin_site.register( ContactGroup, ContactGroupAdmin )
+    admin_site.register( Contact, ContactAdmin )
+    admin_site.register( PostalZone, PostalZoneAdmin )
+    admin_site.register( Region, RegionAdmin )
+    admin_site.register( ContactGroupAction, ContactGroupActionAdmin )
+    admin_site.register( ImportTemplate, ImportTemplateAdmin )
+    admin_site.register( ImportMapping, ImportMappingAdmin )
+    admin_site.register( Import, ImportAdmin )
+    admin_site.register( Deduplication, DeduplicationAdmin )
 
 
 # Register with default admin site
