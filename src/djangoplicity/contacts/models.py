@@ -448,7 +448,7 @@ class Contact( DirtyFieldsMixin, models.Model ):
     def _select_contact( cls, qs ):
         """
         """
-        qsnew = filter( lambda x: 'librarian' in x.last_name.lower(), qs )
+        qsnew = [x for x in qs if 'librarian' in x.last_name.lower()]
         if len( qsnew ) > 0:
             return qsnew[0]
         else:
@@ -486,10 +486,12 @@ class Contact( DirtyFieldsMixin, models.Model ):
         return None
 
     @classmethod
-    def create_object( cls, groups=[], **kwargs ):
+    def create_object( cls, groups=None, **kwargs ):
         """
         Create a new contact from dictionary.
         """
+        if groups is None:
+            groups = []
         obj = cls()
         if obj.update_object( **kwargs ):
             obj.save()
@@ -817,11 +819,13 @@ class ContactGroupAction( models.Model ):
             a.dispatch( group=group, contact=contact, email=email )
 
     @classmethod
-    def contact_updated_callback( cls, sender=None, instance=None, dirty_fields={}, **kwargs ):
+    def contact_updated_callback( cls, sender=None, instance=None, dirty_fields=None, **kwargs ):
         """
         Callback handler for when a local field is *updated*. Will execute defined actions for
         all groups for this contact.
         """
+        if dirty_fields is None:
+            dirty_fields = {}
         logger.debug( "contact %s updated", instance.pk )
         updates = {}
         if dirty_fields:
