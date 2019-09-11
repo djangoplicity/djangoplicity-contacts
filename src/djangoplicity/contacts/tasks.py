@@ -124,7 +124,7 @@ http://%s%s
 ''' % (obj.data_file, site.domain, reverse('admin:contacts_import_review', args=[obj.pk]))
 
         send_mail('Import %s (%s) ready for review' % (obj.pk, obj.data_file),
-                message, 'no-reply@eso.org', [email, 'mandre@eso.org'])
+                message, 'no-reply@eso.org', [email, 'Gurvan.Bazin@eso.org'])
 
 
 @task(ignore_result=True)
@@ -154,7 +154,7 @@ http://%s%s
 ''' % (site.domain, reverse('admin:contacts_deduplication_review', args=[dedup.pk]))
 
         send_mail('Deduplication %s ready for review' % dedup.pk,
-                message, 'no-reply@eso.org', [email, 'mandre@eso.org'])
+                message, 'no-reply@eso.org', [email, 'Gurvan.Bazin@eso.org'])
 
 
 @task
