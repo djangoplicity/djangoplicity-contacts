@@ -138,10 +138,10 @@ class GroupSubscribe(FormView):
         initial = {}
 
         # Check if the contact already belongs to the group
-        if self.group in self.contact.groups.all():
-            initial['subscribe'] = True
-        else:
-            initial['subscribe'] = False
+        #  if self.group in self.contact.groups.all():
+        #      initial['subscribe'] = True
+        #  else:
+        #      initial['subscribe'] = False
 
         return initial
 
@@ -169,6 +169,7 @@ class GroupSubscribe(FormView):
     def get_context_data(self, **kwargs):
         context = super(GroupSubscribe, self).get_context_data(**kwargs)
         context['contact'] = self.contact
+        context['subscriber'] = (self.group in self.contact.groups.all())
 
         return context
 
