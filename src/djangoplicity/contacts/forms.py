@@ -86,3 +86,11 @@ class ContactPublicForm(forms.ModelForm):
 
 class GroupSubscribeForm(forms.Form):
     subscribe = forms.BooleanField(required=False)
+    confirmaddress = forms.BooleanField(required=False)
+
+    def clean_confirmaddress(self):
+        confirmaddress = self.cleaned_data.get('confirmaddress')
+        if not confirmaddress:
+           raise forms.ValidationError('Please, confirm your address is up to date.')
+        return confirmaddress
+

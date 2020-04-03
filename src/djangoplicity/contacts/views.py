@@ -157,12 +157,20 @@ class GroupSubscribe(FormView):
                 self.contact.groups.remove(self.group)
                 contact_removed.send(sender=self.contact.__class__, group=self.group, contact=self.contact, email=self.contact.email)
         else:
-            # The contact is already a member of the group
+            # The contact is not already a member of the group
             if subscribe:
                 self.contact.groups.add(self.group)
                 contact_added.send(sender=self.contact.__class__, group=self.group, contact=self.contact)
 
-        messages.success(self.request, 'Your Subscription preferences have been successful updated. Thank you!')
+        if subscribe:
+            confirmGroup = ContactGroup.objects.get(pk=787)
+            self.contact.groups.add(confirmGroup)
+            contact_added.send(sender=self.contact.__class__, group=confirmGroup, contact=self.contact)
+
+        messages.success(
+            self.request,
+            'Thank you for choosing to continue receiving a hard copy of The Messenger' if subscribe else 'You will no longer receive a hard copy of The Messenger but you can continue reading it online <a href="https://www.eso.org/public/products/messengers/">https://www.eso.org/public/products/messengers/</a>'
+        )
 
         return super(GroupSubscribe, self).form_valid(form)
 
