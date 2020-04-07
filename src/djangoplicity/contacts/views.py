@@ -36,6 +36,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.http import Http404, JsonResponse
 from django.utils.encoding import force_text
 from django.views.generic import DetailView, FormView, UpdateView
+from django.urls import reverse_lazy
 
 from djangoplicity.contacts.models import Contact, ContactGroup, Country
 from djangoplicity.contacts.forms import ContactPublicForm, GroupSubscribeForm
@@ -70,7 +71,7 @@ class ContactPublicUpdate(UpdateView):
         Add an entry to the Contact's admin history and set
         a success message to display to the user
         '''
-        messages.success(self.request, 'Your Contact information have been successfully updated. Thank you!')
+        messages.success(self.request, 'Your Contact information have been successfully updated.')
 
         # Get list of modifield fields
         obj = self.get_object()
@@ -106,7 +107,8 @@ class ContactPublicUpdate(UpdateView):
         Return the current path to stay on the same page
         after a successful edit
         '''
-        return self.request.path
+        return reverse_lazy('messenger_subscribe', kwargs={'uid': self.object.uid})
+        #  return self.request.path
 
 
 class GroupSubscribe(FormView):
