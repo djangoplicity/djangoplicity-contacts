@@ -71,7 +71,7 @@ class ContactPublicUpdate(UpdateView):
         Add an entry to the Contact's admin history and set
         a success message to display to the user
         '''
-        messages.success(self.request, 'Your Contact information have been successfully updated.')
+        messages.success(self.request, 'Your contact details have been successfully updated.')
 
         # Get list of modifield fields
         obj = self.get_object()
