@@ -220,7 +220,7 @@
 
       </form>
     </div>
-    
+
   </div>
 {% endif %}
 
@@ -246,7 +246,7 @@ $('td.js_select, input[type=radio], input[type=checkbox]').click(function(e){
     }
 
     if (input.prop("checked")) {
-        // If this is a radio (i.e. "Merge with" column" we need to unset the 
+        // If this is a radio (i.e. "Merge with" column" we need to unset the
         // background color of other radios' tds with same name
         if (input.prop('type') == 'radio') {
             $('input[name=' + input.prop('name') + ']').each(

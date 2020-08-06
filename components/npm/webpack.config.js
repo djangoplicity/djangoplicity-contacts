@@ -1,9 +1,9 @@
 module.exports = {
 	entry: {
-		review: './src/review',
+		review: './djangoplicity/review',
 	},
 	output: {
-		path : __dirname + '/../../src/djangoplicity/contacts/static/js',
+		path : __dirname + '/../../djangoplicity/contacts/static/js',
 		filename: '[name].js'
 	},
 	devtool: 'inline-source-map',

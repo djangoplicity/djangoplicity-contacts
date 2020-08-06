@@ -31,5 +31,5 @@
 #
 include *.txt
 recursive-include docs *
-recursive-include src/djangoplicity/contacts/templates *
-recursive-include src/djangoplicity/contacts/static * 
+recursive-include djangoplicity/contacts/templates *
+recursive-include djangoplicity/contacts/static *

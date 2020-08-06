@@ -35,14 +35,12 @@ from setuptools import setup, find_packages
 setup(
     name='djangoplicity-contacts',
     version='0.1',
-    packages=find_packages('src'),
-    package_dir={ '': 'src' },
+    packages=find_packages(include=['djangoplicity']),
     include_package_data=True,
     zip_safe=False,
-    namespace_packages=['djangoplicity'],
     install_requires=[
         'setuptools',
-        'django-crispy-forms',
+        'django-crispy-forms==1.8.1',
         'django-dirtyfields',
         'hashids',
         'xlrd',

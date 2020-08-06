@@ -14,7 +14,7 @@
 #      notice, this list of conditions and the following disclaimer in the
 #      documentation and/or other materials provided with the distribution.
 #
-#    * Neither the name of the European Southern Observatory nor the names 
+#    * Neither the name of the European Southern Observatory nor the names
 #      of its contributors may be used to endorse or promote products derived
 #      from this software without specific prior written permission.
 #
@@ -35,7 +35,7 @@ from djangoplicity.contacts.models import Contact, ContactGroup
 
 class OrderPropagationTestCase( TestCase ):
     """
-    Testing that the ContactGroup.order is propagated 
+    Testing that the ContactGroup.order is propagated
     correctly to Contact.group_order.
     """
 
@@ -107,7 +107,7 @@ class OrderPropagationTestCase( TestCase ):
 
         self.c2.groups.remove( self.g1 )
         self._check( self.c2, self.g2.order )
-        
+
     def test_clear_groups( self ):
         """
         Removing groups from a contact and propagating the ContactGroup.order value
@@ -121,64 +121,64 @@ class OrderPropagationTestCase( TestCase ):
 
         self.c1.groups.clear()
         self._check( self.c1, None )
-        
+
 
     def test_change_group( self ):
         """
         Changing the order value
         """
         self._clean()
-        
+
         self.c1.groups.add( self.g1 )
         self.c1.groups.add( self.g2 )
         self.c2.groups.add( self.g2 )
         self.c2.groups.add( self.g3 )
         self._check( self.c1, self.g1.order )
         self._check( self.c2, self.g2.order )
-        
+
         # No propagation
         self.g1.name = 'TEST'
         self.g1.save()
         self._check( self.c1, self.g1.order )
         self._check( self.c2, self.g2.order )
-        
+
         # Change to a lower value - group_order value updated to new value
         self.g1.order = 0
         self.g1.save()
-        
+
         self._check( self.c1, self.g1.order )
         self._check( self.c2, self.g2.order )
-        
+
         self.g1.order = 1
         self.g1.save()
-        
+
         self._check( self.c1, self.g1.order )
         self._check( self.c2, self.g2.order )
-        
+
         # Change to a higher value - group_order value is updated to a another groups value
         self.g1.order = 4
         self.g1.save()
-        
+
         self._check( self.c1, self.g2.order )
         self._check( self.c2, self.g2.order )
-        
+
         # Change to a higher value - no changes
         self.g1.order = 5
         self.g1.save()
-        
+
         self._check( self.c1, self.g2.order )
         self._check( self.c2, self.g2.order )
-        
+
         # Change multiple
         self.g2.order = 1
         self.g2.save()
-        
+
         self._check( self.c1, self.g2.order )
         self._check( self.c2, self.g2.order )
-        
+
         self.g1.order = 0
         self.g1.save()
-        
+
         self._check( self.c1, self.g1.order )
         self._check( self.c2, self.g2.order )
 
@@ -188,7 +188,7 @@ class OrderPropagationTestCase( TestCase ):
         Deleting a group
         """
         self._clean()
-        
+
         self.c1.groups.add( self.g1 )
         self.c1.groups.add( self.g2 )
         self.c2.groups.add( self.g2 )
@@ -197,24 +197,24 @@ class OrderPropagationTestCase( TestCase ):
         self._check( self.c2, self.g2.order )
 
         self.g1.delete()
-        
+
         self._check( self.c1, self.g2.order )
         self._check( self.c2, self.g2.order )
-        
+
         self.g3.delete()
-        
+
         self._check( self.c1, self.g2.order )
         self._check( self.c2, self.g2.order )
-        
+
         self.g2.delete()
-        
+
         self._check( self.c1, None )
         self._check( self.c2, None )
-        
-        
+
+
     def test_delete_group_null( self ):
         self._clean()
-        
+
         grp = ContactGroup( name='g1', order=None )
         grp.save()
         grp.delete()
