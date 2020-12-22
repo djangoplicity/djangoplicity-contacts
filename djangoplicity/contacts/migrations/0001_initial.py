@@ -46,7 +46,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('value', models.CharField(db_index=True, max_length=255, blank=True)),
-                ('contact', models.ForeignKey(to='contacts.Contact')),
+                ('contact', models.ForeignKey(to='contacts.Contact', on_delete=django.db.models.deletion.CASCADE)),
             ],
             options={
             },
@@ -69,8 +69,8 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('on_event', models.CharField(db_index=True, max_length=50, choices=[(b'contact_added', b'Contact added to group'), (b'contact_removed', b'Contact removed from group'), (b'contact_updated', b'Contact updated'), (b'periodic_5min', b'Every 5 minutes'), (b'periodic_30min', b'Every 30 minutes'), (b'periodic_1hr', b'Every hour'), (b'periodic_6hr', b'Every 6 hours'), (b'periodic_24hr', b'Every day')])),
-                ('action', models.ForeignKey(to='actions.Action')),
-                ('group', models.ForeignKey(to='contacts.ContactGroup')),
+                ('action', models.ForeignKey(to='actions.Action', on_delete=django.db.models.deletion.CASCADE)),
+                ('group', models.ForeignKey(to='contacts.ContactGroup', on_delete=django.db.models.deletion.CASCADE)),
             ],
             options={
             },
@@ -164,7 +164,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('value', models.CharField(max_length=255)),
-                ('group', models.ForeignKey(to='contacts.ContactGroup')),
+                ('group', models.ForeignKey(to='contacts.ContactGroup', on_delete=django.db.models.deletion.CASCADE)),
             ],
             options={
             },
@@ -239,31 +239,31 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='importselector',
             name='template',
-            field=models.ForeignKey(to='contacts.ImportTemplate'),
+            field=models.ForeignKey(to='contacts.ImportTemplate', on_delete=django.db.models.deletion.CASCADE),
             preserve_default=True,
         ),
         migrations.AddField(
             model_name='importmapping',
             name='template',
-            field=models.ForeignKey(to='contacts.ImportTemplate'),
+            field=models.ForeignKey(to='contacts.ImportTemplate', on_delete=django.db.models.deletion.CASCADE),
             preserve_default=True,
         ),
         migrations.AddField(
             model_name='importgroupmapping',
             name='mapping',
-            field=models.ForeignKey(to='contacts.ImportMapping'),
+            field=models.ForeignKey(to='contacts.ImportMapping', on_delete=django.db.models.deletion.CASCADE),
             preserve_default=True,
         ),
         migrations.AddField(
             model_name='import',
             name='template',
-            field=models.ForeignKey(to='contacts.ImportTemplate'),
+            field=models.ForeignKey(to='contacts.ImportTemplate', on_delete=django.db.models.deletion.CASCADE),
             preserve_default=True,
         ),
         migrations.AddField(
             model_name='countrygroup',
             name='category',
-            field=models.ForeignKey(blank=True, to='contacts.GroupCategory', null=True),
+            field=models.ForeignKey(blank=True, to='contacts.GroupCategory', null=True, on_delete=django.db.models.deletion.CASCADE),
             preserve_default=True,
         ),
         migrations.AddField(
@@ -275,19 +275,19 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='country',
             name='postal_zone',
-            field=models.ForeignKey(blank=True, to='contacts.PostalZone', null=True),
+            field=models.ForeignKey(blank=True, to='contacts.PostalZone', null=True, on_delete=django.db.models.deletion.CASCADE),
             preserve_default=True,
         ),
         migrations.AddField(
             model_name='contactgroup',
             name='category',
-            field=models.ForeignKey(blank=True, to='contacts.GroupCategory', null=True),
+            field=models.ForeignKey(blank=True, to='contacts.GroupCategory', null=True, on_delete=django.db.models.deletion.CASCADE),
             preserve_default=True,
         ),
         migrations.AddField(
             model_name='contactfield',
             name='field',
-            field=models.ForeignKey(to='contacts.Field'),
+            field=models.ForeignKey(to='contacts.Field', on_delete=django.db.models.deletion.CASCADE),
             preserve_default=True,
         ),
         migrations.AlterUniqueTogether(
@@ -297,7 +297,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='contact',
             name='country',
-            field=models.ForeignKey(blank=True, to='contacts.Country', null=True),
+            field=models.ForeignKey(blank=True, to='contacts.Country', null=True, on_delete=django.db.models.deletion.CASCADE),
             preserve_default=True,
         ),
         migrations.AddField(

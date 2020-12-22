@@ -18,12 +18,12 @@ class Migration(migrations.Migration):
                 ('name', models.CharField(max_length=200, verbose_name=b'Region/State name', db_index=True)),
                 ('local_name', models.CharField(max_length=200, verbose_name=b'Region/State name in the local language')),
                 ('code', models.CharField(max_length=200, db_index=True)),
-                ('country', models.ForeignKey(to='contacts.Country')),
+                ('country', models.ForeignKey(to='contacts.Country', on_delete=models.deletion.CASCADE)),
             ],
         ),
         migrations.AddField(
             model_name='contact',
             name='region',
-            field=models.ForeignKey(blank=True, to='contacts.Region', null=True),
+            field=models.ForeignKey(blank=True, to='contacts.Region', null=True, on_delete=models.deletion.CASCADE),
         ),
     ]
