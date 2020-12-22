@@ -46,7 +46,7 @@ class ImportTemplateTestCase( ImporterMixin, ContactSetupMixin, TestCase ):
 
     def _import_data( self, rows_data, run_import=True, name='test_import' ):
         excludes = ['id']
-        header = filter( lambda x: x not in excludes, rows_data[0].keys() )
+        header = [x for x in list(rows_data[0].keys()) if x not in excludes]
 
         ( template, filename ) = self.create_template( name, header, data=rows_data )
         if run_import:

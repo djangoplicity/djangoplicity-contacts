@@ -31,6 +31,8 @@
 
 from __future__ import unicode_literals
 
+from builtins import str
+from past.builtins import basestring
 """
 Module to help find contact duplicates.
 
@@ -355,11 +357,11 @@ def _preprocess_name( name ):
 
 
 def _preprocess_city( city, isocode ):
-    if not isinstance(type(city), unicode):
+    if not isinstance(type(city), str):
         # If we only have number (e.g. zip)
         # then it will be exported as int and
         # strip() will fail
-        city = unicode(city)
+        city = str(city)
     # FIXME:
     return city
 
@@ -379,7 +381,7 @@ def _prepare_str(s):
         # The function was probably passed an int so we try and
         # convert it to a string:
         if not isinstance(s, basestring):
-            return _prepare_str(unicode(s))
+            return _prepare_str(str(s))
     return re.sub(r'\s+', ' ', s)
 
 
@@ -439,13 +441,13 @@ def similar_address(a, b, no_name, ratio_limit=0.8):
     address_a = ''
     address_b = ''
     if 'street_1' in a:
-        address_a += unicode(a['street_1'])
+        address_a += str(a['street_1'])
         if 'street_1' in b:
-            address_b += unicode(b['street_1'])
+            address_b += str(b['street_1'])
     if 'street_2' in a:
-        address_a += unicode(a['street_2'])
+        address_a += str(a['street_2'])
         if 'street_2' in b:
-            address_b += unicode(b['street_2'])
+            address_b += str(b['street_2'])
 
     address_a = _prepare_str(address_a)
     address_b = _prepare_str(address_b)
@@ -556,7 +558,7 @@ def find_duplicates( obj, search_space, ratio_limit=0.75 ):
     """
     dups = []
 
-    for s in search_space.values():
+    for s in list(search_space.values()):
         ratio = similar( obj, s )
         ratio = round(ratio, 2)
         if ratio > ratio_limit:

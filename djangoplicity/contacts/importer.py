@@ -74,6 +74,10 @@ Usage example::
 
 """
 
+from builtins import next
+from builtins import str
+from past.builtins import basestring
+from builtins import object
 import codecs
 import csv
 import xlrd
@@ -102,19 +106,19 @@ class Importer( object ):
         """
         Test if column name exists in excel file.
         """
-        return value in self.cols.keys()
+        return value in list(self.cols.keys())
 
     def keys( self ):
         """
         Return all column names.
         """
-        return self.cols.keys()
+        return list(self.cols.keys())
 
     def items( self ):
-        return [( c, self[c] ) for c in self.keys()]
+        return [( c, self[c] ) for c in list(self.keys())]
 
     def values( self ):
-        return [self[c] for c in self.keys()]
+        return [self[c] for c in list(self.keys())]
 
 
 class ImportIterator( object ):
@@ -124,7 +128,7 @@ class ImportIterator( object ):
     def __iter__( self ):
         return self
 
-    def next( self ):
+    def __next__( self ):
         raise StopIteration
 
 
@@ -181,7 +185,7 @@ class ExcelImporter( Importer ):
         """
         rowidx = rowidx + 1
         data = {}
-        for colname, idx in self.cols.items():
+        for colname, idx in list(self.cols.items()):
             data[colname] = self.sheet.cell( rowx=rowidx, colx=idx ).value
         return data
 
@@ -197,7 +201,7 @@ class ExcelImportIterator( ImportIterator ):
         self.excelimporter = excelimporter
         self.rowidx = -1
 
-    def next( self ):
+    def __next__( self ):
         self.rowidx += 1
 
         if self.rowidx >= len( self.excelimporter ):
@@ -240,7 +244,7 @@ class CSVImporter( Importer ):
         self._rows = []
         for r in self.csvreader:
             data = {}
-            for c, i in self.cols.items():
+            for c, i in list(self.cols.items()):
                 try:
                     data[c] = r[i]
                 except IndexError:
@@ -282,7 +286,7 @@ class _UTF8Recoder:
     def __iter__(self):
         return self
 
-    def next( self ):
+    def __next__( self ):
         return self.reader.next().encode( "utf-8" )
 
 
@@ -295,9 +299,9 @@ class _UnicodeReader( object ):
         f = _UTF8Recoder( f, encoding )
         self.reader = csv.reader( f, dialect=dialect, **kwds )
 
-    def next(self):
+    def __next__(self):
         row = next(self.reader)
-        return [unicode( s, "utf-8" ) for s in row]
+        return [str( s, "utf-8" ) for s in row]
 
     def __iter__(self):
         return self

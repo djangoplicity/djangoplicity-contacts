@@ -50,7 +50,7 @@ class ContactUpdateTestCase( ContactSetupMixin, TestCase ):
         c1.update_object( **c4_data )
 
         # Check updated attributes
-        for k,v in c4_data.items():
+        for k,v in list(c4_data.items()):
             if k == 'id':
                 self.assertEqual( getattr( c1, k ), c1.id )
             else:
@@ -67,7 +67,7 @@ class ContactUpdateTestCase( ContactSetupMixin, TestCase ):
         data = { 'website' : 'newwensite', 'email' : 'new@email' }
         c2.update_object( **data )
 
-        for k, v in self.create_contact( 2 ).items():
+        for k, v in list(self.create_contact( 2 ).items()):
             if k in data:
                 self.assertEqual( getattr( c2, k ), data[k] ) # Update
             else:
@@ -154,7 +154,7 @@ class ContactCreateTestCase( ContactSetupMixin, TestCase ):
 
         self.assertEqual( c5.pk, 4 ) # Id should not be taken into account
 
-        for k,v in data.items():
+        for k,v in list(data.items()):
             if k not in extras and k != 'id':
                 self.assertEqual( getattr( c5, k ), v )
 

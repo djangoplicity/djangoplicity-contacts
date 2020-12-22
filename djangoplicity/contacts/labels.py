@@ -66,6 +66,8 @@ directly define the django template in a string. This is used by the ``Label`` m
 define custom labels.
 """
 
+from builtins import range
+from builtins import object
 from django.template import Context, Template
 from django.utils.encoding import smart_str
 from django.http import HttpResponse
@@ -110,7 +112,7 @@ LABEL_PAPER = {
 }
 
 # Label paper choices for use as choices in a django field
-LABEL_PAPER_CHOICES = tuple( [( k, v['title'] ) for k, v in LABEL_PAPER.items()] )
+LABEL_PAPER_CHOICES = tuple( [( k, v['title'] ) for k, v in list(LABEL_PAPER.items())] )
 
 
 class LabelRender( object ):

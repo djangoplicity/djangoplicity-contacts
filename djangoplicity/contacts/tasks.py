@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE
 #
 
+from builtins import str
 from celery.task import PeriodicTask, task
 from datetime import timedelta
 
@@ -220,7 +221,7 @@ class PeriodicAction( PeriodicTask ):
         logger.info( "Dispatching periodic actions with event %s" % self.on_event_name )
 
         actions_by_group = ContactGroupAction.get_actions_for_event( self.on_event_name )
-        group_pks = [int( x ) for x in actions_by_group.keys()]
+        group_pks = [int( x ) for x in list(actions_by_group.keys())]
 
         if group_pks:
             for group in ContactGroup.objects.filter( pk__in=group_pks ):
@@ -299,7 +300,7 @@ class UpdateContactAction( ContactAction ):
 
         defaults = { 'model_identifier': model_identifier, 'pk': pk }
 
-        for k, v in kwargs.items():
+        for k, v in list(kwargs.items()):
             # Hack to allow for languages changes:
             if k == 'get_language':
                 k = 'language'
@@ -319,7 +320,7 @@ class UpdateContactAction( ContactAction ):
             contact = self._get_object( model_identifier, pk )
 
             defaults = {}
-            for k, v in kwargs.items():
+            for k, v in list(kwargs.items()):
                 if k in Contact.ALLOWED_FIELDS:
                     defaults[k] = v
 

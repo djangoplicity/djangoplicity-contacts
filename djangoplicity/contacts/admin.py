@@ -33,8 +33,14 @@
 """
 Admin interfaces for contact models.
 """
+from __future__ import division
 
-import StringIO
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import range
+from past.utils import old_div
+import io
 from collections import OrderedDict
 from datetime import datetime
 
@@ -228,13 +234,13 @@ class ImportAdmin( admin.ModelAdmin ):
             # Check that all the forms are valid, if not create
             # a list of error messages
             errorlist = []
-            for line, contact in import_contacts.iteritems():
+            for line, contact in import_contacts.items():
                 if not contact['form']:
                     continue
                 if not contact['form'].is_valid():
                     # Convert the ErrorList to a dict including the field value for the template:
                     errors = []
-                    for field, error in contact['form']._errors.iteritems():
+                    for field, error in contact['form']._errors.items():
                         errors.append({
                             'field': field,
                             'error': error,
@@ -484,7 +490,7 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
         return super(ContactAdmin, self).get_queryset(request).select_related('country').prefetch_related('groups')
 
     def tags( self, obj ):
-        return ", ".join( [unicode(x) for x in obj.groups.all()] )
+        return ", ".join( [str(x) for x in obj.groups.all()] )
 
     def get_urls( self ):
         urls = super( ContactAdmin, self ).get_urls()
@@ -533,7 +539,7 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
         return label.get_label_render().render_http_response( queryset, 'contact_labels.pdf' )
 
     def action_export_xls(self, modeladmin, request, queryset):
-        output = StringIO.StringIO()
+        output = io.StringIO()
 
         title = 'Contacts'
         fields = ('id', 'title', 'first_name', 'last_name', 'position',
@@ -554,7 +560,7 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
             ])
             for field in many2many_fields:
                 data[field] = ', '.join([
-                    unicode(value) for value in getattr(c, field).all()
+                    str(value) for value in getattr(c, field).all()
                 ])
             exporter.writedata(data)
 
@@ -678,7 +684,7 @@ class DeduplicationAdmin(admin.ModelAdmin):
                 'duplicates': duplicates,
                 'total_duplicates': total_duplicates,
                 'page': page,
-                'pages': range(1, (total_duplicates / dedup.max_display + 2)),
+                'pages': list(range(1, (old_div(total_duplicates, dedup.max_display) + 2))),
             }
         )
 
@@ -690,11 +696,11 @@ class DeduplicationAdmin(admin.ModelAdmin):
         # Check that all the update forms are valid, if not create
         # a list of error messages
         errorlist = []
-        for dummy, contact in update.iteritems():
+        for dummy, contact in update.items():
             if not contact['form'].is_valid():
                 # Convert the ErrorList to a dict including the field value for the template:
                 errors = []
-                for field, error in contact['form']._errors.iteritems():
+                for field, error in contact['form']._errors.items():
                     errors.append({
                         'field': field,
                         'error': error,

@@ -34,6 +34,7 @@
 #
 # Mixin class to automatically create test data
 #
+from builtins import object
 class ContactSetupMixin():
     """
     Mixin object to create a number of contacts, extra fields, groups and countries.
@@ -100,7 +101,7 @@ class ContactSetupMixin():
         }
 
         newdata = {}
-        for k,v in data.items():
+        for k,v in list(data.items()):
             if k == 'id':
                 newdata[k] = v
             else:
@@ -171,7 +172,7 @@ class ImporterMixin( object ):
             for row in data:
                 # Change keys to that of the header
                 rowdata = {}
-                for k,v in row.items():
+                for k,v in list(row.items()):
                     if k == 'groups' and fix_header:
                         v = ", ".join( [self._contactgroup2group( x.strip() ) for x in v.split(",")] )
                     rowdata[self._field2header( k )  if fix_header else k] = v
@@ -216,7 +217,7 @@ class ImporterMixin( object ):
         """
         Test if imported data corresponds to imported contact
         """
-        for k, v in  data.items():
+        for k, v in  list(data.items()):
             if k not in excludes + ['groups', 'country', 'skype']:
                 self.assertEqual( getattr( c, k ), v )
 

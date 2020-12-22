@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE
 #
 
+from builtins import range
 import json
 
 
@@ -83,4 +84,4 @@ def joinfields( *args ):
 
 
 def debug_data( data ):
-    return "\n".join( filter(lambda x: x, [data['name']] + data['address_lines'] + [data['city'], data['country']] ) )
+    return "\n".join( [x for x in [data['name']] + data['address_lines'] + [data['city'], data['country']] if x] )

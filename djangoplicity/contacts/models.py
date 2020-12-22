@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE
 
 
+from builtins import str
 from datetime import datetime
 from dirtyfields import DirtyFieldsMixin
 from hashids import Hashids
@@ -539,7 +540,7 @@ class Contact( DirtyFieldsMixin, models.Model ):
             del kwargs['country']
 
         # Set the fields
-        for field, val in kwargs.items():
+        for field, val in list(kwargs.items()):
             if field in self.ALLOWED_FIELDS:
                 setattr( self, field, val )
                 changed = True
@@ -558,7 +559,7 @@ class Contact( DirtyFieldsMixin, models.Model ):
         extra_fields = self.get_allowed_extra_fields()
         changed = False
 
-        for field, val in kwargs.items():
+        for field, val in list(kwargs.items()):
             if field in extra_fields:
                 self.set_extra_field( field, val )
                 changed = True
@@ -573,7 +574,7 @@ class Contact( DirtyFieldsMixin, models.Model ):
         elif self.department:
             return self.department
         else:
-            return unicode( self.pk )
+            return str( self.pk )
 
     @classmethod
     def pre_delete_callback( cls, sender, instance=None, **kwargs ):
@@ -829,7 +830,7 @@ class ContactGroupAction( models.Model ):
         logger.debug( "contact %s updated", instance.pk )
         updates = {}
         if dirty_fields:
-            for attr, val in dirty_fields.items():
+            for attr, val in list(dirty_fields.items()):
                 updates[attr] = ( val, getattr( instance, attr, None ) )
 
             for group in instance.groups.all():
@@ -1075,9 +1076,9 @@ class ImportTemplate( models.Model ):
             i += 1
             if data:
                 try:
-                    id = imported_contacts[unicode(i)]
+                    id = imported_contacts[str(i)]
                     contact = {
-                        'row': unicode(i),
+                        'row': str(i),
                         'contact_link': '<a href="%s">%s</a>' %
                         (url_reverse('admin:contacts_contact_change', args=[id]), id),
                         'data': data,
@@ -1093,17 +1094,17 @@ class ImportTemplate( models.Model ):
                 except KeyError:
                     # Create a new contact (without saving it)
                     # to generate the form
-                    record = {'row': unicode(i), 'form': ContactForm(initial=data, prefix='%d_new' % i)}
+                    record = {'row': str(i), 'form': ContactForm(initial=data, prefix='%d_new' % i)}
                     # Get the list of group names from the import data
                     new_groups = []
                     if 'groups' in data:
                         new_groups = [ ContactGroup.objects.get(id=x).name for x in data['groups'] ]
 
-                    if unicode(i) in duplicate_contacts:
+                    if str(i) in duplicate_contacts:
                         dups = []
                         #  Duplicates dict is using 0 based arrays
                         #  We loop over the IDs, stored in reverse score order:
-                        for id, score in sorted(duplicate_contacts[unicode(i)].iteritems(),
+                        for id, score in sorted(iter(duplicate_contacts[str(i)].items()),
                                                 key=lambda k_v: (k_v[1], k_v[0]), reverse=True):
 
                             try:
@@ -1187,7 +1188,7 @@ class ImportTemplate( models.Model ):
 
         imported_contacts = {}
 
-        for line_number, contact_data in import_contacts.iteritems():
+        for line_number, contact_data in import_contacts.items():
             form = contact_data['form']
             if not form:
                 continue
@@ -1303,22 +1304,22 @@ class ImportMapping( models.Model ):
                 ImportMapping._country_cache['iso'][c.iso_code.lower()] = c.pk
                 ImportMapping._country_cache['name'][c.name.lower()] = c.pk
 
-        if not isinstance(value, unicode):
-            value = unicode(value)
+        if not isinstance(value, str):
+            value = str(value)
         value = value.lower().strip()
         if len( value ) == 2 and value in ImportMapping._country_cache['iso']:
             return ImportMapping._country_cache['iso'][value]
         elif value in ImportMapping._country_cache['name']:
             return ImportMapping._country_cache['name'][value]
         else:
-            for k, v in ImportMapping._country_cache['name'].items():
+            for k, v in list(ImportMapping._country_cache['name'].items()):
                 if similar_text( k, value ):
                     logger.info( "similar %s = %s", k, value )
                     return v
 
-            for iso, exps in ISO_EXPANSION.items():
+            for iso, exps in list(ISO_EXPANSION.items()):
                 for e in exps:
-                    if similar_text( unicode( value ), e ):
+                    if similar_text( str( value ), e ):
                         return ImportMapping._country_cache['iso'][iso.lower()]
             return None
 
@@ -1334,7 +1335,7 @@ class ImportMapping( models.Model ):
         if self._groupmap_cache is None:
             self._groupmap_cache = dict( ImportGroupMapping.objects.filter( mapping=self ).values_list( 'value', 'group__id' ) )
 
-        return filter( lambda x: x, map( lambda x: self._groupmap_cache.get( x, None ), values ) )
+        return [x for x in [self._groupmap_cache.get( x, None ) for x in values] if x]
 
     def get_value( self, data ):
         """
@@ -1351,8 +1352,8 @@ class ImportMapping( models.Model ):
                 if trail[0] == 'country':
                     return self.get_country_value( val )
                 if trail[0] == 'language':
-                    if not isinstance(val, unicode):
-                        val = unicode(val)
+                    if not isinstance(val, str):
+                        val = str(val)
                     return val.lower()
             # Excel uses float for many numbers.
             if isinstance( val, float ) and val - int( val ) == 0.0:
@@ -1387,9 +1388,9 @@ class ImportSelector( models.Model ):
     def is_selected( self, data ):
         try:
             val = self.get_value( data )
-            compare_val = unicode( self.value ).strip() if self.case_sensitive else unicode( self.value ).strip().lower()
+            compare_val = str( self.value ).strip() if self.case_sensitive else str( self.value ).strip().lower()
             if val:
-                val = unicode( val ).strip() if self.case_sensitive else unicode( val ).strip().lower()
+                val = str( val ).strip() if self.case_sensitive else str( val ).strip().lower()
 
             return val == compare_val
         except ColumnDoesNotExists:
@@ -1616,7 +1617,7 @@ class Deduplication(models.Model):
 
         # Remove duplicated contacts
         duplicate_contacts = dict([
-            (k, v) for k, v in duplicate_contacts.items()
+            (k, v) for k, v in list(duplicate_contacts.items())
             if '%s_%s' % (k, k) not in deduplicated_contacts
         ])
 
@@ -1626,16 +1627,16 @@ class Deduplication(models.Model):
         start = (page - 1) * self.max_display
         end = page * self.max_display
         duplicate_contacts = dict([
-            (k, v) for k, v in duplicate_contacts.items()
+            (k, v) for k, v in list(duplicate_contacts.items())
         ][start:end])
 
         duplicates = []
 
         # Prefetch Contacts
         keys = []
-        for k, v in duplicate_contacts.items():
+        for k, v in list(duplicate_contacts.items()):
             keys.append(k)
-            keys += v.keys()
+            keys += list(v.keys())
         contacts = Contact.objects.filter(pk__in=keys).prefetch_related(
             'groups', 'country').select_related('country', 'region')
         contacts = dict([(str(c.pk), c) for c in contacts])
@@ -1660,7 +1661,7 @@ class Deduplication(models.Model):
 
             dups = []
 
-            for pk, score in sorted(duplicate_contacts[contact_id].iteritems(),
+            for pk, score in sorted(iter(duplicate_contacts[contact_id].items()),
                     key=lambda k_v1: (k_v1[1], k_v1[0]), reverse=True):
 
                 if score < self.min_score_display:
@@ -1706,7 +1707,7 @@ class Deduplication(models.Model):
                         'Couldn\'t delete Contact "%s", Contact doesn\'t exist!' % contact_id)
             deduplicated_contacts.append(contact_id)
 
-        for contact, data in update.iteritems():
+        for contact, data in update.items():
             form = data['form']
             form.save()
             contact_id = contact.split('_')[1]

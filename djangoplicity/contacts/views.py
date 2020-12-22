@@ -29,6 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE
 
+from builtins import str
 from django.contrib import messages
 from django.contrib.auth.models import User
 from django.contrib.admin.models import LogEntry, CHANGE
@@ -77,7 +78,7 @@ class ContactPublicUpdate(UpdateView):
         obj = self.get_object()
         changed_fields = []
 
-        for field, value in form.cleaned_data.items():
+        for field, value in list(form.cleaned_data.items()):
             if value != getattr(obj, field):
                 changed_fields.append(force_text(form[field].label))
 
@@ -96,7 +97,7 @@ class ContactPublicUpdate(UpdateView):
                     user_id=user.id,
                     content_type_id=ContentType.objects.get_for_model(self.object).pk,
                     object_id=self.object.id,
-                    object_repr=unicode(self.object),
+                    object_repr=str(self.object),
                     action_flag=CHANGE,
                     change_message=change_message)
 
