@@ -45,6 +45,7 @@ from django.core.urlresolvers import reverse as url_reverse
 from django.db import models, connection
 from django.db.models.signals import pre_delete, post_delete, post_save, \
     pre_save
+from django.utils.encoding import python_2_unicode_compatible
 from django.utils.translation import ugettext_lazy as _
 
 from djangoplicity.actions.models import Action  # pylint: disable=E0611
@@ -59,6 +60,7 @@ from djangoplicity.translation.fields import LanguageField  # pylint: disable=E0
 logger = logging.getLogger( 'djangoplicity' )
 
 
+@python_2_unicode_compatible
 class Label( models.Model ):
     """
     Object to define labels
@@ -73,13 +75,14 @@ class Label( models.Model ):
     def get_label_render( self ):
         return LabelRender( self.paper, label_template=self.template, style=self.style, repeat=self.repeat )
 
-    def __unicode__( self ):
+    def __str__( self ):
         return self.name
 
     class Meta:
         ordering = ['name']
 
 
+@python_2_unicode_compatible
 class Field( models.Model ):
     """
     Definition of extra fields (i.e. fields not defined on contact model.)
@@ -130,20 +133,21 @@ class Field( models.Model ):
         super( Field, self ).save( *args, **kwargs )
         self.__class__._slug_cache = None
 
-    def __unicode__( self ):
+    def __str__( self ):
         return self.name
 
     class Meta:
         ordering = ['name']
 
 
+@python_2_unicode_compatible
 class GroupCategory( models.Model ):
     """
     Groupings of groups.
     """
     name = models.CharField( max_length=255, blank=True )
 
-    def __unicode__( self ):
+    def __str__( self ):
         return self.name
 
     class Meta:
@@ -151,6 +155,7 @@ class GroupCategory( models.Model ):
         ordering = ( 'name', )
 
 
+@python_2_unicode_compatible
 class CountryGroup( models.Model ):
     """
     Allow grouping of countries (e.g. EU, member states)
@@ -158,26 +163,28 @@ class CountryGroup( models.Model ):
     name = models.CharField( max_length=255, blank=True, db_index=True )
     category = models.ForeignKey( GroupCategory, blank=True, null=True )
 
-    def __unicode__( self ):
+    def __str__( self ):
         return self.name
 
     class Meta:
         ordering = ( 'category__name', 'name' )
 
 
+@python_2_unicode_compatible
 class PostalZone( models.Model ):
     """
     Postal zones for countries
     """
     name = models.CharField( max_length=255, unique=True )
 
-    def __unicode__( self ):
+    def __str__( self ):
         return self.name
 
     class Meta:
         ordering = [ 'name', ]
 
 
+@python_2_unicode_compatible
 class Country( models.Model ):
     """
     Country model for storing country names.
@@ -214,7 +221,7 @@ class Country( models.Model ):
         self.iso_code = self.iso_code.upper()
         super( Country, self ).save( *args, **kwargs )
 
-    def __unicode__( self ):
+    def __str__( self ):
         return self.name
 
     class Meta:
@@ -222,6 +229,7 @@ class Country( models.Model ):
         ordering = ['name', ]
 
 
+@python_2_unicode_compatible
 class Region(models.Model):
     '''
     Regions for Countries
@@ -231,13 +239,14 @@ class Region(models.Model):
     code = models.CharField(max_length=200, db_index=True)
     country = models.ForeignKey(Country)
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
     class Meta:
         ordering = ['country', 'name']
 
 
+@python_2_unicode_compatible
 class ContactGroup( DirtyFieldsMixin, models.Model ):
     """
     Groups for contacts
@@ -261,7 +270,7 @@ class ContactGroup( DirtyFieldsMixin, models.Model ):
         """ Get all email addresses for contacts in this group """
         return self.contact_set.exclude(email='').exclude(email__iendswith='-invalid').values_list('email', flat=True)
 
-    def __unicode__( self ):
+    def __str__( self ):
         return self.name
 
     @classmethod
@@ -330,6 +339,7 @@ class ContactGroup( DirtyFieldsMixin, models.Model ):
         ordering = ( 'name', )
 
 
+@python_2_unicode_compatible
 class Contact( DirtyFieldsMixin, models.Model ):
     """
     Contacts model
@@ -566,7 +576,7 @@ class Contact( DirtyFieldsMixin, models.Model ):
 
         return changed
 
-    def __unicode__( self ):
+    def __str__( self ):
         if self.first_name or self.last_name:
             return ( "%s %s %s" % ( self.title, self.first_name, self.last_name ) ).strip()
         elif self.organisation:
@@ -662,6 +672,7 @@ class Contact( DirtyFieldsMixin, models.Model ):
         ordering = ['last_name']
 
 
+@python_2_unicode_compatible
 class ContactField( models.Model ):
     """
     Stores a field value for a given contact.
@@ -670,7 +681,7 @@ class ContactField( models.Model ):
     contact = models.ForeignKey( Contact )
     value = models.CharField( max_length=255, blank=True, db_index=True )
 
-    def __unicode__( self ):
+    def __str__( self ):
         return self.value
 
     class Meta:
@@ -869,6 +880,7 @@ DUPLICATE_HANDLING = [
 ]
 
 
+@python_2_unicode_compatible
 class ImportTemplate( models.Model ):
     """
     An import template defines how a CSV or Excel file should be
@@ -906,7 +918,7 @@ class ImportTemplate( models.Model ):
     class Meta:
         ordering = ['name', ]
 
-    def __unicode__( self ):
+    def __str__( self ):
         return self.name
 
     def clear_selector_cache( self ):
