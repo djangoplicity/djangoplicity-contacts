@@ -143,7 +143,7 @@ class ImportAdmin( admin.ModelAdmin ):
                     'opts': obj._meta,
                 }
             )
-        except Exception, e:
+        except Exception as e:
             return render(request,
                 "admin/contacts/import/preview.html",
                 {

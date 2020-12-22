@@ -395,7 +395,7 @@ class Contact( DirtyFieldsMixin, models.Model ):
         data['name'] = ( "%s %s %s" % ( self.title, self.first_name, self.last_name ) ).strip()
         data['first_name'] = self.first_name.strip()
         data['last_name'] = self.last_name.strip()
-        data['address_lines'] = [x.strip() for x in self.organisation, self.department, self.street_1, self.street_2]
+        data['address_lines'] = [x.strip() for x in (self.organisation, self.department, self.street_1, self.street_2)]
         data['street_1'] = self.street_1.strip()
         data['street_2'] = self.street_2.strip()
         data['city'] = self.city.strip()
@@ -1104,7 +1104,7 @@ class ImportTemplate( models.Model ):
                         #  Duplicates dict is using 0 based arrays
                         #  We loop over the IDs, stored in reverse score order:
                         for id, score in sorted(duplicate_contacts[unicode(i)].iteritems(),
-                                                key=lambda(k, v): (v, k), reverse=True):
+                                                key=lambda k_v: (k_v[1], k_v[0]), reverse=True):
 
                             try:
                                 contact = Contact.objects.get(id=id)
@@ -1661,7 +1661,7 @@ class Deduplication(models.Model):
             dups = []
 
             for pk, score in sorted(duplicate_contacts[contact_id].iteritems(),
-                    key=lambda(k, v): (v, k), reverse=True):
+                    key=lambda k_v1: (k_v1[1], k_v1[0]), reverse=True):
 
                 if score < self.min_score_display:
                     continue

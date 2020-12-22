@@ -229,7 +229,7 @@ class CSVImporter( Importer ):
         # Parse header
         i = 0
         self.cols = {}
-        header = self.csvreader.next()
+        header = next(self.csvreader)
         for c in header:
             if isinstance(c, basestring):
                 c = c.strip()
@@ -296,7 +296,7 @@ class _UnicodeReader( object ):
         self.reader = csv.reader( f, dialect=dialect, **kwds )
 
     def next(self):
-        row = self.reader.next()
+        row = next(self.reader)
         return [unicode( s, "utf-8" ) for s in row]
 
     def __iter__(self):

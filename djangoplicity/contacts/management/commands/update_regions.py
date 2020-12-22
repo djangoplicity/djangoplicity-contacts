@@ -29,6 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE
 
+from __future__ import print_function
 import requests
 
 from django.core.management.base import BaseCommand
@@ -60,4 +61,4 @@ class Command(BaseCommand):
             region.local_name = local_name
 
             region.save()
-            print 'Updating: %s' % region
+            print('Updating: %s' % region)
