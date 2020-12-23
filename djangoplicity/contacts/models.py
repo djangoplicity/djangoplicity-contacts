@@ -703,6 +703,7 @@ ACTION_EVENTS = (
 )
 
 
+@python_2_unicode_compatible
 class ContactGroupAction( models.Model ):
     """
     Define actions to be executed when a contact is added
@@ -713,6 +714,9 @@ class ContactGroupAction( models.Model ):
     on_event = models.CharField( max_length=50, choices=ACTION_EVENTS, db_index=True )
 
     _key = 'djangoplicity.contacts.action_cache'
+
+    def __str__(self):
+        return '{} ({}): {}'.format(self.group, self.get_on_event_display(), self.action)
 
     @classmethod
     def clear_cache( cls, *args, **kwargs ):
@@ -1268,6 +1272,7 @@ CONTACTS_FIELDS = [
 # + Field.field_options() # Todo: needs to be dynamic since if extra field is added, then it will require server restart to have the list updated.
 
 
+@python_2_unicode_compatible
 class ImportMapping( models.Model ):
     """
     Defines a mapping from a column in an CSV or Excel file to a contact model field.
@@ -1279,6 +1284,9 @@ class ImportMapping( models.Model ):
 
     _country_cache = None
     _groupmap_cache = None
+
+    def __str__(self):
+        return '{}: {} -> {}'.format(self.group_separator, self.header, self.field)
 
     def save( self, *args, **kwargs ):
         # Clear mapping cache on import template
@@ -1409,6 +1417,7 @@ class ImportSelector( models.Model ):
             return False
 
 
+@python_2_unicode_compatible
 class ImportGroupMapping( models.Model ):
     """
     Defines a mapping from values to groups.
@@ -1416,6 +1425,9 @@ class ImportGroupMapping( models.Model ):
     mapping = models.ForeignKey( ImportMapping, limit_choices_to={ 'field': 'groups' } )
     value = models.CharField( max_length=255 )
     group = models.ForeignKey( ContactGroup )
+
+    def __str__(self):
+        return '{} - {}'.format(self.group, self.mapping)
 
     def save( self, *args, **kwargs ):
         # Make sure that the value is stripped (extra spaces would make
@@ -1452,6 +1464,7 @@ DEDUPLICATION_STATUS = [
 ]
 
 
+@python_2_unicode_compatible
 class Import( models.Model ):
     """
     Import job - stores an excel file and selects which import template to use when importing
@@ -1468,6 +1481,9 @@ class Import( models.Model ):
     last_deduplication = models.DateTimeField( null=True )
     imported_contacts = models.TextField( blank=True )
     duplicate_contacts = models.TextField( blank=True )
+
+    def __str__(self):
+        return '{}, C: {}, M: {}'.format(self.data_file.name, self.created, self.last_modified)
 
     def preview_data( self ):
         """
