@@ -57,7 +57,7 @@ from djangoplicity.translation.fields import LanguageField  # pylint: disable=E0
 import django
 if django.VERSION[:2] < (2, 0):
     from django.core.urlresolvers import reverse as url_reverse
-else
+else:
     from django.urls import reverse as url_reverse
 
 
