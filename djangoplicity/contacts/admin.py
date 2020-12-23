@@ -153,7 +153,7 @@ class ImportAdmin( admin.ModelAdmin ):
             return render(request,
                 "admin/contacts/import/preview.html",
                 {
-                    'error': e.message,
+                    'error': e.args,
                     'object': obj,
                     'messages': [],
                     'app_label': obj._meta.app_label,
