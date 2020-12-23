@@ -41,7 +41,6 @@ import json
 from django.conf import settings
 from django.core.cache import cache
 from django.core.files.storage import FileSystemStorage
-from django.urls import reverse as url_reverse
 from django.db import models, connection
 from django.db.models.signals import pre_delete, post_delete, post_save, \
     pre_save
@@ -55,6 +54,12 @@ from djangoplicity.contacts.signals import contact_added, contact_removed, \
 from djangoplicity.contacts.tasks import contactgroup_change_check
 from djangoplicity.contacts import deduplication
 from djangoplicity.translation.fields import LanguageField  # pylint: disable=E0611
+
+import django
+if django.VERSION[:2] < (2, 0):
+    from django.core.urlresolvers import reverse as url_reverse
+else
+    from django.urls import reverse as url_reverse
 
 
 logger = logging.getLogger( 'djangoplicity' )
