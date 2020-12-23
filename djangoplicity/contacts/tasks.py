@@ -45,7 +45,7 @@ from djangoplicity.utils.history import add_admin_history  # pylint: disable=E06
 import django
 if django.VERSION[:2] < (2, 0):
     from django.core.urlresolvers import reverse
-else
+else:
     from django.urls import reverse
 
 
