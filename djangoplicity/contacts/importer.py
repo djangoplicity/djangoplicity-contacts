@@ -287,7 +287,7 @@ class _UTF8Recoder:
         return self
 
     def __next__( self ):
-        return self.reader.next().encode( "utf-8" )
+        return self.reader.readline().encode( "utf-8" )
 
 
 class _UnicodeReader( object ):
