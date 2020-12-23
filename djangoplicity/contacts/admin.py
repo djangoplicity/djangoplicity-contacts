@@ -539,7 +539,7 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
         return label.get_label_render().render_http_response( queryset, 'contact_labels.pdf' )
 
     def action_export_xls(self, modeladmin, request, queryset):
-        output = io.StringIO()
+        output = io.BytesIO()
 
         title = 'Contacts'
         fields = ('id', 'title', 'first_name', 'last_name', 'position',
