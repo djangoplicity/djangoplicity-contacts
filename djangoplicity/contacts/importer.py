@@ -227,7 +227,7 @@ class CSVImporter( Importer ):
         Initialise importer by opening the Excel file and
         reading out a specific sheet.
         """
-        f = open( filename, 'r' )
+        f = open( filename, 'r', encoding='utf-8' )
         self.csvreader = _UnicodeReader( f, **kwargs )
 
         # Parse header
@@ -287,7 +287,7 @@ class _UTF8Recoder:
         return self
 
     def __next__( self ):
-        return self.reader.next().encode( "utf-8" )
+        return self.reader.readline().encode( "utf-8" )
 
 
 class _UnicodeReader( object ):
@@ -296,12 +296,14 @@ class _UnicodeReader( object ):
     which is encoded in the given encoding.
     """
     def __init__( self, f, dialect=csv.excel, encoding="utf-8", **kwds ):
-        f = _UTF8Recoder( f, encoding )
+        # Generates bytes object and str concat error in python3 for csv files. We can instead define the encoding when
+        # file is opened.
+        # f = _UTF8Recoder( f, encoding )
         self.reader = csv.reader( f, dialect=dialect, **kwds )
 
     def __next__(self):
         row = next(self.reader)
-        return [str( s, "utf-8" ) for s in row]
+        return [s for s in row]
 
     def __iter__(self):
         return self
