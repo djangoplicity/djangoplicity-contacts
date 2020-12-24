@@ -41,7 +41,6 @@ import json
 from django.conf import settings
 from django.core.cache import cache
 from django.core.files.storage import FileSystemStorage
-from django.core.urlresolvers import reverse as url_reverse
 from django.db import models, connection
 from django.db.models.signals import pre_delete, post_delete, post_save, \
     pre_save
@@ -54,6 +53,12 @@ from djangoplicity.contacts.signals import contact_added, contact_removed, \
 from djangoplicity.contacts.tasks import contactgroup_change_check
 from djangoplicity.contacts import deduplication
 from djangoplicity.translation.fields import LanguageField  # pylint: disable=E0611
+
+import django
+if django.VERSION[:2] < (2, 0):
+    from django.core.urlresolvers import reverse as url_reverse
+else:
+    from django.urls import reverse as url_reverse
 
 
 logger = logging.getLogger( 'djangoplicity' )
@@ -156,7 +161,7 @@ class CountryGroup( models.Model ):
     Allow grouping of countries (e.g. EU, member states)
     """
     name = models.CharField( max_length=255, blank=True, db_index=True )
-    category = models.ForeignKey( GroupCategory, blank=True, null=True )
+    category = models.ForeignKey( GroupCategory, blank=True, null=True, on_delete=models.CASCADE )
 
     def __unicode__( self ):
         return self.name
@@ -186,7 +191,7 @@ class Country( models.Model ):
     iso_code = models.CharField( _( 'ISO code' ), max_length=5, blank=True )
     dialing_code = models.CharField( max_length=10, blank=True )
     zip_after_city = models.BooleanField( default=False )
-    postal_zone = models.ForeignKey( PostalZone, null=True, blank=True )
+    postal_zone = models.ForeignKey( PostalZone, null=True, blank=True, on_delete=models.CASCADE )
     groups = models.ManyToManyField( CountryGroup, blank=True )
 
     def get_zip_city( self, zip_, city ):
@@ -229,7 +234,7 @@ class Region(models.Model):
     name = models.CharField(max_length=200, db_index=True, verbose_name='Region/State name')
     local_name = models.CharField(max_length=200, verbose_name='Region/State name in the local language')
     code = models.CharField(max_length=200, db_index=True)
-    country = models.ForeignKey(Country)
+    country = models.ForeignKey(Country, on_delete=models.CASCADE)
 
     def __unicode__(self):
         return self.name
@@ -254,7 +259,7 @@ class ContactGroup( DirtyFieldsMixin, models.Model ):
     that the propagation happens correctly.
     """
     name = models.CharField( max_length=255, blank=True )
-    category = models.ForeignKey( GroupCategory, blank=True, null=True )
+    category = models.ForeignKey( GroupCategory, blank=True, null=True, on_delete=models.CASCADE )
     order = models.PositiveIntegerField( blank=True, null=True )
 
     def get_emails( self ):
@@ -344,8 +349,8 @@ class Contact( DirtyFieldsMixin, models.Model ):
     street_2 = models.CharField( max_length=255, blank=True )
     zip = models.CharField( max_length=10, blank=True, help_text=_('ZIP/Postcal code'))
     city = models.CharField( max_length=255, blank=True )
-    country = models.ForeignKey( Country, blank=True, null=True )
-    region = models.ForeignKey(Region, blank=True, null=True)
+    country = models.ForeignKey( Country, blank=True, null=True, on_delete=models.CASCADE )
+    region = models.ForeignKey(Region, blank=True, null=True, on_delete=models.CASCADE)
     tax_code = models.CharField(_('Tax Code'), max_length=20, blank=True,
         help_text=_('Tax Code for Argentina, Brazil, Paraguay, Peru (CUIT/CPF/RUC)'))
 
@@ -666,8 +671,8 @@ class ContactField( models.Model ):
     """
     Stores a field value for a given contact.
     """
-    field = models.ForeignKey( Field )
-    contact = models.ForeignKey( Contact )
+    field = models.ForeignKey( Field, on_delete=models.CASCADE )
+    contact = models.ForeignKey( Contact, on_delete=models.CASCADE )
     value = models.CharField( max_length=255, blank=True, db_index=True )
 
     def __unicode__( self ):
@@ -697,8 +702,8 @@ class ContactGroupAction( models.Model ):
     Define actions to be executed when a contact is added
     or removed to a group.
     """
-    group = models.ForeignKey( ContactGroup )
-    action = models.ForeignKey( Action )
+    group = models.ForeignKey( ContactGroup, on_delete=models.CASCADE )
+    action = models.ForeignKey( Action, on_delete=models.CASCADE )
     on_event = models.CharField( max_length=50, choices=ACTION_EVENTS, db_index=True )
 
     _key = 'djangoplicity.contacts.action_cache'
@@ -1260,7 +1265,7 @@ class ImportMapping( models.Model ):
     """
     Defines a mapping from a column in an CSV or Excel file to a contact model field.
     """
-    template = models.ForeignKey( ImportTemplate )
+    template = models.ForeignKey( ImportTemplate, on_delete=models.CASCADE )
     header = models.CharField( max_length=255 )
     field = models.SlugField( max_length=255 )
     group_separator = models.CharField( max_length=20, default='', blank=True )
@@ -1369,7 +1374,7 @@ class ImportSelector( models.Model ):
     the template to only import certain rows (e.g. if a specific
     column contains an x in a cell it will be imported).
     """
-    template = models.ForeignKey( ImportTemplate )
+    template = models.ForeignKey( ImportTemplate, on_delete=models.CASCADE )
     header = models.CharField( max_length=255 )
     value = models.CharField( max_length=255 )
     case_sensitive = models.BooleanField( default=False )
@@ -1401,9 +1406,9 @@ class ImportGroupMapping( models.Model ):
     """
     Defines a mapping from values to groups.
     """
-    mapping = models.ForeignKey( ImportMapping, limit_choices_to={ 'field': 'groups' } )
+    mapping = models.ForeignKey( ImportMapping, limit_choices_to={ 'field': 'groups' }, on_delete=models.CASCADE )
     value = models.CharField( max_length=255 )
-    group = models.ForeignKey( ContactGroup )
+    group = models.ForeignKey( ContactGroup, on_delete=models.CASCADE )
 
     def save( self, *args, **kwargs ):
         # Make sure that the value is stripped (extra spaces would make
@@ -1448,7 +1453,7 @@ class Import( models.Model ):
     Allow for previewing of the data mapping and executing the import. An import can only be run once
     to prevent it from accidentally be imported twice.
     """
-    template = models.ForeignKey( ImportTemplate )
+    template = models.ForeignKey( ImportTemplate, on_delete=models.CASCADE )
     data_file = models.FileField( upload_to=handle_uploaded_file, storage=upload_fs )
     status = models.CharField( max_length=20, choices=DEDUPLICATION_STATUS, help_text='', default='new' )
     created = models.DateTimeField( auto_now_add=True )

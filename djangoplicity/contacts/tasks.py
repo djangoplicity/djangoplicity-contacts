@@ -38,10 +38,15 @@ from django.apps import apps
 from django.contrib.sites.models import Site
 from django.core.exceptions import ImproperlyConfigured
 from django.core.mail import send_mail
-from django.core.urlresolvers import reverse
 
 from djangoplicity.actions.plugins import ActionPlugin  # pylint: disable=E0611
-from djangoplicity.utils.history import add_admin_history  # pylint: disable=E0611
+from djangoplicity.utils.history import add_admin_history  # pylint: disable=E0611import django
+
+import django
+if django.VERSION[:2] < (2, 0):
+    from django.core.urlresolvers import reverse
+else:
+    from django.urls import reverse
 
 
 @task(ignore_result=True)
