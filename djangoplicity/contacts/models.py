@@ -342,7 +342,7 @@ class Contact( DirtyFieldsMixin, models.Model ):
     department = models.CharField( max_length=255, blank=True )
     street_1 = models.CharField( max_length=255, blank=True )
     street_2 = models.CharField( max_length=255, blank=True )
-    zip = models.CharField( max_length=10, blank=True, help_text=_('ZIP/Postcal code'))
+    zip = models.CharField( max_length=50, blank=True, help_text=_('ZIP/Postcal code'))
     city = models.CharField( max_length=255, blank=True )
     country = models.ForeignKey( Country, blank=True, null=True )
     region = models.ForeignKey(Region, blank=True, null=True)
@@ -498,7 +498,10 @@ class Contact( DirtyFieldsMixin, models.Model ):
             obj.save()
             obj.update_extra_fields( **kwargs )
             if groups:
-                groups = list(ContactGroup.objects.filter( name__in=groups ))
+                groups = list(ContactGroup.objects.filter(id__in=groups))
+                # In case the groups is a list of strings and not ids
+                if len(groups) == 0:
+                    groups = list(ContactGroup.objects.filter(name__in=groups))
                 obj.groups.add( *groups )
                 for g in groups:
                     contact_added.send(sender=obj.__class__, group=g, contact=obj)

@@ -479,6 +479,7 @@ class ContactAdmin( AdminCommentMixin, admin.ModelAdmin ):
     readonly_fields = ['id', 'created', 'last_modified']
     inlines = [ ContactFieldInlineAdmin, AdminCommentInline, ]
     list_select_related = True
+    ordering = ['-id']
 
     def get_queryset(self, request):
         return super(ContactAdmin, self).get_queryset(request).select_related('country').prefetch_related('groups')
