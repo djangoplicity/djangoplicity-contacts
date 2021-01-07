@@ -373,9 +373,9 @@ class RegionAdmin(admin.ModelAdmin):
     Regions are updated with the update_regions management country and any
     edit in the admin is disabled
     '''
-    list_display = ['country', 'name', 'local_name', 'code']
+    list_display = ['id', 'country', 'name', 'local_name', 'code']
     list_filter = ['country']
-    search_fields = ['country__name', 'name', 'local_name', 'code']
+    search_fields = ['=id', 'country__name', 'name', 'local_name', '=code']
     list_select_related = ['country']
     readonly_fields = ['country', 'name', 'local_name', 'code']
 

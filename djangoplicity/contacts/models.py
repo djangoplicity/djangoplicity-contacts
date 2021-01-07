@@ -44,6 +44,7 @@ from django.core.urlresolvers import reverse as url_reverse
 from django.db import models, connection
 from django.db.models.signals import pre_delete, post_delete, post_save, \
     pre_save
+from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 
 from djangoplicity.actions.models import Action  # pylint: disable=E0611
@@ -537,6 +538,10 @@ class Contact( DirtyFieldsMixin, models.Model ):
             self.country = ctry
             changed = True
             del kwargs['country']
+        if 'region' in kwargs and kwargs['region']:
+            self.region = Region.objects.get(pk=kwargs['region'])
+            changed = True
+            del kwargs['region']
 
         # Set the fields
         for field, val in kwargs.items():
@@ -1322,6 +1327,12 @@ class ImportMapping( models.Model ):
                         return ImportMapping._country_cache['iso'][iso.lower()]
             return None
 
+    def get_region_value(self, value):
+        if not value:
+            return None
+        region = Region.objects.filter(Q(name__istartswith=value) | Q(local_name__istartswith=value)).first()
+        return region.pk if region else None
+
     def get_groups_value( self, value ):
         """
         """
@@ -1345,11 +1356,13 @@ class ImportMapping( models.Model ):
         try:
             val = data[self.header]
             if self.field:
-                trail = self.field.split( "__" )
+                trail = self.field.split("__")
                 if trail[0] == 'groups':
-                    return self.get_groups_value( val )
+                    return self.get_groups_value(val)
                 if trail[0] == 'country':
-                    return self.get_country_value( val )
+                    return self.get_country_value(val)
+                if trail[0] == 'region':
+                    return self.get_region_value(val)
                 if trail[0] == 'language':
                     if not isinstance(val, unicode):
                         val = unicode(val)
