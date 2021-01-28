@@ -41,7 +41,7 @@ setup(
     install_requires=[
         'setuptools',
         'django-crispy-forms==1.8.1',
-        'django-dirtyfields',
+        'django-dirtyfields==1.4.1',
         'hashids',
         'xlrd',
         'xlwt',
