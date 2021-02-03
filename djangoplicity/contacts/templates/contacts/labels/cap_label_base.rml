@@ -3,7 +3,7 @@
 	<tr>
 		<td>
 			<illustration height="2cm" width="6cm">
-				<image file="{{ STATIC_ROOT }}contacts/cap-logo-large.jpg" x="0" y="0" height="2cm" />
+				<image file="{{ STATIC_ROOT }}/contacts/cap-logo-large.jpg" x="0" y="0" height="2cm" />
 			</illustration>
 		</td>
 		<td>
