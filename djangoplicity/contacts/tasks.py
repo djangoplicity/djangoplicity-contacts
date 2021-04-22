@@ -330,6 +330,52 @@ class UpdateContactAction( ContactAction ):
                 self.get_logger().info( "Contact %s was not updated." % ( contact.pk ) )
 
 
+class CreateContactAction( ContactAction ):
+    action_name = 'Contact create'
+    action_parameters = []
+
+    @classmethod
+    def get_arguments( cls, conf, *args, **kwargs ):
+        """
+        """
+        from djangoplicity.contacts.models import Contact
+
+        model_identifier = kwargs.get('model_identifier', None)
+        pk = kwargs.get('pk', None)
+
+        defaults = { 'model_identifier': model_identifier, 'pk': pk }
+
+        for k, v in kwargs.items():
+            # Hack to allow for languages changes:
+            if k == 'get_language':
+                k = 'language'
+                v = Contact.get_language_code(v)
+            if k in Contact.ALLOWED_FIELDS:
+                defaults[k] = v
+
+        return ( [], defaults )
+
+    def run( self, conf, model_identifier=None, pk=None, **kwargs ):
+        """
+        Create contact based on new field values in kwargs.
+        """
+        from djangoplicity.contacts.models import Contact
+
+        if model_identifier == 'contacts.contact' and pk is None:
+
+            defaults = {}
+            for k, v in kwargs.items():
+                if k in Contact.ALLOWED_FIELDS:
+                    defaults[k] = v
+
+            contact = Contact.create_object(**defaults)
+
+            if contact:
+                self.get_logger().info( "Contact %s was created." % ( contact.pk ) )
+            else:
+                self.get_logger().info( "Contact %s was not created." % ( defaults['email'] ) )
+
+
 class SetContactGroupAction( ContactAction ):
     action_name = 'Contacts add group'
     action_parameters = [
@@ -431,3 +477,4 @@ UnsetContactGroupAction.register()
 SetContactGroupAction.register()
 RemoveEmailAction.register()
 UpdateContactAction.register()
+CreateContactAction.register()
