@@ -361,7 +361,7 @@ class CreateContactAction( ContactAction ):
         """
         from djangoplicity.contacts.models import Contact
         if not model_identifier:
-            model_identifier == 'contacts.contact'
+            model_identifier = 'contacts.contact'
 
         if model_identifier == 'contacts.contact' and pk is None:
 
