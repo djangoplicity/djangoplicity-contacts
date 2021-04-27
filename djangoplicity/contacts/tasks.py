@@ -360,6 +360,8 @@ class CreateContactAction( ContactAction ):
         Create contact based on new field values in kwargs.
         """
         from djangoplicity.contacts.models import Contact
+        if not model_identifier:
+            model_identifier == 'contacts.contact'
 
         if model_identifier == 'contacts.contact' and pk is None:
 
@@ -474,7 +476,7 @@ class RemoveEmailAction( ContactAction ):
 
 
 UnsetContactGroupAction.register()
-SetContactGroupAction.register()
+SetContactGroupAction.register()ALLOWED_FIELDS
 RemoveEmailAction.register()
 UpdateContactAction.register()
 CreateContactAction.register()
