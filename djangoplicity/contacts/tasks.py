@@ -476,7 +476,7 @@ class RemoveEmailAction( ContactAction ):
 
 
 UnsetContactGroupAction.register()
-SetContactGroupAction.register()ALLOWED_FIELDS
+SetContactGroupAction.register()
 RemoveEmailAction.register()
 UpdateContactAction.register()
 CreateContactAction.register()
