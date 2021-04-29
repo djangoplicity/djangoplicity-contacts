@@ -332,7 +332,9 @@ class UpdateContactAction( ContactAction ):
 
 class CreateContactAction( ContactAction ):
     action_name = 'Contact create'
-    action_parameters = []
+    action_parameters = [
+        ( 'group', 'Name of group to assign to contact.', 'str' ),
+    ]
 
     @classmethod
     def get_arguments( cls, conf, *args, **kwargs ):
@@ -369,13 +371,17 @@ class CreateContactAction( ContactAction ):
             for k, v in kwargs.items():
                 if k in Contact.ALLOWED_FIELDS:
                     defaults[k] = v
-
             contact = Contact.create_object(**defaults)
 
             if contact:
-                self.get_logger().info( "Contact %s was created." % ( contact.pk ) )
+                group = self._get_group(conf['group'])
+                if group:
+                    contact.groups.add(group)
+                    self.get_logger().info("Contact %s was created and added to group %s." % (contact.pk, group))
+                else:
+                    self.get_logger().info("Contact %s was created." % (contact.pk))
             else:
-                self.get_logger().info( "Contact %s was not created." % ( defaults['email'] ) )
+                self.get_logger().info("Contact %s was not created." % (defaults['email']))
 
 
 class SetContactGroupAction( ContactAction ):
