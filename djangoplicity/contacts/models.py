@@ -417,6 +417,12 @@ class Contact( DirtyFieldsMixin, models.Model ):
                     return language
         return ''
 
+    def get_groups(self):
+        '''
+        Return all name groups in a array
+        '''
+        return [g.name for g in self.groups.all()]
+
     @classmethod
     def get_language_code(cls, language):
         '''
@@ -498,18 +504,20 @@ class Contact( DirtyFieldsMixin, models.Model ):
             obj.save()
             obj.update_extra_fields( **kwargs )
             if groups:
-                groups = list(ContactGroup.objects.filter(id__in=groups))
-                # In case the groups is a list of strings and not ids
-                if len(groups) == 0:
+                try:
+                    groups = list(ContactGroup.objects.filter(id__in=groups))
+                except ValueError:
+                    # In case the groups is a list of strings and not ids
                     groups = list(ContactGroup.objects.filter(name__in=groups))
-                obj.groups.add( *groups )
+                if groups:
+                    obj.groups.add( *groups )
                 for g in groups:
                     contact_added.send(sender=obj.__class__, group=g, contact=obj)
             return obj
         else:
             return None
 
-    def update_object( self, **kwargs ):
+    def update_object( self, groups=None, **kwargs ):
         """
         Update a contact with new information from a dictionary. Following keys are supported:
             * first_name
@@ -542,9 +550,25 @@ class Contact( DirtyFieldsMixin, models.Model ):
             changed = True
             del kwargs['country']
         if 'region' in kwargs and kwargs['region']:
-            self.region = Region.objects.get(pk=kwargs['region'])
-            changed = True
+            try:
+                self.region = Region.objects.get(pk=kwargs['region'])
+                changed = True
+            except ValueError:
+                if self.country:
+                    query = Region.objects.filter(name__icontains=kwargs['region'], country=self.country)
+                    if query:
+                        self.region = query[0]
+                        changed = True
             del kwargs['region']
+        if groups:
+            try:
+                groups = list(ContactGroup.objects.filter(id__in=groups))
+            except ValueError:
+                groups = list(ContactGroup.objects.filter(name__in=groups))
+            if groups:
+                self.groups.add( *groups )
+            for g in groups:
+                contact_added.send(sender=self.__class__, group=g, contact=self)
 
         # Set the fields
         for field, val in kwargs.items():
