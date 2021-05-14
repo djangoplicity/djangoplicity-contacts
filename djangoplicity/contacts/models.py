@@ -417,6 +417,12 @@ class Contact( DirtyFieldsMixin, models.Model ):
                     return language
         return ''
 
+    def get_groups(self):
+        '''
+        Return all name groups in a array
+        '''
+        return [g.name for g in self.groups.all()]
+
     @classmethod
     def get_language_code(cls, language):
         '''
