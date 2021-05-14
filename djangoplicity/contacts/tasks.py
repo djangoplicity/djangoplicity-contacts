@@ -378,7 +378,7 @@ class CreateContactAction( ContactAction ):
                     defaults[k] = v
 
                 if 'get_groups' in kwargs:
-                    g_names = kwargs['get_groups'].split(',')
+                    g_names = [s.strip() for s in kwargs['get_groups'].split(',')]
                     del kwargs['get_groups']
             contact = Contact.create_object(groups=g_names, **defaults)
 
