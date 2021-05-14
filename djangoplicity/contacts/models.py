@@ -428,7 +428,7 @@ class Contact( DirtyFieldsMixin, models.Model ):
                     return code
         return ''
 
-        ALLOWED_FIELDS = ['first_name', 'last_name', 'title', 'position', 'organisation', 'department', 'street_1', 'street_2', 'tax_code', 'city', 'zip', 'state', 'country', 'region', 'phone', 'website', 'social', 'email', 'language' ]
+    ALLOWED_FIELDS = ['first_name', 'last_name', 'title', 'position', 'organisation', 'department', 'street_1', 'street_2', 'tax_code', 'city', 'zip', 'state', 'country', 'region', 'phone', 'website', 'social', 'email', 'language' ]
 
     @classmethod
     def get_allowed_extra_fields( cls ):
