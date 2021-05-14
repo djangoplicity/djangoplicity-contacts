@@ -511,7 +511,7 @@ class Contact( DirtyFieldsMixin, models.Model ):
         else:
             return None
 
-    def update_object( self, **kwargs ):
+    def update_object( self, groups=None, **kwargs ):
         """
         Update a contact with new information from a dictionary. Following keys are supported:
             * first_name
@@ -554,6 +554,15 @@ class Contact( DirtyFieldsMixin, models.Model ):
                         self.region = query[0]
                         changed = True
             del kwargs['region']
+        if groups:
+            try:
+                groups = list(ContactGroup.objects.filter(id__in=groups))
+            except ValueError:
+                groups = list(ContactGroup.objects.filter(name__in=groups))
+            if groups:
+                self.groups.add( *groups )
+            for g in groups:
+                contact_added.send(sender=self.__class__, group=g, contact=self)
 
         # Set the fields
         for field, val in kwargs.items():

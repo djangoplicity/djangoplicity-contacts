@@ -304,6 +304,9 @@ class UpdateContactAction( ContactAction ):
             if k == 'get_language':
                 k = 'language'
                 v = Contact.get_language_code(v)
+            # Allow add contacts groups
+            if k == 'get_groups':
+                defaults[k] = v
             if k in Contact.ALLOWED_FIELDS:
                 defaults[k] = v
 
@@ -319,11 +322,15 @@ class UpdateContactAction( ContactAction ):
             contact = self._get_object( model_identifier, pk )
 
             defaults = {}
+            g_names = []
             for k, v in kwargs.items():
                 if k in Contact.ALLOWED_FIELDS:
                     defaults[k] = v
+                if 'get_groups' in kwargs:
+                    g_names = [s.strip() for s in kwargs['get_groups'].split(',')]
+                    del kwargs['get_groups']
 
-            if contact.update_object( **defaults ):
+            if contact.update_object(groups=g_names, **defaults):
                 contact.save()
                 self.get_logger().info( "Contact %s was updated." % ( contact.pk ) )
             else:
