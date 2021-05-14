@@ -352,6 +352,9 @@ class CreateContactAction( ContactAction ):
             if k == 'get_language':
                 k = 'language'
                 v = Contact.get_language_code(v)
+            # Allow add contacts groups
+            if k == 'get_groups':
+                defaults[k] = v
             if k in Contact.ALLOWED_FIELDS:
                 defaults[k] = v
 
@@ -368,10 +371,16 @@ class CreateContactAction( ContactAction ):
         if model_identifier == 'contacts.contact' and pk is None:
 
             defaults = {}
+            g_names = []
+
             for k, v in kwargs.items():
                 if k in Contact.ALLOWED_FIELDS:
                     defaults[k] = v
-            contact = Contact.create_object(**defaults)
+
+                if 'get_groups' in kwargs:
+                    g_names = kwargs['get_groups'].split(',')
+                    del kwargs['get_groups']
+            contact = Contact.create_object(groups=g_names, **defaults)
 
             if contact:
                 group = self._get_group(conf['group'])

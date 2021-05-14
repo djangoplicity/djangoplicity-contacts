@@ -428,7 +428,7 @@ class Contact( DirtyFieldsMixin, models.Model ):
                     return code
         return ''
 
-    ALLOWED_FIELDS = ['first_name', 'last_name', 'title', 'position', 'organisation', 'department', 'street_1', 'street_2', 'tax_code', 'city', 'zip', 'state', 'country', 'region', 'phone', 'website', 'social', 'email', 'language' ]
+        ALLOWED_FIELDS = ['first_name', 'last_name', 'title', 'position', 'organisation', 'department', 'street_1', 'street_2', 'tax_code', 'city', 'zip', 'state', 'country', 'region', 'phone', 'website', 'social', 'email', 'language' ]
 
     @classmethod
     def get_allowed_extra_fields( cls ):
@@ -498,11 +498,13 @@ class Contact( DirtyFieldsMixin, models.Model ):
             obj.save()
             obj.update_extra_fields( **kwargs )
             if groups:
-                groups = list(ContactGroup.objects.filter(id__in=groups))
-                # In case the groups is a list of strings and not ids
-                if len(groups) == 0:
+                try:
+                    groups = list(ContactGroup.objects.filter(id__in=groups))
+                except ValueError:
+                    # In case the groups is a list of strings and not ids
                     groups = list(ContactGroup.objects.filter(name__in=groups))
-                obj.groups.add( *groups )
+                if groups:
+                    obj.groups.add( *groups )
                 for g in groups:
                     contact_added.send(sender=obj.__class__, group=g, contact=obj)
             return obj
@@ -542,8 +544,15 @@ class Contact( DirtyFieldsMixin, models.Model ):
             changed = True
             del kwargs['country']
         if 'region' in kwargs and kwargs['region']:
-            self.region = Region.objects.get(pk=kwargs['region'])
-            changed = True
+            try:
+                self.region = Region.objects.get(pk=kwargs['region'])
+                changed = True
+            except ValueError:
+                if self.country:
+                    query = Region.objects.filter(name__icontains=kwargs['region'], country=self.country)
+                    if query:
+                        self.region = query[0]
+                        changed = True
             del kwargs['region']
 
         # Set the fields
