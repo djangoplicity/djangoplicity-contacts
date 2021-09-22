@@ -424,6 +424,10 @@ class Contact( DirtyFieldsMixin, models.Model ):
         return [g.name for g in self.groups.all()]
 
     @classmethod
+    def get_contacts_with_email(cls, email):
+        return cls.objects.filter(email=email)
+
+    @classmethod
     def get_language_code(cls, language):
         '''
         Return the language code for the given language string:
@@ -612,8 +616,9 @@ class Contact( DirtyFieldsMixin, models.Model ):
         """
         Callback is used to send contact_removed, contact_added signals
         """
-        for g in instance.groups.all():
-            contact_removed.send_robust( sender=cls, group=g, contact=instance, email=instance.email )
+        if len(cls.get_contacts_with_email(instance.email)) == 1:
+            for g in instance.groups.all():
+                contact_removed.send_robust(sender=cls, group=g, contact=instance, email=instance.email)
 
     @classmethod
     def pre_save_callback( cls, sender, instance=None, raw=False, **kwargs ):
@@ -1777,7 +1782,7 @@ post_save.connect( ContactGroupAction.clear_cache, sender=Action )
 post_delete.connect( ContactGroupAction.clear_cache, sender=ContactGroup )
 post_save.connect( ContactGroupAction.clear_cache, sender=ContactGroup )
 
-# Connect signals needed to send out contac_added/contact_removed signals.
+# Connect signals needed to send out contact_added/contact_removed signals.
 pre_delete.connect( Contact.pre_delete_callback, sender=Contact )
 pre_save.connect( Contact.pre_save_callback, sender=Contact )
 post_save.connect( Contact.post_save_callback, sender=Contact )
