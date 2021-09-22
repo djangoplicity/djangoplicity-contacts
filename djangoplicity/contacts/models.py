@@ -616,6 +616,7 @@ class Contact( DirtyFieldsMixin, models.Model ):
         """
         Callback is used to send contact_removed, contact_added signals
         """
+        # If there is a duplicated contact, do not unsubscribe it from Mailchimp
         if len(cls.get_contacts_with_email(instance.email)) == 1:
             for g in instance.groups.all():
                 contact_removed.send_robust(sender=cls, group=g, contact=instance, email=instance.email)
