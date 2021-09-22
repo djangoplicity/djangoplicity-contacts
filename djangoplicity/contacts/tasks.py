@@ -307,6 +307,8 @@ class UpdateContactAction( ContactAction ):
             # Allow add contacts groups
             if k == 'get_groups':
                 defaults[k] = v
+            if k == 'new_email':
+                defaults['email'] = v
             if k in Contact.ALLOWED_FIELDS:
                 defaults[k] = v
 
