@@ -393,7 +393,7 @@ class UpdateContactEmail(ContactAction):
                 contact.save()
                 self.get_logger().info("Contact email %s was updated." % contact.pk)
             else:
-                self.get_logger().info("Contact email %s was not updated." % contact.pk)
+                self.get_logger().info("Contact email was not updated.")
 
 
 class CreateContactAction( ContactAction ):
