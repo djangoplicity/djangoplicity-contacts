@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE
 #
 
+import hashlib
 from celery.task import PeriodicTask, task
 from datetime import timedelta
 
@@ -307,8 +308,6 @@ class UpdateContactAction( ContactAction ):
             # Allow add contacts groups
             if k == 'get_groups':
                 defaults[k] = v
-            if k == 'new_email':
-                defaults['email'] = v
             if k in Contact.ALLOWED_FIELDS:
                 defaults[k] = v
 
@@ -337,6 +336,64 @@ class UpdateContactAction( ContactAction ):
                 self.get_logger().info( "Contact %s was updated." % ( contact.pk ) )
             else:
                 self.get_logger().info( "Contact %s was not updated." % ( contact.pk ) )
+
+
+class UpdateContactEmail(ContactAction):
+    action_name = 'Update Contact email'
+    action_parameters = []
+
+    @classmethod
+    def get_arguments(cls, conf, *args, **kwargs):
+        try:
+            new_email = kwargs['new_email']
+            old_email = kwargs['old_email']
+            list_id = kwargs['list_id']
+        except KeyError:
+            new_email = None
+            old_email = None
+            list_id = None
+
+        defaults = {
+            'new_email': new_email,
+            'old_email': old_email,
+            'list_id': list_id
+        }
+        return [], defaults
+
+    def run(self, conf, list_id=None, new_email=None, old_email=None, **kwargs):
+        """
+        Update contact email based on new field values in kwargs.
+        """
+        from djangoplicity.contacts.models import Contact
+        from djangoplicity.mailinglists.models import MailChimpList
+
+        if list_id and new_email and old_email:
+            contact = None
+            try:
+                # Get list by Id
+                m_list = MailChimpList.objects.get(list_id=list_id)
+                # Check and get subscriber data in mailchimp
+                email_hash = hashlib.md5(str(old_email).encode("utf-8")).hexdigest()
+                result = m_list.connection(
+                    'lists.members.get',
+                    list_id,
+                    email_hash,
+                )
+
+                try:
+                    model_identifier = result.get('merge_fields').get('DPID')
+                except AttributeError:
+                    model_identifier = ''
+                contact = m_list.get_object_from_mergefields(model_identifier)
+            except MailChimpList.DoesNotExist:
+                pass
+
+            if contact and 'email' in Contact.ALLOWED_FIELDS:
+                contact.email = new_email
+                contact.save()
+                self.get_logger().info("Contact email %s was updated." % contact.pk)
+            else:
+                self.get_logger().info("Contact email %s was not updated." % contact.pk)
 
 
 class CreateContactAction( ContactAction ):
@@ -504,3 +561,4 @@ SetContactGroupAction.register()
 RemoveEmailAction.register()
 UpdateContactAction.register()
 CreateContactAction.register()
+UpdateContactEmail.register()
