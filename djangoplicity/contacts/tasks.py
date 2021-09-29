@@ -373,7 +373,7 @@ class UpdateContactEmail(ContactAction):
                 # Get list by Id
                 m_list = MailChimpList.objects.get(list_id=list_id)
                 # Check and get subscriber data in mailchimp
-                email_hash = hashlib.md5(str(old_email).encode("utf-8")).hexdigest()
+                email_hash = hashlib.md5(str(new_email).encode("utf-8")).hexdigest()
                 result = m_list.connection(
                     'lists.members.get',
                     list_id,
