@@ -384,7 +384,7 @@ class UpdateContactEmail(ContactAction):
                     model_identifier = result.get('merge_fields').get('DPID')
                 except AttributeError:
                     model_identifier = ''
-                contact = m_list.get_object_from_mergefields(model_identifier)
+                contact = m_list.get_object_from_identifier(model_identifier)
             except MailChimpList.DoesNotExist:
                 pass
 
@@ -394,6 +394,7 @@ class UpdateContactEmail(ContactAction):
                 self.get_logger().info("Contact email %s was updated." % contact.pk)
             else:
                 self.get_logger().info("Contact email was not updated.")
+                raise Exception("The contact email was not updated")
 
 
 class CreateContactAction( ContactAction ):
