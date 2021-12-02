@@ -1,0 +1,25 @@
+.DS_Store
+*.pyc
+.env/
+.idea/
+.ssh/gitlab_key
+temp/
+local/*
+!local/README.md
+config/youtube/*
+!config/youtube/README.md
+config/letsencrypt/
+.env
+prod.env
+
+# html coverage
+htmlcov
+
+# Default ignored files
+/shelf/
+/workspace.xml
+# Datasource local storage ignored files
+/dataSources/
+/dataSources.local.xml
+# Editor-based HTTP Client requests
+/httpRequests/
