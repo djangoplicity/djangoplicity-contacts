@@ -40,7 +40,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt  --find-links https://www.djangoplicity.org/repository/packages/
+          pip install -r requirements.txt
       - name: Run migrations
         run: python manage.py migrate
       - name: Run tests
