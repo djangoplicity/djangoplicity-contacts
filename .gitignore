@@ -1,2 +1,17 @@
+.DS_Store
 *.pyc
 *.swp
+.env/
+.idea/
+.ssh/gitlab_key
+temp/
+local/*
+!local/README.md
+config/youtube/*
+!config/youtube/README.md
+config/letsencrypt/
+.env
+prod.env
+
+# html coverage
+htmlcov
