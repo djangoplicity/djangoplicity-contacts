@@ -1,0 +1,15 @@
+
+# generate code coverage reports
+coverage
+
+# run the tests against multiple
+# versions of Django and Python
+tox
+
+# db for celery
+sqlalchemy
+
+# mock is a library for testing in Python.
+# It allows you to replace parts of your system under test with mock objects and
+# make assertions about how they have been used.
+mock==3.0.5

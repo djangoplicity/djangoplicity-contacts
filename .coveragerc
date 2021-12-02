@@ -1,0 +1,15 @@
+[run]
+source = djangoplicity.*
+branch = 1
+omit = */migrations/*
+
+[report]
+omit =
+  *tests*
+  *test_project*
+  *migrations*
+  .tox/*
+  setup.py
+  *settings.py
+  manage.py
+  djangoplicity/__init__.py

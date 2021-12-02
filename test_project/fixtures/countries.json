@@ -1,0 +1,2081 @@
+[
+{
+  "model": "contacts.country",
+  "pk": 1,
+  "fields": {
+    "name": "Argentina",
+    "iso_code": "AR",
+    "dialing_code": "+54",
+    "zip_after_city": true,
+    "postal_zone": 3,
+    "groups": [
+      7
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 2,
+  "fields": {
+    "name": "Armenia",
+    "iso_code": "AM",
+    "dialing_code": "+374",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 3,
+  "fields": {
+    "name": "Australia",
+    "iso_code": "AU",
+    "dialing_code": "+61",
+    "zip_after_city": true,
+    "postal_zone": 3,
+    "groups": [
+      5
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 4,
+  "fields": {
+    "name": "United Kingdom",
+    "iso_code": "GB",
+    "dialing_code": "+44",
+    "zip_after_city": true,
+    "postal_zone": 1,
+    "groups": [
+      5,
+      1,
+      2
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 5,
+  "fields": {
+    "name": "Canada",
+    "iso_code": "CA",
+    "dialing_code": "+1",
+    "zip_after_city": true,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 6,
+  "fields": {
+    "name": "Austria",
+    "iso_code": "AT",
+    "dialing_code": "+43",
+    "zip_after_city": false,
+    "postal_zone": 1,
+    "groups": [
+      5,
+      1,
+      2
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 7,
+  "fields": {
+    "name": "Germany",
+    "iso_code": "DE",
+    "dialing_code": "+49",
+    "zip_after_city": false,
+    "postal_zone": 2,
+    "groups": [
+      5,
+      1,
+      2
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 8,
+  "fields": {
+    "name": "Belgium",
+    "iso_code": "BE",
+    "dialing_code": "+32",
+    "zip_after_city": false,
+    "postal_zone": 1,
+    "groups": [
+      5,
+      1,
+      2
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 9,
+  "fields": {
+    "name": "USA",
+    "iso_code": "US",
+    "dialing_code": "+1",
+    "zip_after_city": true,
+    "postal_zone": 3,
+    "groups": [
+      5
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 10,
+  "fields": {
+    "name": "Brazil",
+    "iso_code": "BR",
+    "dialing_code": "+55",
+    "zip_after_city": true,
+    "postal_zone": 3,
+    "groups": [
+      5,
+      7
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 11,
+  "fields": {
+    "name": "Bulgaria",
+    "iso_code": "BG",
+    "dialing_code": "+359",
+    "zip_after_city": true,
+    "postal_zone": 1,
+    "groups": [
+      1
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 12,
+  "fields": {
+    "name": "Chile",
+    "iso_code": "CL",
+    "dialing_code": "+56",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": [
+      5,
+      7
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 13,
+  "fields": {
+    "name": "Switzerland",
+    "iso_code": "CH",
+    "dialing_code": "+41",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": [
+      5,
+      2
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 14,
+  "fields": {
+    "name": "Cyprus",
+    "iso_code": "CY",
+    "dialing_code": "+357",
+    "zip_after_city": false,
+    "postal_zone": 1,
+    "groups": [
+      1
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 15,
+  "fields": {
+    "name": "Czech Republic",
+    "iso_code": "CZ",
+    "dialing_code": "+420",
+    "zip_after_city": false,
+    "postal_zone": 1,
+    "groups": [
+      5,
+      1,
+      2
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 16,
+  "fields": {
+    "name": "Slovakia",
+    "iso_code": "SK",
+    "dialing_code": "+421",
+    "zip_after_city": false,
+    "postal_zone": 1,
+    "groups": [
+      1
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 17,
+  "fields": {
+    "name": "Denmark",
+    "iso_code": "DK",
+    "dialing_code": "+45",
+    "zip_after_city": false,
+    "postal_zone": 1,
+    "groups": [
+      5,
+      1,
+      2
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 18,
+  "fields": {
+    "name": "Estonia",
+    "iso_code": "EE",
+    "dialing_code": "+372",
+    "zip_after_city": false,
+    "postal_zone": 1,
+    "groups": [
+      1
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 19,
+  "fields": {
+    "name": "Finland",
+    "iso_code": "FI",
+    "dialing_code": "+358",
+    "zip_after_city": false,
+    "postal_zone": 1,
+    "groups": [
+      5,
+      1,
+      2
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 20,
+  "fields": {
+    "name": "France",
+    "iso_code": "FR",
+    "dialing_code": "+33",
+    "zip_after_city": false,
+    "postal_zone": 1,
+    "groups": [
+      5,
+      1,
+      2
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 21,
+  "fields": {
+    "name": "Spain",
+    "iso_code": "ES",
+    "dialing_code": "+34",
+    "zip_after_city": false,
+    "postal_zone": 1,
+    "groups": [
+      5,
+      1,
+      2
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 22,
+  "fields": {
+    "name": "Georgia",
+    "iso_code": "GE",
+    "dialing_code": "+995",
+    "zip_after_city": true,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 23,
+  "fields": {
+    "name": "The Netherlands",
+    "iso_code": "NL",
+    "dialing_code": "+31",
+    "zip_after_city": false,
+    "postal_zone": 1,
+    "groups": [
+      5,
+      1,
+      2
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 24,
+  "fields": {
+    "name": "Greece",
+    "iso_code": "GR",
+    "dialing_code": "+30",
+    "zip_after_city": false,
+    "postal_zone": 1,
+    "groups": [
+      1
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 25,
+  "fields": {
+    "name": "Hungary",
+    "iso_code": "HU",
+    "dialing_code": "+36",
+    "zip_after_city": false,
+    "postal_zone": 1,
+    "groups": [
+      5,
+      1
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 26,
+  "fields": {
+    "name": "India",
+    "iso_code": "IN",
+    "dialing_code": "+91",
+    "zip_after_city": true,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 27,
+  "fields": {
+    "name": "Ireland",
+    "iso_code": "IE",
+    "dialing_code": "+353",
+    "zip_after_city": false,
+    "postal_zone": 1,
+    "groups": [
+      5,
+      1,
+      2
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 28,
+  "fields": {
+    "name": "Israel",
+    "iso_code": "IL",
+    "dialing_code": "+972",
+    "zip_after_city": true,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 29,
+  "fields": {
+    "name": "Italy",
+    "iso_code": "IT",
+    "dialing_code": "+39",
+    "zip_after_city": false,
+    "postal_zone": 1,
+    "groups": [
+      5,
+      1,
+      2
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 30,
+  "fields": {
+    "name": "Japan",
+    "iso_code": "JP",
+    "dialing_code": "+81",
+    "zip_after_city": true,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 31,
+  "fields": {
+    "name": "Kazakhstan",
+    "iso_code": "KZ",
+    "dialing_code": "+7",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 33,
+  "fields": {
+    "name": "Latvia",
+    "iso_code": "LV",
+    "dialing_code": "+371",
+    "zip_after_city": false,
+    "postal_zone": 1,
+    "groups": [
+      5,
+      1
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 35,
+  "fields": {
+    "name": "Lithuania",
+    "iso_code": "LT",
+    "dialing_code": "+370",
+    "zip_after_city": false,
+    "postal_zone": 1,
+    "groups": [
+      1
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 36,
+  "fields": {
+    "name": "Mexico",
+    "iso_code": "MX",
+    "dialing_code": "+52",
+    "zip_after_city": true,
+    "postal_zone": 3,
+    "groups": [
+      7
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 37,
+  "fields": {
+    "name": "Moldova",
+    "iso_code": "MD",
+    "dialing_code": "+373",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 38,
+  "fields": {
+    "name": "Norway",
+    "iso_code": "NO",
+    "dialing_code": "+47",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": [
+      5
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 39,
+  "fields": {
+    "name": "China",
+    "iso_code": "CN",
+    "dialing_code": "+86",
+    "zip_after_city": true,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 40,
+  "fields": {
+    "name": "Poland",
+    "iso_code": "PL",
+    "dialing_code": "+48",
+    "zip_after_city": false,
+    "postal_zone": 1,
+    "groups": [
+      5,
+      1,
+      2
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 41,
+  "fields": {
+    "name": "Portugal",
+    "iso_code": "PT",
+    "dialing_code": "+351",
+    "zip_after_city": false,
+    "postal_zone": 1,
+    "groups": [
+      5,
+      1,
+      2
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 42,
+  "fields": {
+    "name": "Romania",
+    "iso_code": "RO",
+    "dialing_code": "+40",
+    "zip_after_city": false,
+    "postal_zone": 1,
+    "groups": [
+      5,
+      1
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 43,
+  "fields": {
+    "name": "Russia",
+    "iso_code": "RU",
+    "dialing_code": "+7",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": [
+      5
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 44,
+  "fields": {
+    "name": "South Africa",
+    "iso_code": "ZA",
+    "dialing_code": "+27",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 45,
+  "fields": {
+    "name": "Sweden",
+    "iso_code": "SE",
+    "dialing_code": "+46",
+    "zip_after_city": false,
+    "postal_zone": 1,
+    "groups": [
+      5,
+      1,
+      2
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 46,
+  "fields": {
+    "name": "Tadzhikistan",
+    "iso_code": "TJ",
+    "dialing_code": "+992",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 47,
+  "fields": {
+    "name": "Turkey",
+    "iso_code": "TR",
+    "dialing_code": "+90",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": [
+      5
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 48,
+  "fields": {
+    "name": "Ukraine",
+    "iso_code": "UA",
+    "dialing_code": "+380",
+    "zip_after_city": true,
+    "postal_zone": 3,
+    "groups": [
+      5
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 49,
+  "fields": {
+    "name": "Uruguay",
+    "iso_code": "UY",
+    "dialing_code": "+598",
+    "zip_after_city": true,
+    "postal_zone": 3,
+    "groups": [
+      7
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 50,
+  "fields": {
+    "name": "Uzbekistan",
+    "iso_code": "UZ",
+    "dialing_code": "+998",
+    "zip_after_city": true,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 51,
+  "fields": {
+    "name": "Venezuela",
+    "iso_code": "VE",
+    "dialing_code": "+58",
+    "zip_after_city": true,
+    "postal_zone": 3,
+    "groups": [
+      7
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 52,
+  "fields": {
+    "name": "Bosnia-Herzegovina",
+    "iso_code": "BA",
+    "dialing_code": "+387",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 53,
+  "fields": {
+    "name": "Serbia",
+    "iso_code": "RS",
+    "dialing_code": "+381",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": [
+      5
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 54,
+  "fields": {
+    "name": "Croatia",
+    "iso_code": "HR",
+    "dialing_code": "+385",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 55,
+  "fields": {
+    "name": "Puerto Rico",
+    "iso_code": "PR",
+    "dialing_code": "+1787",
+    "zip_after_city": true,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 56,
+  "fields": {
+    "name": "Colombia",
+    "iso_code": "CO",
+    "dialing_code": "+57",
+    "zip_after_city": true,
+    "postal_zone": 3,
+    "groups": [
+      7
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 57,
+  "fields": {
+    "name": "Azerbaijan",
+    "iso_code": "AZ",
+    "dialing_code": "+994",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 58,
+  "fields": {
+    "name": "Egypt",
+    "iso_code": "EG",
+    "dialing_code": "+20",
+    "zip_after_city": true,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 59,
+  "fields": {
+    "name": "Indonesia",
+    "iso_code": "ID",
+    "dialing_code": "+62",
+    "zip_after_city": true,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 60,
+  "fields": {
+    "name": "Iran",
+    "iso_code": "IR",
+    "dialing_code": "+98",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 61,
+  "fields": {
+    "name": "South Korea",
+    "iso_code": "KR",
+    "dialing_code": "+82",
+    "zip_after_city": true,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 62,
+  "fields": {
+    "name": "New Zealand",
+    "iso_code": "NZ",
+    "dialing_code": "+64",
+    "zip_after_city": true,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 63,
+  "fields": {
+    "name": "Peru",
+    "iso_code": "PE",
+    "dialing_code": "+51",
+    "zip_after_city": true,
+    "postal_zone": 3,
+    "groups": [
+      7
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 64,
+  "fields": {
+    "name": "Slovenia",
+    "iso_code": "SI",
+    "dialing_code": "+386",
+    "zip_after_city": false,
+    "postal_zone": 1,
+    "groups": [
+      1
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 66,
+  "fields": {
+    "name": "Algeria",
+    "iso_code": "DZ",
+    "dialing_code": "+213",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 67,
+  "fields": {
+    "name": "Iceland",
+    "iso_code": "IS",
+    "dialing_code": "+354",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": [
+      5
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 68,
+  "fields": {
+    "name": "Liechtenstein",
+    "iso_code": "LI",
+    "dialing_code": "+423",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 69,
+  "fields": {
+    "name": "Luxembourg",
+    "iso_code": "LU",
+    "dialing_code": "+352",
+    "zip_after_city": false,
+    "postal_zone": 1,
+    "groups": [
+      1
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 70,
+  "fields": {
+    "name": "Malta",
+    "iso_code": "MT",
+    "dialing_code": "+356",
+    "zip_after_city": false,
+    "postal_zone": 1,
+    "groups": [
+      1
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 71,
+  "fields": {
+    "name": "Guam",
+    "iso_code": "GU",
+    "dialing_code": "+1-671",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 72,
+  "fields": {
+    "name": "Honduras",
+    "iso_code": "HN",
+    "dialing_code": "+504",
+    "zip_after_city": true,
+    "postal_zone": 3,
+    "groups": [
+      7
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 73,
+  "fields": {
+    "name": "Nigeria",
+    "iso_code": "NG",
+    "dialing_code": "+234",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 74,
+  "fields": {
+    "name": "Taiwan",
+    "iso_code": "TW",
+    "dialing_code": "+886",
+    "zip_after_city": true,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 75,
+  "fields": {
+    "name": "Saudi Arabia",
+    "iso_code": "SA",
+    "dialing_code": "+966",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 76,
+  "fields": {
+    "name": "Andorra",
+    "iso_code": "AD",
+    "dialing_code": "+376",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 77,
+  "fields": {
+    "name": "Belarus",
+    "iso_code": "BY",
+    "dialing_code": "+375",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 79,
+  "fields": {
+    "name": "Gibraltar",
+    "iso_code": "GI",
+    "dialing_code": "+350",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 80,
+  "fields": {
+    "name": "Macedonia",
+    "iso_code": "MK",
+    "dialing_code": "+389",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 81,
+  "fields": {
+    "name": "Monaco",
+    "iso_code": "MC",
+    "dialing_code": "+377",
+    "zip_after_city": false,
+    "postal_zone": 1,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 82,
+  "fields": {
+    "name": "Sri Lanka",
+    "iso_code": "LK",
+    "dialing_code": "+94",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 83,
+  "fields": {
+    "name": "Senegal",
+    "iso_code": "SN",
+    "dialing_code": "+221",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 84,
+  "fields": {
+    "name": "Ecuador",
+    "iso_code": "EC",
+    "dialing_code": "+593",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": [
+      7
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 85,
+  "fields": {
+    "name": "Kuwait",
+    "iso_code": "KW",
+    "dialing_code": "+965",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 86,
+  "fields": {
+    "name": "Malaysia",
+    "iso_code": "MY",
+    "dialing_code": "+60",
+    "zip_after_city": true,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 87,
+  "fields": {
+    "name": "Pakistan",
+    "iso_code": "PK",
+    "dialing_code": "+92",
+    "zip_after_city": true,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 88,
+  "fields": {
+    "name": "Philippines",
+    "iso_code": "PH",
+    "dialing_code": "+63",
+    "zip_after_city": true,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 89,
+  "fields": {
+    "name": "Singapore",
+    "iso_code": "SG",
+    "dialing_code": "+65",
+    "zip_after_city": true,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 90,
+  "fields": {
+    "name": "Thailand",
+    "iso_code": "TH",
+    "dialing_code": "+66",
+    "zip_after_city": true,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 91,
+  "fields": {
+    "name": "Tunisia",
+    "iso_code": "TN",
+    "dialing_code": "+216",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 92,
+  "fields": {
+    "name": "Cuba",
+    "iso_code": "CU",
+    "dialing_code": "+53",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": [
+      7
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 93,
+  "fields": {
+    "name": "Paraguay",
+    "iso_code": "PY",
+    "dialing_code": "+595",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": [
+      7
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 94,
+  "fields": {
+    "name": "Syria",
+    "iso_code": "SY",
+    "dialing_code": "+963",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 95,
+  "fields": {
+    "name": "Morocco",
+    "iso_code": "MA",
+    "dialing_code": "+212",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 96,
+  "fields": {
+    "name": "Albania",
+    "iso_code": "AL",
+    "dialing_code": "+355",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": [
+      5
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 97,
+  "fields": {
+    "name": "Vietnam",
+    "iso_code": "VN",
+    "dialing_code": "+84",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 98,
+  "fields": {
+    "name": "Nepal",
+    "iso_code": "NP",
+    "dialing_code": "+977",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 99,
+  "fields": {
+    "name": "United Arab Emirates",
+    "iso_code": "AE",
+    "dialing_code": "+971",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 100,
+  "fields": {
+    "name": "Mauritius",
+    "iso_code": "MU",
+    "dialing_code": "+230",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 101,
+  "fields": {
+    "name": "Panama",
+    "iso_code": "PA",
+    "dialing_code": "+507",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": [
+      7
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 102,
+  "fields": {
+    "name": "Nicaragua",
+    "iso_code": "NI",
+    "dialing_code": "+505",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": [
+      7
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 103,
+  "fields": {
+    "name": "Guatemala",
+    "iso_code": "GT",
+    "dialing_code": "+502",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": [
+      7
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 104,
+  "fields": {
+    "name": "El Salvador, C. A.",
+    "iso_code": "SV",
+    "dialing_code": "+503",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": [
+      7
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 105,
+  "fields": {
+    "name": "Costa Rica",
+    "iso_code": "CR",
+    "dialing_code": "+506",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": [
+      7
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 106,
+  "fields": {
+    "name": "Bolivia",
+    "iso_code": "BO",
+    "dialing_code": "+591",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": [
+      7
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 107,
+  "fields": {
+    "name": "Gabon",
+    "iso_code": "GA",
+    "dialing_code": "+241",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 108,
+  "fields": {
+    "name": "Oman",
+    "iso_code": "OM",
+    "dialing_code": "+968",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 109,
+  "fields": {
+    "name": "Angola",
+    "iso_code": "AO",
+    "dialing_code": "+244",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 110,
+  "fields": {
+    "name": "Benin",
+    "iso_code": "BJ",
+    "dialing_code": "+229",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 111,
+  "fields": {
+    "name": "Lesotho",
+    "iso_code": "LS",
+    "dialing_code": "+266",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 112,
+  "fields": {
+    "name": "Mozambique",
+    "iso_code": "MZ",
+    "dialing_code": "+258",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 113,
+  "fields": {
+    "name": "Rwanda",
+    "iso_code": "RW",
+    "dialing_code": "+250",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 114,
+  "fields": {
+    "name": "Sudan",
+    "iso_code": "SD",
+    "dialing_code": "+249",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 115,
+  "fields": {
+    "name": "Uganda",
+    "iso_code": "UG",
+    "dialing_code": "+256",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 116,
+  "fields": {
+    "name": "Tanzania",
+    "iso_code": "TZ",
+    "dialing_code": "+255",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 117,
+  "fields": {
+    "name": "Namibia",
+    "iso_code": "NA",
+    "dialing_code": "+264",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 118,
+  "fields": {
+    "name": "Qatar",
+    "iso_code": "QA",
+    "dialing_code": "+974",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 119,
+  "fields": {
+    "name": "Kenya",
+    "iso_code": "KE",
+    "dialing_code": "+254",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 120,
+  "fields": {
+    "name": "Bangladesh",
+    "iso_code": "BD",
+    "dialing_code": "+880",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 121,
+  "fields": {
+    "name": "Ethiopia",
+    "iso_code": "ET",
+    "dialing_code": "+251",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 122,
+  "fields": {
+    "name": "Yemen",
+    "iso_code": "YE",
+    "dialing_code": "+967",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 123,
+  "fields": {
+    "name": "Jamaica",
+    "iso_code": "JM",
+    "dialing_code": "+1-876",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 124,
+  "fields": {
+    "name": "Bahrain",
+    "iso_code": "BH",
+    "dialing_code": "+973",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 125,
+  "fields": {
+    "name": "Mongolia",
+    "iso_code": "MN",
+    "dialing_code": "+976",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 126,
+  "fields": {
+    "name": "Dominican Republic",
+    "iso_code": "DO",
+    "dialing_code": "+809",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": [
+      7
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 127,
+  "fields": {
+    "name": "East Timor",
+    "iso_code": "TL",
+    "dialing_code": "+670",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 128,
+  "fields": {
+    "name": "Bermuda",
+    "iso_code": "BM",
+    "dialing_code": "+1-441",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 129,
+  "fields": {
+    "name": "Trinidad & Tobago",
+    "iso_code": "TT",
+    "dialing_code": "+868",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 130,
+  "fields": {
+    "name": "Madagascar",
+    "iso_code": "MG",
+    "dialing_code": "+261",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 131,
+  "fields": {
+    "name": "Ghana",
+    "iso_code": "GH",
+    "dialing_code": "+233",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 132,
+  "fields": {
+    "name": "The Bahamas",
+    "iso_code": "BS",
+    "dialing_code": "+1-242",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 133,
+  "fields": {
+    "name": "Lebanon",
+    "iso_code": "LB",
+    "dialing_code": "+961",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 134,
+  "fields": {
+    "name": "Brunei Darussalma",
+    "iso_code": "BN",
+    "dialing_code": "+673",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 135,
+  "fields": {
+    "name": "Bhutan",
+    "iso_code": "BT",
+    "dialing_code": "+975",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 136,
+  "fields": {
+    "name": "Cabo Verde",
+    "iso_code": "CV",
+    "dialing_code": "+238",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 137,
+  "fields": {
+    "name": "Cameroon",
+    "iso_code": "CM",
+    "dialing_code": "+237",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 138,
+  "fields": {
+    "name": "Mali",
+    "iso_code": "ML",
+    "dialing_code": "+223",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 139,
+  "fields": {
+    "name": "Myanmar",
+    "iso_code": "MM",
+    "dialing_code": "+95",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 140,
+  "fields": {
+    "name": "Iraq",
+    "iso_code": "IQ",
+    "dialing_code": "+964",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 141,
+  "fields": {
+    "name": "Democratic People's Republic of Korea",
+    "iso_code": "KP",
+    "dialing_code": "+850",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 142,
+  "fields": {
+    "name": "Maldives",
+    "iso_code": "MV",
+    "dialing_code": "+960",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 143,
+  "fields": {
+    "name": "Zambia",
+    "iso_code": "ZM",
+    "dialing_code": "+260",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 144,
+  "fields": {
+    "name": "Fiji Islands",
+    "iso_code": "FJ",
+    "dialing_code": "+679",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 145,
+  "fields": {
+    "name": "Grenada",
+    "iso_code": "GD",
+    "dialing_code": "+1-473",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 146,
+  "fields": {
+    "name": "Palestine",
+    "iso_code": "PS",
+    "dialing_code": "+970",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 147,
+  "fields": {
+    "name": "Guinea-Bissau",
+    "iso_code": "GW",
+    "dialing_code": "+245",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 148,
+  "fields": {
+    "name": "S\u00e3o Tom\u00e9 and Pr\u00edncipe",
+    "iso_code": "ST",
+    "dialing_code": "+239",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 149,
+  "fields": {
+    "name": "Eritrea",
+    "iso_code": "ER",
+    "dialing_code": "+290",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 150,
+  "fields": {
+    "name": "Jordan",
+    "iso_code": "JO",
+    "dialing_code": "+962",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 152,
+  "fields": {
+    "name": "Hong Kong",
+    "iso_code": "HK",
+    "dialing_code": "+852",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 153,
+  "fields": {
+    "name": "Libya ",
+    "iso_code": "LY",
+    "dialing_code": "+218",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 154,
+  "fields": {
+    "name": "Federated States of Micronesia",
+    "iso_code": "FM",
+    "dialing_code": "+691",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 156,
+  "fields": {
+    "name": "Haiti",
+    "iso_code": "HT",
+    "dialing_code": "",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": [
+      7
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 157,
+  "fields": {
+    "name": "Montenegro",
+    "iso_code": "ME",
+    "dialing_code": "+382",
+    "zip_after_city": false,
+    "postal_zone": 1,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 158,
+  "fields": {
+    "name": "Kyrgyzstan",
+    "iso_code": "KG",
+    "dialing_code": "+996",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 159,
+  "fields": {
+    "name": "Suriman",
+    "iso_code": "",
+    "dialing_code": "",
+    "zip_after_city": false,
+    "postal_zone": null,
+    "groups": [
+      7
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 160,
+  "fields": {
+    "name": "Anguilla",
+    "iso_code": "",
+    "dialing_code": "",
+    "zip_after_city": false,
+    "postal_zone": null,
+    "groups": [
+      7
+    ]
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 161,
+  "fields": {
+    "name": "Burkina Faso",
+    "iso_code": "BF",
+    "dialing_code": "+226",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.country",
+  "pk": 162,
+  "fields": {
+    "name": "Botswana",
+    "iso_code": "",
+    "dialing_code": "",
+    "zip_after_city": false,
+    "postal_zone": 3,
+    "groups": []
+  }
+},
+{
+  "model": "contacts.postalzone",
+  "pk": 1,
+  "fields": {
+    "name": "Europe"
+  }
+},
+{
+  "model": "contacts.postalzone",
+  "pk": 2,
+  "fields": {
+    "name": "Germany"
+  }
+},
+{
+  "model": "contacts.postalzone",
+  "pk": 3,
+  "fields": {
+    "name": "World"
+  }
+},
+{
+  "model": "contacts.countrygroup",
+  "pk": 1,
+  "fields": {
+    "name": "EU_country",
+    "category": null
+  }
+},
+{
+  "model": "contacts.countrygroup",
+  "pk": 2,
+  "fields": {
+    "name": "Member_State",
+    "category": null
+  }
+},
+{
+  "model": "contacts.countrygroup",
+  "pk": 5,
+  "fields": {
+    "name": "ESON_country",
+    "category": null
+  }
+},
+{
+  "model": "contacts.countrygroup",
+  "pk": 7,
+  "fields": {
+    "name": "Latin_America",
+    "category": null
+  }
+}
+]

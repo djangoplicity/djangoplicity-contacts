@@ -1,0 +1,63 @@
+[
+  {
+    "model": "contacts.groupcategory",
+    "pk": 1,
+    "fields": {
+      "name": "Electronic Distribution"
+    }
+  },
+  {
+    "model": "contacts.contactgroup",
+    "pk": 1,
+    "fields": {
+      "name": "Public NL",
+      "category": 1,
+      "order": null
+    }
+  },
+  {
+    "model": "contacts.contactgroup",
+    "pk": 2,
+    "fields": {
+      "name": "Public NL-invite",
+      "category": 1,
+      "order": null
+    }
+  },
+    {
+    "model": "contacts.contactgroup",
+    "pk": 3,
+    "fields": {
+      "name": "Public NL-unsubscribed",
+      "category": 1,
+      "order": null
+    }
+  },
+  {
+    "model": "contacts.contactgroupaction",
+    "pk": 1,
+    "fields": {
+      "group": 1,
+      "action": 1,
+      "on_event": "contact_added"
+    }
+  },
+  {
+    "model": "contacts.contactgroupaction",
+    "pk": 2,
+    "fields": {
+      "group": 1,
+      "action": 2,
+      "on_event": "contact_removed"
+    }
+  },
+  {
+    "model": "contacts.contactgroupaction",
+    "pk": 3,
+    "fields": {
+      "group": 1,
+      "action": 3,
+      "on_event": "contact_updated"
+    }
+  }
+]
