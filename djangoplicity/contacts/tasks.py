@@ -35,6 +35,7 @@ from celery.task import PeriodicTask, task
 from datetime import timedelta
 
 from django.apps import apps
+from django.conf import settings
 from django.contrib.sites.models import Site
 from django.core.exceptions import ImproperlyConfigured
 from django.core.mail import send_mail
@@ -124,8 +125,10 @@ http://%s%s
 
 ''' % (obj.data_file, site.domain, reverse('admin:contacts_import_review', args=[obj.pk]))
 
+        msg_from = getattr(settings, 'DEFAULT_FROM_EMAIL', '')
+        msg_to = getattr(settings, 'CONTACT_IMPORT_NOTIFY', '')
         send_mail('Import %s (%s) ready for review' % (obj.pk, obj.data_file),
-                message, 'no-reply@eso.org', [email, 'Gurvan.Bazin@eso.org'])
+                message, msg_from, [email, msg_to])
 
 
 @task(ignore_result=True)
@@ -154,8 +157,10 @@ http://%s%s
 
 ''' % (site.domain, reverse('admin:contacts_deduplication_review', args=[dedup.pk]))
 
+        msg_from = getattr(settings, 'DEFAULT_FROM_EMAIL', '')
+        msg_to = getattr(settings, 'CONTACT_IMPORT_NOTIFY', '')
         send_mail('Deduplication %s ready for review' % dedup.pk,
-                message, 'no-reply@eso.org', [email, 'Gurvan.Bazin@eso.org'])
+                message, msg_from, [email, msg_to])
 
 
 @task
