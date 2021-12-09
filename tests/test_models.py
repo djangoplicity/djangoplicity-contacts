@@ -13,6 +13,9 @@ except ImportError:
 
 
 class LabelTestCase(TestCase):
+    """
+    Test Label model
+    """
     fixtures = ['actions', 'initial']
 
     def setUp(self):
@@ -25,6 +28,9 @@ class LabelTestCase(TestCase):
         self.client.force_login(self.admin_user)
 
     def test_create_label(self):
+        """
+        Test that a user can create a new label.
+        """
         # Before label count
         count_before = Label.objects.count()
 
@@ -43,36 +49,44 @@ class LabelTestCase(TestCase):
         self.assertEqual(str(label), "Standard - 99.1x38.1")
         self.assertEqual(count_before+1, count_after)
 
-    # @patch('djangoplicity.contacts.tasks.contactgroup_change_check.apply_async')
-    # def test_get_label_render(self, contact_group_check_mock):
-    #     label = factory_label({
-    #         "name": "Standard - 99.1x38.1",
-    #         "paper": "us-letter-5162",
-    #         "enabled": True
-    #     })
-    #     label.save()
-    #     before_contact_count = Contact.objects.count()
-    #     contact = factory_contact({
-    #         "first_name": "Jhon",
-    #         "last_name": "Doe",
-    #         "email": "jhondoe@mail.com"
-    #     })
-    #     contact.save()
-    #     after_contact_count = Contact.objects.count()
-    #
-    #     # qs = Contact.objects.filter(pk=contact.pk)
-    #     # render = label.get_label_render().render_http_response(
-    #     #     qs, 'contact_label_%s.pdf' % contact.pk)
-    #
-    #     contact_group_check_mock.assert_called_with(
-    #         (contact._initial_groups, contact.pk, contact.email),
-    #         countdown=20
-    #     )
-    #     self.assertTrue(contact_group_check_mock.called)
-    #     # self.assertIn("Jhon", render.content)
+    @patch('djangoplicity.contacts.tasks.contactgroup_change_check.apply_async')
+    def test_get_label_render(self, contact_group_check_mock):
+        """
+        Test renders labels from a contact.
+        """
+        label = factory_label({
+            "name": "Standard - 99.1x38.1",
+            "paper": "us-letter-5162",
+            "enabled": True,
+            "repeat": 3
+        })
+        label.save()
+
+        contact = factory_contact({
+            "id": 5000,
+            "first_name": "Jhon",
+            "last_name": "Doe",
+            "email": "jhondoe@mail.com"
+        })
+        contact.save()
+
+        qs = Contact.objects.filter(pk=contact.pk)
+        # Get rendered PDF to a HttpResponse object.
+        render = label.get_label_render().render_http_response(
+            qs, 'contact_label_%s.pdf' % contact.pk)
+        # Get file path of rendered PDF to a file in a output directory.
+        file_path = label.get_label_render().render_file(
+            qs, 'contact_label_%s.pdf' % contact.pk
+        )
+
+        self.assertIn('/contact_label_5000.pdf', file_path)
+        self.assertIn("ReportLab Generated PDF document", render.content)
 
 
 class FieldTestCase(TestCase):
+    """
+    Tests Field model, definition of extra fields defined on contact model.
+    """
 
     def setUp(self):
         self.client = Client()
@@ -84,6 +98,9 @@ class FieldTestCase(TestCase):
         self.client.force_login(self.admin_user)
 
     def test_field_creation(self):
+        """
+        Test that one user can create a new extra fields
+        """
         before_count = Field.objects.count()
         for i in range(0, 3):
             field = factory_field({
@@ -103,9 +120,14 @@ class FieldTestCase(TestCase):
         self.assertEqual(str(field), "test field 1")
 
     def test_field_class_methods(self):
+        """
+        Test Field methods
+        """
+
         # Reset Field cache
         Field._allowed_fields = None
-        # Add extra fields
+
+        # Add 5 extra fields
         for i in range(0, 5):
             field = factory_field({
                 "slug": "field-%s" % i,
@@ -121,49 +143,48 @@ class FieldTestCase(TestCase):
         self.assertIn("field-1", allow_fields)
 
 
-class BasicDataTestCase(TestCase):
+class LoadBasicDataTestCase(TestCase):
+    """
+    Test Country, Region PostalZone and CountryGroup models
+    """
     fixtures = ['actions', 'initial']
 
-    def test_basic_data(self):
+    def test_load_initial_data(self):
         group_category = GroupCategory.objects.get(name='Electronic Distribution')
         country_group = CountryGroup.objects.get(name='Latin_America')
         postal_zone = PostalZone.objects.get(name='World')
         usa = Country.objects.get(name='USA')
         germany = Country.objects.get(iso_code='DE')
-        new_york_zip_code = usa.get_zip_city('001', '10')
-        berlin_zip_code = germany.get_zip_city('10', '115')
-        country_keys = Country.country_index().keys()
         region = Region.objects.get(code='NY')
 
+        # test get zip codes
+        new_york_zip_code = usa.get_zip_city('001', '10')
+        berlin_zip_code = germany.get_zip_city('10', '115')
+
+        self.assertEqual(new_york_zip_code, '10 001')
+        self.assertEqual(berlin_zip_code, '10 115')
+
+        # test country index method
+        country_keys = Country.country_index().keys()
+        self.assertEqual(country_keys, ['DE', 'US'])
+
+        # test to save in lowercase save method must be transformed to uppercase
         usa.iso_code = 'us'
         usa.save()
+        self.assertEqual(usa.iso_code, 'US')
 
-        self.assertIsNotNone(group_category)
-        self.assertIsNotNone(country_group)
-        self.assertIsNotNone(postal_zone)
-        self.assertIsNotNone(usa)
-        self.assertIsNotNone(germany)
-        self.assertIsNotNone(region)
-
-        self.assertIsInstance(group_category, GroupCategory)
-        self.assertIsInstance(country_group, CountryGroup)
-        self.assertIsInstance(postal_zone, PostalZone)
-        self.assertIsInstance(usa, Country)
-        self.assertIsInstance(germany, Country)
-
+        # test human-readable representation of the models
         self.assertEqual(str(postal_zone), 'World')
         self.assertEqual(str(country_group), 'Latin_America')
         self.assertEqual(str(group_category), 'Electronic Distribution')
         self.assertEqual(str(usa), 'USA')
         self.assertEqual(str(region), 'New York')
 
-        self.assertEqual(new_york_zip_code, '10 001')
-        self.assertEqual(berlin_zip_code, '10 115')
-        self.assertEqual(country_keys,  ['DE', 'US'])
-        self.assertEqual(usa.iso_code, 'US')
-
 
 class ContactTestCase(TestCase):
+    """
+    Unit Test to contact model
+    """
     fixtures = ['actions', 'initial']
     contact = None
     before_contact_count = 0
@@ -183,10 +204,49 @@ class ContactTestCase(TestCase):
 
     @classmethod
     def create_contact(cls, data):
+        """
+        Method to create a Contact.
+        """
         cls.before_contact_count = contacts_count()
         cls.contact = factory_contact(data)
         cls.contact.save()
         cls.after_contact_count = contacts_count()
+
+    @patch('djangoplicity.contacts.tasks.contactgroup_change_check.apply_async', raw=True)
+    def test_raw_creation_contact(self, contact_group_check_mock):
+        ContactTestCase.create_contact({
+            "first_name": "Jhon",
+            "last_name": "Doe",
+            "email": "jhondoe@mail.com"
+        })
+        contacts = Contact.objects.filter(email="jhondoe@mail.com")
+
+        self.assertTrue(contact_group_check_mock.called)
+        self.assertIsNotNone(contacts)
+        self.assertIsInstance(contacts[0], Contact)
+        self.assertEqual(contacts[0].email, "jhondoe@mail.com")
+        self.assertEqual(ContactTestCase.before_contact_count+1, ContactTestCase.after_contact_count)
+
+    @patch('djangoplicity.contacts.tasks.contactgroup_change_check.apply_async', raw=False)
+    def test_create_contact(self, contact_group_check_mock):
+        ContactTestCase.create_contact({
+            "id": 4000,
+            "first_name": "Larry",
+            "last_name": "Doe",
+            "email": "larrydoe@mail.com"
+        })
+
+        contact_group_check_mock.assert_called_with(
+            ([], 4000, 'larrydoe@mail.com'), countdown=20)
+
+        contacts = Contact.objects.filter(email="larrydoe@mail.com")
+
+        self.assertTrue(contact_group_check_mock.called)
+        self.assertIsNotNone(contacts)
+        self.assertIsInstance(contacts[0], Contact)
+        self.assertEqual(contacts[0].email, "larrydoe@mail.com")
+        self.assertEqual(ContactTestCase.before_contact_count + 1, ContactTestCase.after_contact_count)
+
 
     @patch('djangoplicity.contacts.tasks.contactgroup_change_check.apply_async', raw=True)
     def test_contact_class_methods(self, contact_group_check_mock):
@@ -204,6 +264,7 @@ class ContactTestCase(TestCase):
             })
             field.save()
 
+        # Create a contact
         Contact.find_or_create_object(**{
             "first_name": "Jhon",
             "last_name": "Doe",
@@ -410,37 +471,6 @@ class ContactTestCase(TestCase):
             contact1 = None
         self.assertTrue(contact_removed_mock.called)
         self.assertIsNone(contact1)
-
-    @patch('djangoplicity.contacts.tasks.contactgroup_change_check.apply_async', raw=True)
-    def test_raw_creation_contact(self, contact_group_check_mock):
-        ContactTestCase.create_contact({
-            "first_name": "Jhon",
-            "last_name": "Doe",
-            "email": "jhondoe@mail.com"
-        })
-        contacts = Contact.objects.filter(email="jhondoe@mail.com")
-
-        self.assertTrue(contact_group_check_mock.called)
-        self.assertIsNotNone(contacts)
-        self.assertIsInstance(contacts[0], Contact)
-        self.assertEqual(contacts[0].email, "jhondoe@mail.com")
-        self.assertEqual(ContactTestCase.before_contact_count+1, ContactTestCase.after_contact_count)
-
-    @patch('djangoplicity.contacts.tasks.contactgroup_change_check.apply_async', raw=False)
-    def test_create_contact(self, contact_group_check_mock):
-        ContactTestCase.create_contact({
-            "first_name": "Larry",
-            "last_name": "Doe",
-            "email": "larrydoe@mail.com"
-        })
-
-        contacts = Contact.objects.filter(email="larrydoe@mail.com")
-
-        self.assertTrue(contact_group_check_mock.called)
-        self.assertIsNotNone(contacts)
-        self.assertIsInstance(contacts[0], Contact)
-        self.assertEqual(contacts[0].email, "larrydoe@mail.com")
-        self.assertEqual(ContactTestCase.before_contact_count + 1, ContactTestCase.after_contact_count)
 
     @patch('djangoplicity.contacts.tasks.contactgroup_change_check.apply_async')
     def test_get_data(self, contact_group_check_mock):
