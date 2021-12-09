@@ -265,6 +265,10 @@ HASHIDS_ALPHABET = 'abcdefghijkmnopqrstuvwxyz123456789'
 HASHIDS_ALPHABET_UPPER = 'ABCDEFGHJKMNPQRSTUVWXYZ123456789'
 
 
+from reportlab import rl_config
+REPORLAB_FONTS = os.path.join(BASE_DIR, 'djangoplicity', 'contacts', 'static', 'contacts', 'fonts')
+rl_config.TTFSearchPath.append(REPORLAB_FONTS)
+
 PIPELINE = {
     'STYLESHEETS': {
         'main': {
