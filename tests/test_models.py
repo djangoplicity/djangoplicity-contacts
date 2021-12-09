@@ -71,6 +71,7 @@ class LabelTestCase(TestCase):
     #     self.assertTrue(contact_group_check_mock.called)
     #     # self.assertIn("Jhon", render.content)
 
+
 class FieldTestCase(TestCase):
 
     def setUp(self):
@@ -102,6 +103,9 @@ class FieldTestCase(TestCase):
         self.assertEqual(str(field), "test field 1")
 
     def test_field_class_methods(self):
+        # Reset Field cache
+        Field._allowed_fields = None
+        # Add extra fields
         for i in range(0, 5):
             field = factory_field({
                 "slug": "field-%s" % i,
@@ -174,12 +178,238 @@ class ContactTestCase(TestCase):
         )
         self.client.force_login(self.admin_user)
 
+    def tearDown(self):
+        Field.objects.all().delete()
+
     @classmethod
     def create_contact(cls, data):
         cls.before_contact_count = contacts_count()
         cls.contact = factory_contact(data)
         cls.contact.save()
         cls.after_contact_count = contacts_count()
+
+    @patch('djangoplicity.contacts.tasks.contactgroup_change_check.apply_async', raw=True)
+    def test_contact_class_methods(self, contact_group_check_mock):
+        """
+        Test Contact class methods
+        """
+        # Reset Field cache
+        Field._allowed_fields = None
+
+        # Add extra fields
+        for i in range(0, 5):
+            field = factory_field({
+                "slug": "field-%s" % i,
+                "name": "test field %s" % i
+            })
+            field.save()
+
+        Contact.find_or_create_object(**{
+            "first_name": "Jhon",
+            "last_name": "Doe",
+            "email": "jhondoe@mail.com"
+        })
+
+        # exec contact class methods
+        contact_wanted = Contact.find_object(email='jhondoe@mail.com')
+        fields_slugs = Contact.get_allowed_extra_fields()
+        language_code = Contact.get_language_code('English')
+
+        self.assertIsInstance(contact_wanted, Contact)
+        self.assertEqual(language_code, 'en')
+        self.assertIn('field-1', fields_slugs)
+
+    @patch('djangoplicity.contacts.tasks.contactgroup_change_check.apply_async', raw=True)
+    def test_find_contact_by_id_or_email(self, contact_group_check_mock):
+        """
+        Find contact by id or email
+        """
+        # Create contacts with similar data
+        for i in range(2000, 2005):
+            ContactTestCase.create_contact({
+                "id": i,
+                "first_name": "Jhon",
+                "last_name": "Doe",
+                "email": "jhondoe@mail.com"
+            })
+
+        # Find contacts methods
+        contact_wanted_by_email = Contact.find_object(email='jhondoe@mail.com')
+        contact_wanted_by_id = Contact.find_object(id=2001)
+        contact_wanted_by_uid = Contact.from_uid('VXXl')
+        contacts = Contact.get_contacts_with_email('jhondoe@mail.com')
+
+        # UID Hashids to encrypt the Contact's ID into a unique string
+        uid = contact_wanted_by_id.get_uid()
+
+        self.assertEqual(uid, 'VXXl')
+        self.assertIsInstance(contact_wanted_by_uid, Contact)
+        self.assertIsInstance(contact_wanted_by_email, Contact)
+        self.assertIsInstance(contact_wanted_by_id, Contact)
+        self.assertIsInstance(contacts[0], Contact)
+
+    @patch('djangoplicity.contacts.tasks.contactgroup_change_check.apply_async', raw=True)
+    def test_create_contact_and_add_group(self, contact_group_check_mock):
+        """
+        Create a contact and add it to a group at the same time
+        """
+
+        for i in range(200, 203):
+            cg = factory_contact_group({
+                'id': i,
+                'name': 'Test Group %s' % i,
+                'order': 1
+            })
+            cg.save()
+
+        # Create contact and add it to the groups by the group ids
+        contact1 = Contact.create_object(groups=[200, 201, 202], **{
+            "first_name": "Jhon",
+            "last_name": "Doe",
+            "email": "jhondoe@mail.com"
+        })
+
+        # Create contact and add it to the groups by the group names
+        contact2 = Contact.create_object(groups=['Test Group 200', 'Test Group 201'], **{
+            "first_name": "Larry",
+            "last_name": "Doe",
+            "email": "larrydoe@mail.com"
+        })
+
+        self.assertIsInstance(contact1, Contact)
+        self.assertIsInstance(contact2, Contact)
+        self.assertEqual(contact1.groups.count(), 3)
+        self.assertEqual(contact2.groups.count(), 2)
+
+    @patch('djangoplicity.contacts.tasks.contactgroup_change_check.apply_async', raw=True)
+    def test_update_contact(self, contact_group_check_mock):
+
+        # Create contacts groups
+        for i in range(200, 203):
+            cg = factory_contact_group({
+                'id': i,
+                'name': 'Test Group %s' % i,
+                'order': 1
+            })
+            cg.save()
+
+        field = factory_field({
+            "slug": "company_email",
+            "name": "Company Email"
+        })
+        field.save()
+
+        # Create contact and add it to the groups by the group ids
+        country = Country.objects.get(name='USA')
+        region = Region.objects.get(name='New York')
+
+        contact = Contact.create_object(groups=[200], **{
+            "first_name": "Jhon",
+            "last_name": "Doe",
+            "email": "jhondoe@mail.com",
+            "company_email": "jhondoe@colacola.com",
+            'country': country.id,
+            'region': region.pk
+        })
+
+        # Update contact data country code DE-> Germany, region 556 Berlin
+        contact.update_object(groups=[201, 202], country='DE', region=556)
+        contact.save()
+
+        # Check update result
+        contact1 = Contact.objects.get(email='jhondoe@mail.com')
+        self.assertEqual(contact1.country.name, 'Germany')
+        self.assertEqual(contact1.region.name, 'Berlin')
+
+        # Update contact data country code DE-> Germany, region 556 Berlin
+        contact.update_object(
+            groups=[201, 202],
+            country='usa',
+            region='new york',
+            company_email="jhondoe@pepsi.com")
+        contact.save()
+
+        contact1.refresh_from_db()
+        self.assertEqual(contact1.country.name, 'USA')
+        self.assertEqual(contact1.region.name, 'New York')
+
+    @patch('djangoplicity.contacts.tasks.contactgroup_change_check.apply_async', raw=True)
+    def test_unicode_contact_representation(self, contact_group_check_mock):
+        """
+        Human-readable representation of the contact model
+        """
+        contacts_data = [{
+                "title": "Mr",
+                "first_name": "Jhon",
+                "last_name": "Doe",
+                "email": "jhondoe@mail.com",
+                "organisation": "",
+                "department": ""
+            },
+            {
+                "first_name": "",
+                "last_name": "",
+                "email": "cocacola@mail.com",
+                "organisation": "Coca Cola",
+                "department": ""
+            },
+            {
+                "first_name": "",
+                "last_name": "",
+                "email": "hiring@mail.com",
+                "organisation": "",
+                "department": "Hiring"
+            },
+            {
+                "id": 1000,
+                "first_name": "",
+                "last_name": "",
+                "email": "unknown@mail.com",
+                "organisation": "",
+                "department": ""
+            }
+        ]
+        for data in contacts_data:
+            ContactTestCase.create_contact(data)
+
+        contact1 = Contact.objects.get(email="jhondoe@mail.com")
+        contact2 = Contact.objects.get(email="cocacola@mail.com")
+        contact3 = Contact.objects.get(email="hiring@mail.com")
+        contact4 = Contact.objects.get(email="unknown@mail.com")
+
+        self.assertEqual(str(contact1), "Mr Jhon Doe")
+        self.assertEqual(str(contact2), "Coca Cola")
+        self.assertEqual(str(contact3), "Hiring")
+        self.assertEqual(str(contact4), "1000")
+
+    @patch('djangoplicity.contacts.tasks.contactgroup_change_check.apply_async', raw=True)
+    @patch('djangoplicity.contacts.signals.contact_removed.send_robust')
+    def test_contact_deletion(self, contactgroup_change_check_mock, contact_removed_mock):
+        # Create contacts groups
+        for i in range(200, 203):
+            cg = factory_contact_group({
+                'id': i,
+                'name': 'Test Group %s' % i,
+                'order': 1
+            })
+            cg.save()
+
+        contact = Contact.create_object(groups=[200, 201, 202], **{
+            "first_name": "Jhon",
+            "last_name": "Doe",
+            "email": "jhondoe@mail.com",
+            'country': "germany",
+            'region': "berlin"
+        })
+
+        contact.delete()
+
+        try:
+            contact1 = Contact.objects.get(email="jhondoe@gmail.com")
+        except Contact.DoesNotExist:
+            contact1 = None
+        self.assertTrue(contact_removed_mock.called)
+        self.assertIsNone(contact1)
 
     @patch('djangoplicity.contacts.tasks.contactgroup_change_check.apply_async', raw=True)
     def test_raw_creation_contact(self, contact_group_check_mock):
@@ -239,15 +469,25 @@ class ContactTestCase(TestCase):
         })
         contact = Contact.objects.get(email="markdoe@mail.com")
 
-        field = factory_field({
+        field1 = factory_field({
             "slug": "company-email",
             "name": "Company Email"
         })
-        field.save()
 
+        field2 = factory_field({
+            "slug": "personal-email",
+            "name": "Personal Email"
+        })
+        field1.save()
+        field2.save()
+
+        # Valid extra field set and get
         contact.set_extra_field("company-email", "markdoe@pear.com")
         company_email = contact.get_extra_field("company-email")
 
+        # Unset extra field
+        unset_extra_field = contact.get_extra_field("personal-email")
+        self.assertIsNone(unset_extra_field)
         self.assertEqual(company_email, "markdoe@pear.com")
 
     @patch('djangoplicity.contacts.tasks.contactgroup_change_check.apply_async')
