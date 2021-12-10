@@ -2,14 +2,14 @@
 from django.test import TestCase, Client
 from django.contrib.auth import get_user_model
 from djangoplicity.contacts.models import Label, LabelRender, Contact, Field, GroupCategory, CountryGroup, PostalZone, \
-    Country, Region, ContactGroup
+    Country, Region, ContactGroup, ContactGroupAction
 from .factories import factory_label, factory_contact, \
     contacts_count, factory_field, factory_contact_group
 
 try:
-    from mock import patch
+    from mock import patch, MagicMock
 except ImportError:
-    from unittest.mock import patch
+    from unittest.mock import patch, MagicMock
 
 
 class LabelTestCase(TestCase):
@@ -620,3 +620,182 @@ class TestContactGroup(TestCase):
         contact_group.delete()
         contact.refresh_from_db()
         self.assertEqual(contact.group_order, None)
+
+
+class TestContactGroupAction(TestCase):
+    """
+    Test Contact Group Action
+    """
+    fixtures = ['actions', 'initial']
+
+    def setUp(self):
+        self.client = Client()
+        self.admin_user = get_user_model().objects.create_superuser(
+            username='admin',
+            email='admin@newsletters.org',
+            password='password123'
+        )
+        self.client.force_login(self.admin_user)
+
+    @patch('djangoplicity.contacts.signals.contact_added.send')
+    @patch('djangoplicity.contacts.tasks.contactgroup_change_check.apply_async')
+    def test_event_action_added_to_group(self, task_contactgroup_change_check_mock, signal_contact_added_mock):
+        """
+        Create a contact and add to distribution group.
+        """
+        # Get electronic distribution group
+        contact_group = ContactGroup.objects.get(name='Public NL')
+
+        # Simulate production environment
+        with self.settings(SITE_ENVIRONMENT='prod'):
+            contact = Contact.create_object(groups=[contact_group.id], **{
+                "first_name": "Jhon",
+                "last_name": "Doe",
+                "email": "jhondoe@mail.com",
+                'country': "germany",
+                'region': "berlin"
+            })
+
+            self.assertTrue(task_contactgroup_change_check_mock.called)
+            self.assertTrue(signal_contact_added_mock.called)
+
+            task_contactgroup_change_check_mock.assert_called_with(
+                ([], contact.id, 'jhondoe@mail.com'), countdown=20)
+
+            signal_contact_added_mock.assert_called_with(
+                contact=contact, group=contact_group, sender=Contact
+            )
+
+            self.assertIsInstance(contact, Contact)
+
+    def test_contact_group_action_class_methods(self):
+        """
+        Test contact group actions class methods
+        """
+        contact_group = ContactGroup.objects.get(name='Public NL')
+        actions_for_group = ContactGroupAction.get_actions(group=contact_group)
+        actions_for_event = ContactGroupAction.get_actions_for_event(on_event='contact_added')
+
+        self.assertEqual(len(actions_for_group), 3)
+        self.assertEqual(len(actions_for_event), 1)
+
+    @patch('djangoplicity.contacts.tasks.contactgroup_change_check.apply_async')
+    def test_contact_added_callback(self, task_contact_group_change_check_mock):
+        """
+        Test handler for when a contact is *added* to a group. Will execute defined actions for this group.
+        """
+        with self.settings(SITE_ENVIRONMENT='prod'):
+            group = ContactGroup.objects.get(name='Public NL')
+            from djangoplicity.mailinglists.tasks.mailchimp_actions import MailChimpSubscribeAction
+
+            # Catch MailChimp subscribe action
+            MailChimpSubscribeAction.dispatch = MagicMock(return_value=True)
+
+            # Create a contact in one distribution mailchimp list
+            contact = Contact.create_object(groups=[group.id], **{
+                "first_name": "Jhon",
+                "last_name": "Doe",
+                "email": "jhondoe@mail.com",
+                'country': "germany",
+                'region': "berlin"
+            })
+            # Ensure that actions methods are called
+            self.assertTrue(task_contact_group_change_check_mock.called)
+            self.assertTrue(MailChimpSubscribeAction.dispatch.called)
+
+            # Validate that the actions arguments are correct
+            MailChimpSubscribeAction.dispatch.assert_called_with(
+                {
+                    'double_optin': False,
+                    'send_welcome': False,
+                    'list_id': u'12345abcdf'
+                },
+                contact=contact,
+                group=group)
+
+    @patch('djangoplicity.contacts.tasks.contactgroup_change_check.apply_async')
+    def test_contact_removed_callback(self, task_contact_group_change_check_mock):
+        """
+        Test handler for when a contact is *removed* from a group. Will execute defined actions for this group.
+        """
+        with self.settings(SITE_ENVIRONMENT='prod'):
+            group = ContactGroup.objects.get(name='Public NL')
+            from djangoplicity.mailinglists.tasks.mailchimp_actions import MailChimpUnsubscribeAction
+
+            # Catch MailChimp unsubscribe action
+            MailChimpUnsubscribeAction.dispatch = MagicMock(return_value=True)
+
+            # Create a contact in one distribution mailchimp list
+            contact = Contact.create_object(groups=[group.id], **{
+                "first_name": "Jhon",
+                "last_name": "Doe",
+                "email": "jhondoe@mail.com",
+                'country': "germany",
+                'region': "berlin"
+            })
+            # Delete contact
+            contact.delete()
+
+            # Ensure that actions methods are called
+            self.assertTrue(task_contact_group_change_check_mock.called)
+            self.assertTrue(MailChimpUnsubscribeAction.dispatch.called)
+
+            # Validate that the actions arguments are correct
+            MailChimpUnsubscribeAction.dispatch.assert_called_with(
+                {
+                    'send_goodbye': False,
+                    'list_id': u'12345abcdf',
+                    'delete_member': False
+                },
+                email='jhondoe@mail.com',
+                contact=contact,
+                group=group)
+
+    @patch('djangoplicity.contacts.tasks.contactgroup_change_check.apply_async')
+    def test_contact_updated_callback(self, task_contact_group_change_check_mock):
+        """
+        Test handler for when a local field is *updated*. Will execute defined actions for all groups for this contact.
+        """
+        with self.settings(SITE_ENVIRONMENT='prod'):
+            group = ContactGroup.objects.get(name='Public NL')
+            from djangoplicity.mailinglists.tasks.mailchimp_actions import MailChimpUpdateAction
+
+            # Create a contact in one distribution mailchimp list
+            contact = Contact.create_object(groups=[group.id], **{
+                "first_name": "Jhon",
+                "last_name": "Doe",
+                "email": "jhondoe@mail.com",
+                'country': "germany",
+                'region': "berlin"
+            })
+            # Catch MailChimp update action
+            MailChimpUpdateAction.dispatch = MagicMock(return_value=True)
+
+            # update fields contact
+            dirty_fields = {
+                "first_name": "Larry",
+                "last_name": "Doe",
+                "email": "larrydoe@mail.com"
+            }
+            contact.update_object(**dirty_fields)
+            contact.save()
+
+            # Ensure that actions methods are called
+            self.assertTrue(task_contact_group_change_check_mock.called)
+            self.assertTrue(MailChimpUpdateAction.dispatch.called)
+
+            # Validate that the actions arguments are correct
+            MailChimpUpdateAction.dispatch.assert_called_with(
+                {
+                    'double_optin': False,
+                    'send_welcome': False,
+                    'send_goodbye': False,
+                    'list_id': u'12345abcdf',
+                    'delete_member': False
+                },
+                changes={
+                    'first_name': ('Jhon', 'Larry'),
+                    'email': ('jhondoe@mail.com', 'larrydoe@mail.com')
+                },
+                instance=contact
+            )
