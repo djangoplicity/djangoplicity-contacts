@@ -34,8 +34,9 @@ jsmin==2.2.2
 # The Django Debug Toolbar is a configurable set of panels that display various debug information
 django-debug-toolbar==1.11
 
-# Library to create spreadsheet files compatible with MS Excel
+# Library to create spreadsheet files compatible with MS Excel writer and reader
 xlwt
+xlrd
 
 # Django DRY forms
 django-crispy-forms==1.8.1
