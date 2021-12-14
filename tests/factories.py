@@ -1,4 +1,5 @@
-from djangoplicity.contacts.models import Label, Contact, Country, Region, Field, GroupCategory, ContactGroup
+from djangoplicity.contacts.models import Label, Contact, Country, Region, Field, GroupCategory, ContactGroup, \
+    ImportSelector
 from djangoplicity.contacts.labels import LABEL_PAPER_CHOICES
 from django.core.management import call_command
 from io import StringIO
@@ -102,3 +103,25 @@ def factory_contact_group(data):
     if data is not None:
         default.update(data)
     return ContactGroup(**default)
+
+
+def factory_import_selector(template, data):
+    """
+    Create a Import SelectorDefines a selector for an import template.
+    This allows the template to only import certain rows (e.g. if a
+    specific column contains an x in a cell it will be imported).
+    """
+    default = {
+        'template': template,
+        'header': fake.random_element([u'Website', 'Phone', 'Email', 'Language', 'Region/State',
+                                       'Country', 'Zipcode', 'City', 'Street 2', 'Street 1', 'Groups',
+                                       'Department', 'Organization', 'Position', 'First name', 'Last name',
+                                       'Title']),
+        'value': fake.word(),
+        'case_sensitive': fake.boolean(),
+    }
+
+    if data is not None:
+        default.update(data)
+
+    return ImportSelector(**default)
