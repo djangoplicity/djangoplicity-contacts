@@ -44,7 +44,7 @@ class TestImportTemplate(BasicTestCase):
         self.assertIsInstance(importer, CSVImporter)
         self.assertIsNotNone(importer)
 
-        self.assertEqual(len(importer), 99)
+        self.assertEqual(len(importer), 100)
         self.assertEqual(len(importer.cols), 17)
         self.assertEqual(str(template), 'TEST Contacts all')
 
