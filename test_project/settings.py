@@ -360,6 +360,7 @@ TINYMCE_DEFAULT_CONFIG = {
     'convert_urls': False,
 }
 
+
 # Crispy form
 CRISPY_TEMPLATE_PACK = 'bootstrap3'
 
@@ -368,3 +369,6 @@ EMAIL_HOST = 'smtp.mailtrap.io'
 EMAIL_HOST_USER = '9bf800ee730746'
 EMAIL_HOST_PASSWORD = 'f3162e99c9f248'
 EMAIL_PORT = '2525'
+
+# The max number of GET/POST parameters allowed
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000

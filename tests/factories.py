@@ -125,3 +125,91 @@ def factory_import_selector(template, data):
         default.update(data)
 
     return ImportSelector(**default)
+
+
+def factory_request_data(rows=None, limit = None):
+    data = {'_import': 'Import'}
+    if rows is None:
+        data.update({
+            '_selected_import_2': 'on',
+            '_selected_merge_contact_2': 'new',
+            '2_new-title': 'Mrs.',
+            '2_new-first_name': 'Jhon',
+            '2_new-last_name': 'Doe',
+            '2_new-position': 'Product designer',
+            '2_new-organisation': 'Johnson, Smith and Mclean',
+            '2_new-department': 'LLC',
+            '2_new-street_1': '36310 Juan FordsNew Sabrina, NY 54546',
+            '2_new-street_2': '35304 Carlson BranchMeyertown, NJ 71989',
+            '2_new-zip': '15418',
+            '2_new-city': 'Lauratown',
+            '2_new-country': '7',
+            '2_new-region': '544',
+            '2_new-tax_code': '',
+            '2_new-phone': '890.067.9460',
+            '2_new-website': 'https://www.smith.org/',
+            '2_new-social': '',
+            '2_new-email': 'jhondoe@cox-ayala.com',
+            '2_new-language': 'en',
+            '2_new-groups': ['1', '2'],
+            '2_new-group_order': None,
+        })
+    else:
+        for idx, row in enumerate(rows):
+            r_number = idx + 2
+            data.update({
+                '_selected_import_' + str(r_number): 'on',
+                '_selected_merge_contact_' + str(r_number): 'new',
+                str(r_number) + '_new-title': row['title'],
+                str(r_number) + '_new-first_name': row['first_name'],
+                str(r_number) + '_new-last_name': row['last_name'],
+                str(r_number) + '_new-position': row['position'],
+                str(r_number) + '_new-organisation': row['organisation'],
+                str(r_number) + '_new-department': row['department'],
+                str(r_number) + '_new-street_1': row['street_1'],
+                str(r_number) + '_new-street_2': row['street_2'],
+                str(r_number) + '_new-zip': row['zip'],
+                str(r_number) + '_new-city': row['city'],
+                str(r_number) + '_new-country': row['country'],
+                str(r_number) + '_new-region': row['region'],
+                str(r_number) + '_new-tax_code': '',
+                str(r_number) + '_new-phone': row['phone'],
+                str(r_number) + '_new-website': row['website'],
+                str(r_number) + '_new-social': '',
+                str(r_number) + '_new-email': row['email'],
+                str(r_number) + '_new-language': row['language'],
+                str(r_number) + '_new-groups': row['groups'],
+            })
+            if limit and idx > limit:
+                break
+    return data
+
+
+def factory_invalid_data(rows=None):
+    data = {'_import': 'Import'}
+    if rows is None:
+        data.update({
+            '_selected_import_2': 'on',
+            '_selected_merge_contact_2': 'new',
+            '2_new-title': 'Mrs.',
+            '2_new-first_name': 'Jhon',
+            '2_new-last_name': 'Doe',
+            '2_new-position': 'Product designer',
+            '2_new-organisation': 'Johnson, Smith and Mclean',
+            '2_new-department': 'LLC',
+            '2_new-street_1': '36310 Juan FordsNew Sabrina, NY 54546',
+            '2_new-street_2': '35304 Carlson BranchMeyertown, NJ 71989',
+            '2_new-zip': '15418',
+            '2_new-city': 'Lauratown',
+            '2_new-country': '-invalid-',  # invalid country
+            '2_new-region': '-invalid region-',  # invalid region
+            '2_new-tax_code': '',
+            '2_new-phone': '890.067.9460',
+            '2_new-website': 'https://www.smith.org/',
+            '2_new-social': '',
+            '2_new-email': 'jhondoe@cox-ayala.com',
+            '2_new-language': 'en',
+            '2_new-groups': ['1', '2'],
+            '2_new-group_order': None,
+        })
+        return data

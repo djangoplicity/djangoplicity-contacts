@@ -1,12 +1,17 @@
 # coding=utf-8
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import models
 from django.test import TestCase, Client
 from django.contrib.auth import get_user_model
-from djangoplicity.contacts.models import Label, LabelRender, Contact, Field, GroupCategory, CountryGroup, PostalZone, \
-    Country, Region, ContactGroup, ContactGroupAction, ImportTemplate, ImportMapping, ImportSelector, ImportGroupMapping
-from .factories import factory_label, factory_contact, \
-    contacts_count, factory_field, factory_contact_group, factory_import_selector
+from django.test import Client
+from djangoplicity.contacts.admin import ImportAdmin
+from djangoplicity.contacts.models import Contact, ContactGroup, ImportTemplate, ImportMapping, \
+    ImportSelector, ImportGroupMapping, DataImportError, Import
+from .factories import factory_import_selector, factory_request_data
 from djangoplicity.contacts.importer import CSVImporter, ExcelImporter
+from djangoplicity.contacts.tasks import prepare_import
+import json
+from django.core import mail
 
 try:
     from mock import patch, MagicMock
@@ -136,6 +141,26 @@ class TestImportTemplate(BasicTestCase):
         # test the first table row
         self.assertEqual(type(data_table[0]), list)
         self.assertEqual(len(data_table[0]), 18)
+
+    def test_bad_file_format(self):
+        # Raise exception with invalid file format
+        filepath = './tests/contacts.pdf'
+        template = ImportTemplate.objects.get(name='TEST Contacts all')
+        self.assertRaises(DataImportError, template.get_importer, filepath)
+
+    def test_bad_column_in_file(self):
+        # Raise bad column exception
+        filepath = './tests/bad_column.xls'
+        template = ImportTemplate.objects.get(name='TEST Contacts all')
+        row, data = template.preview_data(filepath)
+
+        count_errors = 0
+        for row in data:
+            if 'ERROR' in row:
+                count_errors += 1
+
+        self.assertEqual(10, count_errors)
+        self.assertIsNotNone(data)
 
     def test_template_review_data(self):
         """
@@ -297,4 +322,119 @@ class TestImportModel(BasicTestCase):
     Test stores an excel file and selects which import template to use when importing
     the data.
     """
-    pass
+
+    @patch('djangoplicity.contacts.tasks.contactgroup_change_check.apply_async', raw=True)
+    def test_import_creation(self, contactgroup_change_check_mock):
+        # Create an import model instance
+        with self.settings(SITE_ENVIRONMENT='prod'), open("./tests/contacts.xls") as contacts_file:
+            import_count_before = Import.objects.count()
+            contacts_count_before = Contact.objects.count()
+            template = ImportTemplate.objects.get(name='TEST Contacts all')
+            data = {
+                "template": template,
+                "data_file": SimpleUploadedFile(contacts_file.name, bytes(contacts_file.read())),
+            }
+            instance = Import(**data)
+            instance.save()
+
+            imported = instance.direct_import_data()
+            import_count_after = Import.objects.count()
+            contacts_count_after = Contact.objects.count()
+
+            columns, rows = instance.preview_data()
+
+            self.assertTrue(imported)
+            self.assertEqual(contacts_count_after, contacts_count_before + 100)
+
+            self.assertEqual(import_count_before+1, import_count_after)
+            self.assertEqual(18, len(columns))
+            self.assertEqual(100, len(rows))
+            self.assertIsInstance(instance, Import)
+
+
+class TestImportMethodsModel(BasicTestCase):
+    """
+    Test Import methods in import model
+    """
+    import_instance = None
+    response = None
+    template = ImportTemplate.objects.get(name='TEST Contacts all')
+
+    def setUp(self):
+        super(TestImportMethodsModel, self).setUp()
+        # set initial contacts to test duplicates behavior
+        self._import_initial_contacts()
+        self._import_contacts()
+
+    @patch('djangoplicity.contacts.tasks.contactgroup_change_check.apply_async', raw=True)
+    def _import_initial_contacts(self, contactgroup_change_check):
+        # Create an import model instance
+        with self.settings(SITE_ENVIRONMENT='prod'), open("./tests/duplicates.xls") as contacts_file:
+            data = {
+                "template": self.template,
+                "data_file": SimpleUploadedFile(contacts_file.name, bytes(contacts_file.read())),
+            }
+            instance = Import(**data)
+            instance.save()
+            instance.direct_import_data()
+
+    @patch('djangoplicity.contacts.tasks.contactgroup_change_check.apply_async', raw=True)
+    def _import_contacts(self, contactgroup_change_check):
+        # Create an import model instance
+        with self.settings(SITE_ENVIRONMENT='prod'), open("./tests/contacts.xls") as contacts_file:
+            data = {
+                "template": self.template,
+                "data_file": SimpleUploadedFile(contacts_file.name, bytes(contacts_file.read())),
+            }
+            self.import_instance = Import(**data)
+            self.import_instance.save()
+
+    @patch('djangoplicity.contacts.tasks.contactgroup_change_check.apply_async', raw=True)
+    def test_prepare_to_import(self, contactgroup_change_check_mock):
+        with self.settings(SITE_ENVIRONMENT='prod'):
+            prepare_import(self.import_instance.id, 'jhondoe@mail.com')
+
+            response = self.import_instance.prepare_import()
+            duplicates = json.loads(self.import_instance.duplicate_contacts)
+
+            # Generate a preview of the data mapping for this import. The data
+            # will be used as the basis for the import.
+            headers, rows = self.import_instance.preview_data()
+
+            self.assertEqual(len(mail.outbox), 1)
+            self.assertEqual(mail.outbox[0].subject, 'Import %s (%s) ready for review' %
+                             (self.import_instance.pk, self.import_instance.data_file))
+            self.assertTrue(response)
+            self.assertEqual(len(duplicates), 10)
+            self.assertEqual(len(headers), 18)
+            self.assertEqual(len(rows), 100)
+
+    def test_review_data(self):
+        with self.settings(SITE_ENVIRONMENT='prod'):
+            mapping, imported, new, duplicates = self.import_instance.review_data()
+            self.assertEqual(len(mapping), 17)
+            self.assertEqual(len(new), 100)
+
+    @patch('djangoplicity.contacts.tasks.contactgroup_change_check.apply_async', raw=True)
+    def test_import_data(self, contactgroup_change_check_mock):
+        with self.settings(SITE_ENVIRONMENT='prod'):
+            data = factory_request_data()
+            mapping, imported, new, duplicates = self.import_instance.review_data()
+
+            import_contacts = ImportAdmin.clean_import_data(data)
+            response = self.import_instance.import_data(import_contacts)
+            self.import_instance.save()
+
+            self.assertEqual(self.import_instance.status, 'new')
+            self.assertTrue(response)
+
+            # test template review data for mapping[1] - phone
+            contact = Contact.objects.get(email='jhondoe@cox-ayala.com')
+            field_data = self.template._get_review_form_data(mapping[1], contact)
+            self.assertEqual(field_data['name'], 'phone')
+            self.assertEqual(field_data['value'], '890.067.9460')
+
+            # test template review data for mapping[2] - email
+            field_data = self.template._get_review_form_data(mapping[2])
+            self.assertEqual(field_data['name'], 'email')
+            self.assertIsNone(field_data['value'])
