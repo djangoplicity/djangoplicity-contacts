@@ -358,11 +358,12 @@ class TestImportMethodsModel(BasicTestCase):
     """
     import_instance = None
     response = None
-    template = ImportTemplate.objects.get(name='TEST Contacts all')
+    template = None
 
     def setUp(self):
         super(TestImportMethodsModel, self).setUp()
         # set initial contacts to test duplicates behavior
+        self.template = ImportTemplate.objects.get(name='TEST Contacts all')
         self._import_initial_contacts()
         self._import_contacts()
 

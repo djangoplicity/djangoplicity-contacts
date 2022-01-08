@@ -60,4 +60,5 @@ class Command(BaseCommand):
             region.local_name = local_name
 
             region.save()
-            print 'Updating: %s' % region
+
+        print 'Updated: %s regions' % Region.objects.count()

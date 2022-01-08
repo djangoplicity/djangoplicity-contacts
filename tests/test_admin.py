@@ -18,7 +18,7 @@ except ImportError:
 class BasicTestCase(TestCase):
     fixtures = ['actions', 'initial']
     instance = None
-    template = ImportTemplate.objects.get(name='TEST Contacts all')
+    template = None
     filepath = "./tests/contacts.xls"
 
     def setUp(self):
@@ -28,6 +28,7 @@ class BasicTestCase(TestCase):
             email='admin@newsletters.org',
             password='password123'
         )
+        self.template = ImportTemplate.objects.get(name='TEST Contacts all')
         self.client.force_login(self.admin_user)
         self._import_initial_contacts()
 
