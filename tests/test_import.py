@@ -1,13 +1,15 @@
 # coding=utf-8
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.db import models
+from django.db import models, transaction
 from django.test import TestCase, Client
 from django.contrib.auth import get_user_model
 from django.test import Client
+from django.test.testcases import TransactionTestCase
+
 from djangoplicity.contacts.admin import ImportAdmin
 from djangoplicity.contacts.models import Contact, ContactGroup, ImportTemplate, ImportMapping, \
-    ImportSelector, ImportGroupMapping, DataImportError, Import
-from .factories import factory_import_selector, factory_request_data
+    ImportSelector, ImportGroupMapping, DataImportError, Import, Deduplication
+from tests.factories import factory_import_selector, factory_request_data, factory_deduplication
 from djangoplicity.contacts.importer import CSVImporter, ExcelImporter
 from djangoplicity.contacts.tasks import prepare_import
 import json
@@ -351,6 +353,20 @@ class TestImportModel(BasicTestCase):
             self.assertEqual(100, len(rows))
             self.assertIsInstance(instance, Import)
 
+    def test_import_deletion(self):
+        with self.settings(SITE_ENVIRONMENT='prod'), open("./tests/contacts.xls") as contacts_file:
+            template = ImportTemplate.objects.get(name='TEST Contacts all')
+            data = {
+                "template": template,
+                "data_file": SimpleUploadedFile(contacts_file.name, bytes(contacts_file.read())),
+            }
+            instance = Import(**data)
+            instance.save()
+
+            instance.delete()
+            with self.assertRaises(Import.DoesNotExist):
+                instance.refresh_from_db()
+
 
 class TestImportMethodsModel(BasicTestCase):
     """
@@ -439,3 +455,54 @@ class TestImportMethodsModel(BasicTestCase):
             field_data = self.template._get_review_form_data(mapping[2])
             self.assertEqual(field_data['name'], 'email')
             self.assertIsNone(field_data['value'])
+
+
+class TestDeduplicationBase(TransactionTestCase):
+    fixtures = ['actions', 'initial']
+    instance = None
+    template = None
+
+    def setUp(self):
+        self.client = Client()
+        self.admin_user = get_user_model().objects.create_superuser(
+            username='admin',
+            email='admin@newsletters.org',
+            password='password123'
+        )
+        self.client.force_login(self.admin_user)
+        self.template = ImportTemplate.objects.get(name='TEST Contacts all')
+        # load 10 duplicate contacts
+        self._import_contacts("./tests/duplicates.xls")
+        # load 100 contacts
+        self._import_contacts("./tests/contacts.xls")
+
+    @patch('djangoplicity.contacts.signals.contact_added.send')
+    @patch('djangoplicity.contacts.tasks.contactgroup_change_check.apply_async', raw=True)
+    def _import_contacts(self, filepath, contactgroup_change_check, contact_added_mock):
+        # Method to load contacts by filepath
+        with self.settings(SITE_ENVIRONMENT='prod'), open(filepath) as contacts_file:
+            data = {
+                "template": self.template,
+                "data_file": SimpleUploadedFile(contacts_file.name, bytes(contacts_file.read())),
+            }
+            self.instance = Import(**data)
+            self.instance.save()
+            self.instance.direct_import_data()
+
+
+class TestDeduplicationModel(TestDeduplicationBase):
+
+    def test_deduplication_creation(self):
+        instance = factory_deduplication({})
+        instance.save()
+
+        # Look for 10 duplicates contacts in the given groups
+        response = instance.run()
+        duplicates, total_duplicates = instance.review_data()
+        duplicate_contacts = json.loads(instance.duplicate_contacts)
+
+        self.assertTrue(response)
+        self.assertEqual(len(duplicate_contacts), 10)
+        self.assertEqual(len(duplicates), 10)
+        self.assertEqual(total_duplicates, 10)
+        self.assertIsInstance(instance, Deduplication)

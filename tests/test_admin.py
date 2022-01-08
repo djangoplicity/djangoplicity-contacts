@@ -7,7 +7,8 @@ from django.urls.base import reverse
 
 from djangoplicity.contacts.admin import ImportAdmin
 from djangoplicity.contacts.models import ImportTemplate, Import
-from tests.factories import factory_request_data, factory_invalid_data
+from tests.factories import factory_request_data, factory_invalid_data, factory_deduplication
+from tests.test_import import TestDeduplicationBase
 
 try:
     from mock import patch, MagicMock
@@ -83,4 +84,14 @@ class TestImportAdminViews(BasicTestCase):
 
     def test_import_import_live_review(self):
         response = self.client.get(reverse('admin:contacts_import_live_review', kwargs={'pk': self.instance.pk}))
+        self.assertEqual(response.status_code, 200)
+
+
+class TestDeduplicationAdminViews(TestDeduplicationBase):
+
+    def test_deduplication_deduplicate_view(self):
+        instance = factory_deduplication({})
+        instance.save()
+
+        response = self.client.get(reverse('admin:contacts_deduplication_review', kwargs={'pk': instance.pk}))
         self.assertEqual(response.status_code, 200)

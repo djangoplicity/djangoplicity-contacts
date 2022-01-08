@@ -1,5 +1,5 @@
 from djangoplicity.contacts.models import Label, Contact, Country, Region, Field, GroupCategory, ContactGroup, \
-    ImportSelector
+    ImportSelector, DEDUPLICATION_STATUS, Deduplication
 from djangoplicity.contacts.labels import LABEL_PAPER_CHOICES
 from django.core.management import call_command
 from io import StringIO
@@ -213,3 +213,18 @@ def factory_invalid_data(rows=None):
             '2_new-group_order': None,
         })
         return data
+
+
+def factory_deduplication(data):
+    default = {
+        'status': DEDUPLICATION_STATUS[0][0],
+        'last_deduplication': None,
+        'duplicate_contacts': '',
+        'deduplicated_contacts': '',
+        'max_display': 25,
+        'min_score_display': 0.7
+    }
+
+    if data is not None:
+        default.update(data)
+    return Deduplication(**default)
