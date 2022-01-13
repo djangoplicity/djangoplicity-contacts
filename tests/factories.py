@@ -228,3 +228,36 @@ def factory_deduplication(data):
     if data is not None:
         default.update(data)
     return Deduplication(**default)
+
+
+def factory_deduplication_form(data, action):
+    default = {
+        '_deduplication': 'Deduplication'
+    }
+    for key, value in data:
+        contact = Contact.objects.get(id=key)
+        for key2, values in value.items():
+            default.update({
+                'action_contact_' + key + '_' + key2: action,
+                key + '_' + key2 + '-title': 'updated',
+                key + '_' + key2 + '-first_name': contact.first_name,
+                key + '_' + key2 + '-last_name': contact.last_name,
+                key + '_' + key2 + '-position': contact.position,
+                key + '_' + key2 + '-organisation': contact.organisation,
+                key + '_' + key2 + '-department': contact.department,
+                key + '_' + key2 + '-street_1': contact.street_1,
+                key + '_' + key2 + '-street_2': contact.street_2,
+                key + '_' + key2 + '-zip': contact.zip,
+                key + '_' + key2 + '-city': contact.city,
+                key + '_' + key2 + '-country': contact.country,
+                key + '_' + key2 + '-region': contact.region,
+                key + '_' + key2 + '-tax_code': contact.tax_code,
+                key + '_' + key2 + '-phone': contact.phone,
+                key + '_' + key2 + '-website': contact.website,
+                key + '_' + key2 + '-social': contact.social,
+                key + '_' + key2 + '-email': contact.email,
+                key + '_' + key2 + '-language': contact.language,
+                key + '_' + key2 + '-groups': contact.groups,
+                key + '_' + key2 + '-group_order': contact.group_order,
+            })
+    return default

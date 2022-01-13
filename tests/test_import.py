@@ -7,6 +7,7 @@ from django.test import Client
 from django.test.testcases import TransactionTestCase
 
 from djangoplicity.contacts.admin import ImportAdmin
+from djangoplicity.contacts.api.serializers import ImportSerializer
 from djangoplicity.contacts.models import Contact, ContactGroup, ImportTemplate, ImportMapping, \
     ImportSelector, ImportGroupMapping, DataImportError, Import, Deduplication
 from tests.factories import factory_import_selector, factory_request_data, factory_deduplication
@@ -352,6 +353,23 @@ class TestImportModel(BasicTestCase):
             self.assertEqual(18, len(columns))
             self.assertEqual(100, len(rows))
             self.assertIsInstance(instance, Import)
+
+    @patch('djangoplicity.contacts.tasks.contactgroup_change_check.apply_async', raw=True)
+    def test_import_serializer(self, contactgroup_change_check_mock):
+        with self.settings(SITE_ENVIRONMENT='prod'), open("./tests/contacts.xls") as contacts_file:
+            template = ImportTemplate.objects.get(name='TEST Contacts all')
+            data = {
+                "template": template,
+                "data_file": SimpleUploadedFile(contacts_file.name, bytes(contacts_file.read())),
+            }
+            instance = Import(**data)
+            instance.save()
+            instance.direct_import_data()
+            # Serializer methods
+            serializer = ImportSerializer(instance)
+            obj_serialize = serializer.data
+
+            self.assertEqual(obj_serialize['status'], 'imported')
 
     def test_import_deletion(self):
         with self.settings(SITE_ENVIRONMENT='prod'), open("./tests/contacts.xls") as contacts_file:

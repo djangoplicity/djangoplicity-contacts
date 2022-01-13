@@ -1,14 +1,19 @@
 # coding=utf-8
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase, Client
 from django.contrib.auth import get_user_model
 from django.test import Client
+from django.test.client import RequestFactory
+from django.test.testcases import TransactionTestCase
 from django.urls.base import reverse
+from djangoplicity.contrib.admin.sites import AdminSite
 
-from djangoplicity.contacts.admin import ImportAdmin
-from djangoplicity.contacts.models import ImportTemplate, Import
-from tests.factories import factory_request_data, factory_invalid_data, factory_deduplication
+from djangoplicity.contacts.admin import ContactAdmin
+from djangoplicity.contacts.forms import ContactListAdminForm
+from djangoplicity.contacts.models import ImportTemplate, Import, Contact, Label, ContactGroup
+from tests.factories import factory_request_data, factory_invalid_data, factory_deduplication, \
+    factory_deduplication_form, factory_label
 from tests.test_import import TestDeduplicationBase
+import json
 
 try:
     from mock import patch, MagicMock
@@ -16,7 +21,7 @@ except ImportError:
     from unittest.mock import patch, MagicMock
 
 
-class BasicTestCase(TestCase):
+class BasicTestCase(TransactionTestCase):
     fixtures = ['actions', 'initial']
     instance = None
     template = None
@@ -87,11 +92,80 @@ class TestImportAdminViews(BasicTestCase):
         self.assertEqual(response.status_code, 200)
 
 
+class TestContactAdmin(TestDeduplicationBase):
+
+    def setUp(self):
+        super(TestContactAdmin, self).setUp()
+        self.request_factory = RequestFactory()
+
+    def test_contact_label_view(self):
+        contact = Contact.objects.first()
+        response = self.client.get(reverse('admin:contacts_label', kwargs={'pk': contact.id}))
+        self.assertEqual(response.status_code, 200)
+
+    @patch('djangoplicity.contacts.tasks.contactgroup_change_check.apply_async')
+    def test_contact_admin_methods(self, contact_group_check_mock):
+        # data sources
+        contact = Contact.objects.first()
+        response = self.client.get(reverse('admin:contacts_label', kwargs={'pk': contact.id}))
+        request = response.wsgi_request
+        admin_instance = ContactAdmin(Contact, AdminSite())
+        label = factory_label({
+            "name": "Standard - 99.1x38.1",
+            "paper": "us-letter-5162",
+            "enabled": True
+        })
+        label.save()
+        group = ContactGroup.objects.first()
+
+        # ContactAdmin call methods
+        actions = admin_instance.get_actions(request)
+        change_list_form_class = admin_instance.get_changelist_form(request)
+        queryset = admin_instance.get_queryset(request)
+        excel_export = admin_instance.action_export_xls(
+            modeladmin=None, request=request, queryset=queryset)
+        tags = admin_instance.tags(contact)
+        label_request = admin_instance.action_make_label(request=request, queryset=queryset, label=label)
+        admin_instance.action_set_group(request=request, queryset=queryset,
+                                        group=None, remove=True)
+        admin_instance.action_set_group(request=request, queryset=queryset,
+                                        group=group, remove=False)
+
+        self.assertEqual(tags, 'Public NL, Public NL-invite')
+        self.assertEqual(label_request['content-type'], 'application/pdf')
+        self.assertEqual(excel_export['content-type'], 'application/vnd.ms-excel')
+        self.assertIn('export_xls', actions)
+        self.assertEqual(change_list_form_class, ContactListAdminForm)
+
+
 class TestDeduplicationAdminViews(TestDeduplicationBase):
+    instance = None
+
+    def setUp(self):
+        super(TestDeduplicationAdminViews, self).setUp()
+        self.instance = factory_deduplication({})
+        self.instance.save()
+
+    def test_deduplication_review_view(self):
+        # Test deduplication admin review view
+        response = self.client.get(reverse('admin:contacts_deduplication_review', kwargs={'pk': self.instance.pk}))
+        self.assertEqual(response.status_code, 200)
+
+    @patch('djangoplicity.contacts.tasks.run_deduplication.delay', raw=True)
+    def test_deduplication_run_view(self, run_deduplication_mock):
+        # Run deduplication tasks for given groups
+        response = self.client.get(reverse('admin:contacts_deduplication_run', kwargs={'pk': self.instance.pk}))
+        self.assertEqual(response.status_code, 302)
 
     def test_deduplication_deduplicate_view(self):
-        instance = factory_deduplication({})
-        instance.save()
+        # Review and clean the POST data to be used by deduplicate_view
+        self.instance.run()
+        duplicate_contacts = json.loads(self.instance.duplicate_contacts)
+        data = factory_deduplication_form(duplicate_contacts.items()[0:3], 'update')
+        data.update(factory_deduplication_form(duplicate_contacts.items()[3:6], 'ignore'))
+        data.update(factory_deduplication_form(duplicate_contacts.items()[6:], 'delete'))
 
-        response = self.client.get(reverse('admin:contacts_deduplication_review', kwargs={'pk': instance.pk}))
+        response = self.client.post(
+            reverse('admin:contacts_deduplication_review',
+                    kwargs={'pk': self.instance.pk}), data)
         self.assertEqual(response.status_code, 200)
