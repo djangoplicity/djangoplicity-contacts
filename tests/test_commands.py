@@ -1,7 +1,7 @@
 # coding=utf-8
 from django.core.management import call_command
 from django.test import TestCase
-from djangoplicity.contacts.models import Country, Region
+from djangoplicity.contacts.models import Region
 
 
 class CommandsTestCase(TestCase):

@@ -1,15 +1,11 @@
 # coding=utf-8
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import models, transaction
-from django.test import TestCase, Client
-from django.contrib.auth import get_user_model
-from django.test import Client
-from django.test.testcases import TransactionTestCase
-
 from djangoplicity.contacts.admin import ImportAdmin
 from djangoplicity.contacts.api.serializers import ImportSerializer
 from djangoplicity.contacts.models import Contact, ContactGroup, ImportTemplate, ImportMapping, \
     ImportSelector, ImportGroupMapping, DataImportError, Import, Deduplication
+from tests.base import BasicTestCase, TestDeduplicationBase
 from tests.factories import factory_import_selector, factory_request_data, factory_deduplication
 from djangoplicity.contacts.importer import CSVImporter, ExcelImporter
 from djangoplicity.contacts.tasks import prepare_import
@@ -22,19 +18,6 @@ except ImportError:
     from unittest.mock import patch, MagicMock
 
 
-class BasicTestCase(TestCase):
-    fixtures = ['actions', 'initial']
-
-    def setUp(self):
-        self.client = Client()
-        self.admin_user = get_user_model().objects.create_superuser(
-            username='admin',
-            email='admin@newsletters.org',
-            password='password123'
-        )
-        self.client.force_login(self.admin_user)
-
-
 class TestImportTemplate(BasicTestCase):
     """
     Test template defines how a CSV or Excel file should be imported into the contacts model.
@@ -45,9 +28,9 @@ class TestImportTemplate(BasicTestCase):
         """
         Test open csv import file
         """
-        filepath = './tests/contacts.csv'
+        filepath = './tests/data_sources/contacts.csv'
         template = ImportTemplate.objects.get(name='TEST Contacts all')
-        importer = template.get_importer('./tests/contacts.csv')
+        importer = template.get_importer('./tests/data_sources/contacts.csv')
 
         self.assertIsInstance(importer, CSVImporter)
         self.assertIsNotNone(importer)
@@ -72,7 +55,7 @@ class TestImportTemplate(BasicTestCase):
         """
         Test open xls import file
         """
-        filepath = './tests/contacts.xls'
+        filepath = './tests/data_sources/contacts.xls'
         template = ImportTemplate.objects.get(name='TEST Contacts all')
         template.clear_selector_cache()
         # clear caches
@@ -147,13 +130,13 @@ class TestImportTemplate(BasicTestCase):
 
     def test_bad_file_format(self):
         # Raise exception with invalid file format
-        filepath = './tests/contacts.pdf'
+        filepath = './tests/data_sources/contacts.pdf'
         template = ImportTemplate.objects.get(name='TEST Contacts all')
         self.assertRaises(DataImportError, template.get_importer, filepath)
 
     def test_bad_column_in_file(self):
         # Raise bad column exception
-        filepath = './tests/bad_column.xls'
+        filepath = './tests/data_sources/bad_column.xls'
         template = ImportTemplate.objects.get(name='TEST Contacts all')
         row, data = template.preview_data(filepath)
 
@@ -169,7 +152,7 @@ class TestImportTemplate(BasicTestCase):
         """
         Review template data
         """
-        filepath = './tests/contacts.xls'
+        filepath = './tests/data_sources/contacts.xls'
         template = ImportTemplate.objects.get(name='TEST Contacts all')
         # Review data
         mapping, imported, new, duplicates = template.review_data(filepath, {}, {})
@@ -186,7 +169,7 @@ class TestImportTemplate(BasicTestCase):
         """
         with self.settings(SITE_ENVIRONMENT='prod'):
             before_contacts = Contact.objects.count()
-            filepath = './tests/contacts.xls'
+            filepath = './tests/data_sources/contacts.xls'
             template = ImportTemplate.objects.get(name='TEST Contacts all')
             template.direct_import_data(filepath)
             after_contacts = Contact.objects.count()
@@ -202,12 +185,12 @@ class TestImportTemplate(BasicTestCase):
         """
         with self.settings(SITE_ENVIRONMENT='prod'):
             # Creating contacts for the first time
-            filepath = './tests/contacts.xls'
+            filepath = './tests/data_sources/contacts.xls'
             template = ImportTemplate.objects.get(name='TEST Contacts all')
             template.direct_import_data(filepath)
 
             # Preparing to import duplicate contacts
-            duplication_filepath = './tests/duplicates.xls'
+            duplication_filepath = './tests/data_sources/duplicates.xls'
 
             duplicates = template.prepare_import(duplication_filepath)
             self.assertEqual(len(duplicates), 10)
@@ -294,7 +277,7 @@ class TestImportSelectorModel(BasicTestCase):
             })
             selector.save()
 
-            filepath = './tests/contacts.xls'
+            filepath = './tests/data_sources/contacts.xls'
             template = ImportTemplate.objects.get(name='TEST Contacts all')
             template.direct_import_data(filepath)
             contact_count = Contact.objects.count()
@@ -329,7 +312,7 @@ class TestImportModel(BasicTestCase):
     @patch('djangoplicity.contacts.tasks.contactgroup_change_check.apply_async', raw=True)
     def test_import_creation(self, contactgroup_change_check_mock):
         # Create an import model instance
-        with self.settings(SITE_ENVIRONMENT='prod'), open("./tests/contacts.xls") as contacts_file:
+        with self.settings(SITE_ENVIRONMENT='prod'), open("./tests/data_sources/contacts.xls") as contacts_file:
             import_count_before = Import.objects.count()
             contacts_count_before = Contact.objects.count()
             template = ImportTemplate.objects.get(name='TEST Contacts all')
@@ -356,7 +339,7 @@ class TestImportModel(BasicTestCase):
 
     @patch('djangoplicity.contacts.tasks.contactgroup_change_check.apply_async', raw=True)
     def test_import_serializer(self, contactgroup_change_check_mock):
-        with self.settings(SITE_ENVIRONMENT='prod'), open("./tests/contacts.xls") as contacts_file:
+        with self.settings(SITE_ENVIRONMENT='prod'), open("./tests/data_sources/contacts.xls") as contacts_file:
             template = ImportTemplate.objects.get(name='TEST Contacts all')
             data = {
                 "template": template,
@@ -372,7 +355,7 @@ class TestImportModel(BasicTestCase):
             self.assertEqual(obj_serialize['status'], 'imported')
 
     def test_import_deletion(self):
-        with self.settings(SITE_ENVIRONMENT='prod'), open("./tests/contacts.xls") as contacts_file:
+        with self.settings(SITE_ENVIRONMENT='prod'), open("./tests/data_sources/contacts.xls") as contacts_file:
             template = ImportTemplate.objects.get(name='TEST Contacts all')
             data = {
                 "template": template,
@@ -404,7 +387,7 @@ class TestImportMethodsModel(BasicTestCase):
     @patch('djangoplicity.contacts.tasks.contactgroup_change_check.apply_async', raw=True)
     def _import_initial_contacts(self, contactgroup_change_check):
         # Create an import model instance
-        with self.settings(SITE_ENVIRONMENT='prod'), open("./tests/duplicates.xls") as contacts_file:
+        with self.settings(SITE_ENVIRONMENT='prod'), open("./tests/data_sources/duplicates.xls") as contacts_file:
             data = {
                 "template": self.template,
                 "data_file": SimpleUploadedFile(contacts_file.name, bytes(contacts_file.read())),
@@ -416,7 +399,7 @@ class TestImportMethodsModel(BasicTestCase):
     @patch('djangoplicity.contacts.tasks.contactgroup_change_check.apply_async', raw=True)
     def _import_contacts(self, contactgroup_change_check):
         # Create an import model instance
-        with self.settings(SITE_ENVIRONMENT='prod'), open("./tests/contacts.xls") as contacts_file:
+        with self.settings(SITE_ENVIRONMENT='prod'), open("./tests/data_sources/contacts.xls") as contacts_file:
             data = {
                 "template": self.template,
                 "data_file": SimpleUploadedFile(contacts_file.name, bytes(contacts_file.read())),
@@ -473,39 +456,6 @@ class TestImportMethodsModel(BasicTestCase):
             field_data = self.template._get_review_form_data(mapping[2])
             self.assertEqual(field_data['name'], 'email')
             self.assertIsNone(field_data['value'])
-
-
-class TestDeduplicationBase(TransactionTestCase):
-    fixtures = ['actions', 'initial']
-    instance = None
-    template = None
-
-    def setUp(self):
-        self.client = Client()
-        self.admin_user = get_user_model().objects.create_superuser(
-            username='admin',
-            email='admin@newsletters.org',
-            password='password123'
-        )
-        self.client.force_login(self.admin_user)
-        self.template = ImportTemplate.objects.get(name='TEST Contacts all')
-        # load 10 duplicate contacts
-        self._import_contacts("./tests/duplicates.xls")
-        # load 100 contacts
-        self._import_contacts("./tests/contacts.xls")
-
-    @patch('djangoplicity.contacts.signals.contact_added.send')
-    @patch('djangoplicity.contacts.tasks.contactgroup_change_check.apply_async', raw=True)
-    def _import_contacts(self, filepath, contactgroup_change_check, contact_added_mock):
-        # Method to load contacts by filepath
-        with self.settings(SITE_ENVIRONMENT='prod'), open(filepath) as contacts_file:
-            data = {
-                "template": self.template,
-                "data_file": SimpleUploadedFile(contacts_file.name, bytes(contacts_file.read())),
-            }
-            self.instance = Import(**data)
-            self.instance.save()
-            self.instance.direct_import_data()
 
 
 class TestDeduplicationModel(TestDeduplicationBase):

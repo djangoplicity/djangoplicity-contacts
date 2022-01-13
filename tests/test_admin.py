@@ -9,10 +9,11 @@ from djangoplicity.contrib.admin.sites import AdminSite
 
 from djangoplicity.contacts.admin import ContactAdmin
 from djangoplicity.contacts.forms import ContactListAdminForm
-from djangoplicity.contacts.models import ImportTemplate, Import, Contact, Label, ContactGroup
+from djangoplicity.contacts.models import ImportTemplate, Import, Contact, ContactGroup
+from tests.base import TestDeduplicationBase
 from tests.factories import factory_request_data, factory_invalid_data, factory_deduplication, \
     factory_deduplication_form, factory_label
-from tests.test_import import TestDeduplicationBase
+
 import json
 
 try:
@@ -25,7 +26,7 @@ class BasicTestCase(TransactionTestCase):
     fixtures = ['actions', 'initial']
     instance = None
     template = None
-    filepath = "./tests/contacts.xls"
+    filepath = "./tests/data_sources/contacts.xls"
 
     def setUp(self):
         self.client = Client()
@@ -54,7 +55,7 @@ class TestImportAdminViews(BasicTestCase):
 
     @patch('djangoplicity.contacts.tasks.contactgroup_change_check.apply_async', raw=True)
     def test_import_create_view(self, contactgroup_change_check_mock):
-        with self.settings(SITE_ENVIRONMENT='prod'), open("./tests/contacts.xls") as contacts_file:
+        with self.settings(SITE_ENVIRONMENT='prod'), open("./tests/data_sources/contacts.xls") as contacts_file:
             data = {
                 "template": self.template,
                 "data_file": SimpleUploadedFile(contacts_file.name, bytes(contacts_file.read())),
