@@ -3,6 +3,7 @@ from django.test import TestCase, Client
 from django.contrib.auth import get_user_model
 from django.test.testcases import TransactionTestCase
 from djangoplicity.contacts.models import ImportTemplate, Import
+from tests.factories import factory_contact
 
 try:
     from mock import patch, MagicMock
@@ -54,3 +55,25 @@ class TestDeduplicationBase(TransactionTestCase):
             self.instance = Import(**data)
             self.instance.save()
             self.instance.direct_import_data()
+
+
+class BaseContactTestCase(TransactionTestCase):
+    """
+    Base Contact class
+    """
+    fixtures = ['actions', 'initial']
+
+    def setUp(self):
+        self.client = Client()
+        self.admin_user = get_user_model().objects.create_superuser(
+            username='admin',
+            email='admin@newsletters.org',
+            password='password123'
+        )
+        self.client.force_login(self.admin_user)
+
+    @patch('djangoplicity.contacts.tasks.contactgroup_change_check.apply_async', raw=True)
+    def create_contact(self, data, contact_group_check_mock):
+        contact = factory_contact(data)
+        contact.save()
+        return contact
