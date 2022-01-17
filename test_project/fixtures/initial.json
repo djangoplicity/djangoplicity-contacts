@@ -823,6 +823,15 @@
     }
   },
   {
+    "model": "contacts.contactgroupaction",
+    "pk": 4,
+    "fields": {
+        "group": 1,
+        "action": 8,
+        "on_event": "periodic_24hr"
+    }
+  },
+  {
     "model": "contacts.importtemplate",
     "pk": 1,
     "fields": {

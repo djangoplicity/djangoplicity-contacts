@@ -10,6 +10,10 @@ psycopg2-binary==2.7.7
 # Asynchronous Task Queue
 celery==4.3.0
 
+# Using a custom test runner to test with celery, require anyjson
+django-celery==3.3.1
+anyjson==0.3.3
+
 # Djangoplicity actions
 git+https://@github.com/djangoplicity/djangoplicity-actions@develop
 

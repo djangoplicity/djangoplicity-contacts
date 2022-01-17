@@ -82,6 +82,7 @@ THIRD_PARTY_APPS = [
     'pipeline',
     'debug_toolbar',
     'crispy_forms',
+    'djcelery'
 ]
 
 INSTALLED_APPS = DJANGO_APPS + DJANGOPLICITY_APPS + THIRD_PARTY_APPS
@@ -372,3 +373,7 @@ EMAIL_PORT = '2525'
 
 # The max number of GET/POST parameters allowed
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000
+
+TEST_RUNNER = 'djcelery.contrib.test_runner.CeleryTestSuiteRunner'
+import djcelery
+djcelery.setup_loader()

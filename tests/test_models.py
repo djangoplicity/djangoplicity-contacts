@@ -676,7 +676,7 @@ class TestContactGroupAction(TestCase):
         actions_for_group = ContactGroupAction.get_actions(group=contact_group)
         actions_for_event = ContactGroupAction.get_actions_for_event(on_event='contact_added')
 
-        self.assertEqual(len(actions_for_group), 3)
+        self.assertEqual(len(actions_for_group), 4)
         self.assertEqual(len(actions_for_event), 1)
 
     @patch('djangoplicity.contacts.tasks.contactgroup_change_check.apply_async')
