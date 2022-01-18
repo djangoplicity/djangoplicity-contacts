@@ -126,6 +126,7 @@ class ContactTaskTestCase(TransactionTestCase):
 
 
 class UpdateContactActionTestCase(BaseContactTestCase):
+    # test update contact celery task
     fixtures = ['actions', 'initial']
 
     @patch('djangoplicity.mailinglists.tasks.mailchimp_actions.MailChimpUpdateAction.dispatch')
