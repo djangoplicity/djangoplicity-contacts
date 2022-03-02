@@ -553,16 +553,17 @@ class Contact( DirtyFieldsMixin, models.Model ):
             self.country = ctry
             changed = True
             del kwargs['country']
-        if 'region' in kwargs and kwargs['region']:
-            try:
-                self.region = Region.objects.get(pk=kwargs['region'])
-                changed = True
-            except ValueError:
-                if self.country:
-                    query = Region.objects.filter(name__icontains=kwargs['region'], country=self.country)
-                    if query:
-                        self.region = query[0]
-                        changed = True
+        if 'region' in kwargs:
+            if kwargs['region']:
+                try:
+                    self.region = Region.objects.get(pk=kwargs['region'])
+                    changed = True
+                except ValueError:
+                    if self.country:
+                        query = Region.objects.filter(name__icontains=kwargs['region'], country=self.country)
+                        if query:
+                            self.region = query[0]
+                            changed = True
             del kwargs['region']
         if groups:
             try:
