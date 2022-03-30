@@ -82,6 +82,7 @@ THIRD_PARTY_APPS = [
     'pipeline',
     'debug_toolbar',
     'crispy_forms',
+    'djcelery'
 ]
 
 INSTALLED_APPS = DJANGO_APPS + DJANGOPLICITY_APPS + THIRD_PARTY_APPS
@@ -265,6 +266,10 @@ HASHIDS_ALPHABET = 'abcdefghijkmnopqrstuvwxyz123456789'
 HASHIDS_ALPHABET_UPPER = 'ABCDEFGHJKMNPQRSTUVWXYZ123456789'
 
 
+from reportlab import rl_config
+REPORLAB_FONTS = os.path.join(BASE_DIR, 'djangoplicity', 'contacts', 'static', 'contacts', 'fonts')
+rl_config.TTFSearchPath.append(REPORLAB_FONTS)
+
 PIPELINE = {
     'STYLESHEETS': {
         'main': {
@@ -356,6 +361,7 @@ TINYMCE_DEFAULT_CONFIG = {
     'convert_urls': False,
 }
 
+
 # Crispy form
 CRISPY_TEMPLATE_PACK = 'bootstrap3'
 
@@ -364,3 +370,10 @@ EMAIL_HOST = 'smtp.mailtrap.io'
 EMAIL_HOST_USER = '9bf800ee730746'
 EMAIL_HOST_PASSWORD = 'f3162e99c9f248'
 EMAIL_PORT = '2525'
+
+# The max number of GET/POST parameters allowed
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000
+
+TEST_RUNNER = 'djcelery.contrib.test_runner.CeleryTestSuiteRunner'
+import djcelery
+djcelery.setup_loader()

@@ -25,6 +25,7 @@ services:
       - ./htmlcov:/app/htmlcov
       - ./.coveragerc:/app/.coveragerc
       - ./tests:/app/tests
+      - ./local:/app/local
     ports:
       - "8001:8000"
     depends_on:

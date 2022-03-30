@@ -18,6 +18,8 @@ COPY requirements.txt .
 
 RUN pip install -r requirements.txt
 
+RUN mkdir tmp
+RUN mkdir shared
 COPY scripts/ scripts/
 RUN chmod +x scripts/command-dev.sh
 COPY djangoplicity/ djangoplicity/

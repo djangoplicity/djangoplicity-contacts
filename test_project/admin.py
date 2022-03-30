@@ -9,6 +9,8 @@ from django.contrib.redirects.models import Redirect
 from django.contrib.redirects.admin import RedirectAdmin
 import importlib
 import djangoplicity.contacts.admin
+# Register mailing list task
+import djangoplicity.mailinglists.tasks
 
 # Register each applications admin interfaces with
 # an admin site.
@@ -17,7 +19,7 @@ adminlogs_site = AdminSite(name="adminlogs_site")
 
 autoregister(admin_site, django.contrib.auth.admin)
 autoregister(admin_site, django.contrib.sites.admin)
-
+autoregister(admin_site, djangoplicity.mailinglists.admin)
 autoregister(admin_site, djangoplicity.contacts.admin)
 
 # System admin site
