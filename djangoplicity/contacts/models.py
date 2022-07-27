@@ -44,7 +44,7 @@ from django.core.files.storage import FileSystemStorage
 from django.db import models, connection
 from django.db.models.signals import pre_delete, post_delete, post_save, \
     pre_save
-from django.utils.encoding import python_2_unicode_compatible
+from six import python_2_unicode_compatible
 from django.utils.translation import ugettext_lazy as _
 
 from djangoplicity.actions.models import Action  # pylint: disable=E0611
