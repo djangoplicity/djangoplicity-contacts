@@ -1,0 +1,201 @@
+[
+  {
+    "model": "contacts.importtemplate",
+    "pk": 1,
+    "fields": {
+      "name": "TEST Contacts all",
+      "duplicate_handling": "smart",
+      "tag_import": false,
+      "frozen_groups": [],
+      "extra_groups": []
+    }
+  },
+  {
+    "model": "contacts.importmapping",
+    "pk": 1,
+    "fields": {
+      "template": 1,
+      "header": "Title",
+      "field": "title",
+      "group_separator": ""
+    }
+  },
+  {
+    "model": "contacts.importmapping",
+    "pk": 2,
+    "fields": {
+      "template": 1,
+      "header": "Last name",
+      "field": "last_name",
+      "group_separator": ""
+    }
+  },
+  {
+    "model": "contacts.importmapping",
+    "pk": 3,
+    "fields": {
+      "template": 1,
+      "header": "First name",
+      "field": "first_name",
+      "group_separator": ""
+    }
+  },
+  {
+    "model": "contacts.importmapping",
+    "pk": 4,
+    "fields": {
+      "template": 1,
+      "header": "Position",
+      "field": "position",
+      "group_separator": ""
+    }
+  },
+  {
+    "model": "contacts.importmapping",
+    "pk": 5,
+    "fields": {
+      "template": 1,
+      "header": "Organization",
+      "field": "organisation",
+      "group_separator": ""
+    }
+  },
+  {
+    "model": "contacts.importmapping",
+    "pk": 6,
+    "fields": {
+      "template": 1,
+      "header": "Department",
+      "field": "department",
+      "group_separator": ""
+    }
+  },
+  {
+    "model": "contacts.importmapping",
+    "pk": 7,
+    "fields": {
+      "template": 1,
+      "header": "Groups",
+      "field": "groups",
+      "group_separator": ","
+    }
+  },
+  {
+    "model": "contacts.importmapping",
+    "pk": 8,
+    "fields": {
+      "template": 1,
+      "header": "Street 1",
+      "field": "street_1",
+      "group_separator": ""
+    }
+  },
+  {
+    "model": "contacts.importmapping",
+    "pk": 9,
+    "fields": {
+      "template": 1,
+      "header": "Street 2",
+      "field": "street_2",
+      "group_separator": ""
+    }
+  },
+  {
+    "model": "contacts.importmapping",
+    "pk": 10,
+    "fields": {
+      "template": 1,
+      "header": "City",
+      "field": "city",
+      "group_separator": ""
+    }
+  },
+  {
+    "model": "contacts.importmapping",
+    "pk": 11,
+    "fields": {
+      "template": 1,
+      "header": "Zipcode",
+      "field": "zip",
+      "group_separator": ""
+    }
+  },
+  {
+    "model": "contacts.importmapping",
+    "pk": 12,
+    "fields": {
+      "template": 1,
+      "header": "Country",
+      "field": "country",
+      "group_separator": ""
+    }
+  },
+  {
+    "model": "contacts.importmapping",
+    "pk": 13,
+    "fields": {
+      "template": 1,
+      "header": "Region/State",
+      "field": "region",
+      "group_separator": ""
+    }
+  },
+  {
+    "model": "contacts.importmapping",
+    "pk": 14,
+    "fields": {
+      "template": 1,
+      "header": "Language",
+      "field": "language",
+      "group_separator": ""
+    }
+  },
+  {
+    "model": "contacts.importmapping",
+    "pk": 15,
+    "fields": {
+      "template": 1,
+      "header": "Email",
+      "field": "email",
+      "group_separator": ""
+    }
+  },
+  {
+    "model": "contacts.importmapping",
+    "pk": 16,
+    "fields": {
+      "template": 1,
+      "header": "Phone",
+      "field": "phone",
+      "group_separator": ""
+    }
+  },
+  {
+    "model": "contacts.importmapping",
+    "pk": 17,
+    "fields": {
+      "template": 1,
+      "header": "Website",
+      "field": "website",
+      "group_separator": ""
+    }
+  },
+  {
+    "model": "contacts.importgroupmapping",
+    "pk": 1,
+    "fields": {
+      "mapping": 7,
+      "value": "Public NL",
+      "group": 1
+    }
+  },
+  {
+    "model": "contacts.importgroupmapping",
+    "pk": 2,
+    "fields": {
+      "mapping": 7,
+      "value": "Public NL-invite",
+      "group": 2
+    }
+  }
+]

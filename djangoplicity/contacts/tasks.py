@@ -31,10 +31,12 @@
 #
 
 from builtins import str
+import hashlib
 from celery.task import PeriodicTask, task
 from datetime import timedelta
 
 from django.apps import apps
+from django.conf import settings
 from django.contrib.sites.models import Site
 from django.core.exceptions import ImproperlyConfigured
 from django.core.mail import send_mail
@@ -129,8 +131,10 @@ http://%s%s
 
 ''' % (obj.data_file, site.domain, reverse('admin:contacts_import_review', args=[obj.pk]))
 
+        msg_from = getattr(settings, 'DEFAULT_FROM_EMAIL', '')
+        msg_to = getattr(settings, 'CONTACT_IMPORT_NOTIFY', '')
         send_mail('Import %s (%s) ready for review' % (obj.pk, obj.data_file),
-                message, 'no-reply@eso.org', [email, 'Gurvan.Bazin@eso.org'])
+                message, msg_from, [email, msg_to])
 
 
 @task(ignore_result=True)
@@ -159,8 +163,10 @@ http://%s%s
 
 ''' % (site.domain, reverse('admin:contacts_deduplication_review', args=[dedup.pk]))
 
+        msg_from = getattr(settings, 'DEFAULT_FROM_EMAIL', '')
+        msg_to = getattr(settings, 'CONTACT_IMPORT_NOTIFY', '')
         send_mail('Deduplication %s ready for review' % dedup.pk,
-                message, 'no-reply@eso.org', [email, 'Gurvan.Bazin@eso.org'])
+                message, msg_from, [email, msg_to])
 
 
 @task
@@ -310,6 +316,9 @@ class UpdateContactAction( ContactAction ):
             if k == 'get_language':
                 k = 'language'
                 v = Contact.get_language_code(v)
+            # Allow add contacts groups
+            if k == 'get_groups':
+                defaults[k] = v
             if k in Contact.ALLOWED_FIELDS:
                 defaults[k] = v
 
@@ -325,15 +334,141 @@ class UpdateContactAction( ContactAction ):
             contact = self._get_object( model_identifier, pk )
 
             defaults = {}
+            g_names = []
             for k, v in list(kwargs.items()):
                 if k in Contact.ALLOWED_FIELDS:
                     defaults[k] = v
+                if 'get_groups' in kwargs:
+                    g_names = [s.strip() for s in kwargs['get_groups'].split(',')]
+                    del kwargs['get_groups']
 
-            if contact.update_object( **defaults ):
+            if contact.update_object(groups=g_names, **defaults):
                 contact.save()
                 self.get_logger().info( "Contact %s was updated." % ( contact.pk ) )
             else:
                 self.get_logger().info( "Contact %s was not updated." % ( contact.pk ) )
+
+
+class UpdateContactEmail(ContactAction):
+    action_name = 'Update Contact email'
+    action_parameters = []
+
+    @classmethod
+    def get_arguments(cls, conf, *args, **kwargs):
+        try:
+            new_email = kwargs['new_email']
+            old_email = kwargs['old_email']
+            list_id = kwargs['list_id']
+        except KeyError:
+            new_email = None
+            old_email = None
+            list_id = None
+
+        defaults = {
+            'new_email': new_email,
+            'old_email': old_email,
+            'list_id': list_id
+        }
+        return [], defaults
+
+    def run(self, conf, list_id=None, new_email=None, old_email=None, **kwargs):
+        """
+        Update contact email based on new field values in kwargs.
+        """
+        from djangoplicity.contacts.models import Contact
+        from djangoplicity.mailinglists.models import MailChimpList
+
+        if list_id and new_email and old_email:
+            contact = None
+            try:
+                # Get list by Id
+                m_list = MailChimpList.objects.get(list_id=list_id)
+                # Check and get subscriber data in mailchimp
+                email_hash = hashlib.md5(str(new_email).encode("utf-8")).hexdigest()
+                result = m_list.connection(
+                    'lists.members.get',
+                    list_id,
+                    email_hash,
+                )
+
+                try:
+                    model_identifier = result.get('merge_fields').get('DPID')
+                except AttributeError:
+                    model_identifier = ''
+                contact = m_list.get_object_from_identifier(model_identifier)
+            except MailChimpList.DoesNotExist:
+                pass
+
+            if contact and 'email' in Contact.ALLOWED_FIELDS:
+                contact.email = new_email
+                contact.save()
+                self.get_logger().info("Contact email %s was updated." % contact.pk)
+            else:
+                self.get_logger().info("Contact email was not updated.")
+                raise Exception("The contact email was not updated")
+
+
+class CreateContactAction( ContactAction ):
+    action_name = 'Contact create'
+    action_parameters = [
+        ( 'group', 'Name of group to assign to contact.', 'str' ),
+    ]
+
+    @classmethod
+    def get_arguments( cls, conf, *args, **kwargs ):
+        """
+        """
+        from djangoplicity.contacts.models import Contact
+
+        model_identifier = kwargs.get('model_identifier', None)
+        pk = kwargs.get('pk', None)
+
+        defaults = { 'model_identifier': model_identifier, 'pk': pk }
+
+        for k, v in kwargs.items():
+            # Hack to allow for languages changes:
+            if k == 'get_language':
+                k = 'language'
+                v = Contact.get_language_code(v)
+            # Allow add contacts groups
+            if k == 'get_groups':
+                defaults[k] = v
+            if k in Contact.ALLOWED_FIELDS:
+                defaults[k] = v
+
+        return ( [], defaults )
+
+    def run( self, conf, model_identifier=None, pk=None, **kwargs ):
+        """
+        Create contact based on new field values in kwargs.
+        """
+        from djangoplicity.contacts.models import Contact
+        if not model_identifier:
+            model_identifier = 'contacts.contact'
+
+        if model_identifier == 'contacts.contact' and pk is None:
+
+            defaults = {}
+            g_names = []
+
+            for k, v in kwargs.items():
+                if k in Contact.ALLOWED_FIELDS:
+                    defaults[k] = v
+
+                if 'get_groups' in kwargs:
+                    g_names = [s.strip() for s in kwargs['get_groups'].split(',')]
+                    del kwargs['get_groups']
+            contact = Contact.create_object(groups=g_names, **defaults)
+
+            if contact:
+                group = self._get_group(conf['group'])
+                if group:
+                    contact.groups.add(group)
+                    self.get_logger().info("Contact %s was created and added to group %s." % (contact.pk, group))
+                else:
+                    self.get_logger().info("Contact %s was created." % (contact.pk))
+            else:
+                self.get_logger().info("Contact %s was not created." % (defaults['email']))
 
 
 class SetContactGroupAction( ContactAction ):
@@ -437,3 +572,5 @@ UnsetContactGroupAction.register()
 SetContactGroupAction.register()
 RemoveEmailAction.register()
 UpdateContactAction.register()
+CreateContactAction.register()
+UpdateContactEmail.register()

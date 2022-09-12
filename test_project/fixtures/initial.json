@@ -1,0 +1,1033 @@
+[
+  {
+    "model": "contacts.field",
+    "pk": 1,
+    "fields": {
+      "slug": "test-field",
+      "name": "Test Field",
+      "blank": true
+    }
+  },
+  {
+    "model": "contacts.groupcategory",
+    "pk": 1,
+    "fields": {
+      "name": "Electronic Distribution"
+    }
+  },
+  {
+    "model": "contacts.countrygroup",
+    "pk": 1,
+    "fields": {
+      "name": "EU_country",
+      "category": null
+    }
+  },
+  {
+    "model": "contacts.countrygroup",
+    "pk": 2,
+    "fields": {
+      "name": "Member_State",
+      "category": null
+    }
+  },
+  {
+    "model": "contacts.countrygroup",
+    "pk": 5,
+    "fields": {
+      "name": "ESON_country",
+      "category": null
+    }
+  },
+  {
+    "model": "contacts.countrygroup",
+    "pk": 7,
+    "fields": {
+      "name": "Latin_America",
+      "category": null
+    }
+  },
+  {
+    "model": "contacts.postalzone",
+    "pk": 1,
+    "fields": {
+      "name": "Europe"
+    }
+  },
+  {
+    "model": "contacts.postalzone",
+    "pk": 2,
+    "fields": {
+      "name": "Germany"
+    }
+  },
+  {
+    "model": "contacts.postalzone",
+    "pk": 3,
+    "fields": {
+      "name": "World"
+    }
+  },
+  {
+    "model": "contacts.country",
+    "pk": 7,
+    "fields": {
+      "name": "Germany",
+      "iso_code": "DE",
+      "dialing_code": "+49",
+      "zip_after_city": false,
+      "postal_zone": 2,
+      "groups": [
+        5,
+        1,
+        2
+      ]
+    }
+  },
+  {
+    "model": "contacts.country",
+    "pk": 9,
+    "fields": {
+      "name": "USA",
+      "iso_code": "US",
+      "dialing_code": "+1",
+      "zip_after_city": true,
+      "postal_zone": 3,
+      "groups": [
+        5
+      ]
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 543,
+    "fields": {
+      "name": "Thuringia",
+      "local_name": "Thuringia",
+      "code": "15",
+      "country": 7
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 544,
+    "fields": {
+      "name": "Schleswig-Holstein",
+      "local_name": "Schleswig-Holstein",
+      "code": "10",
+      "country": 7
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 545,
+    "fields": {
+      "name": "Saxony-Anhalt",
+      "local_name": "Saxony-Anhalt",
+      "code": "14",
+      "country": 7
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 546,
+    "fields": {
+      "name": "Saxony",
+      "local_name": "Saxony",
+      "code": "13",
+      "country": 7
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 547,
+    "fields": {
+      "name": "Saarland",
+      "local_name": "Saarland",
+      "code": "09",
+      "country": 7
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 548,
+    "fields": {
+      "name": "Rheinland-Pfalz",
+      "local_name": "Rheinland-Pfalz",
+      "code": "08",
+      "country": 7
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 549,
+    "fields": {
+      "name": "North Rhine-Westphalia",
+      "local_name": "North Rhine-Westphalia",
+      "code": "07",
+      "country": 7
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 550,
+    "fields": {
+      "name": "Lower Saxony",
+      "local_name": "Lower Saxony",
+      "code": "06",
+      "country": 7
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 551,
+    "fields": {
+      "name": "Mecklenburg-Vorpommern",
+      "local_name": "Mecklenburg-Vorpommern",
+      "code": "12",
+      "country": 7
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 552,
+    "fields": {
+      "name": "Hesse",
+      "local_name": "Hesse",
+      "code": "05",
+      "country": 7
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 553,
+    "fields": {
+      "name": "Hamburg",
+      "local_name": "Hamburg",
+      "code": "04",
+      "country": 7
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 554,
+    "fields": {
+      "name": "Bremen",
+      "local_name": "Bremen",
+      "code": "03",
+      "country": 7
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 555,
+    "fields": {
+      "name": "Brandenburg",
+      "local_name": "Brandenburg",
+      "code": "11",
+      "country": 7
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 556,
+    "fields": {
+      "name": "Berlin",
+      "local_name": "Berlin",
+      "code": "16",
+      "country": 7
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 557,
+    "fields": {
+      "name": "Bavaria",
+      "local_name": "Bavaria",
+      "code": "02",
+      "country": 7
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 558,
+    "fields": {
+      "name": "Baden-Wuerttemberg",
+      "local_name": "Baden-W\u00fcrttemberg",
+      "code": "01",
+      "country": 7
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2895,
+    "fields": {
+      "name": "Arkansas",
+      "local_name": "Arkansas",
+      "code": "AR",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2896,
+    "fields": {
+      "name": "Washington, D.C.",
+      "local_name": "Washington, D.C.",
+      "code": "DC",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2897,
+    "fields": {
+      "name": "Delaware",
+      "local_name": "Delaware",
+      "code": "DE",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2898,
+    "fields": {
+      "name": "Florida",
+      "local_name": "Florida",
+      "code": "FL",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2899,
+    "fields": {
+      "name": "Georgia",
+      "local_name": "Georgia",
+      "code": "GA",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2900,
+    "fields": {
+      "name": "Kansas",
+      "local_name": "Kansas",
+      "code": "KS",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2901,
+    "fields": {
+      "name": "Louisiana",
+      "local_name": "Louisiana",
+      "code": "LA",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2902,
+    "fields": {
+      "name": "Maryland",
+      "local_name": "Maryland",
+      "code": "MD",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2903,
+    "fields": {
+      "name": "Missouri",
+      "local_name": "Missouri",
+      "code": "MO",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2904,
+    "fields": {
+      "name": "Mississippi",
+      "local_name": "Mississippi",
+      "code": "MS",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2905,
+    "fields": {
+      "name": "North Carolina",
+      "local_name": "North Carolina",
+      "code": "NC",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2906,
+    "fields": {
+      "name": "Oklahoma",
+      "local_name": "Oklahoma",
+      "code": "OK",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2907,
+    "fields": {
+      "name": "South Carolina",
+      "local_name": "South Carolina",
+      "code": "SC",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2908,
+    "fields": {
+      "name": "Tennessee",
+      "local_name": "Tennessee",
+      "code": "TN",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2909,
+    "fields": {
+      "name": "Texas",
+      "local_name": "Texas",
+      "code": "TX",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2910,
+    "fields": {
+      "name": "West Virginia",
+      "local_name": "West Virginia",
+      "code": "WV",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2911,
+    "fields": {
+      "name": "Alabama",
+      "local_name": "Alabama",
+      "code": "AL",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2912,
+    "fields": {
+      "name": "Connecticut",
+      "local_name": "Connecticut",
+      "code": "CT",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2913,
+    "fields": {
+      "name": "Iowa",
+      "local_name": "Iowa",
+      "code": "IA",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2914,
+    "fields": {
+      "name": "Illinois",
+      "local_name": "Illinois",
+      "code": "IL",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2915,
+    "fields": {
+      "name": "Indiana",
+      "local_name": "Indiana",
+      "code": "IN",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2916,
+    "fields": {
+      "name": "Maine",
+      "local_name": "Maine",
+      "code": "ME",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2917,
+    "fields": {
+      "name": "Michigan",
+      "local_name": "Michigan",
+      "code": "MI",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2918,
+    "fields": {
+      "name": "Minnesota",
+      "local_name": "Minnesota",
+      "code": "MN",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2919,
+    "fields": {
+      "name": "Nebraska",
+      "local_name": "Nebraska",
+      "code": "NE",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2920,
+    "fields": {
+      "name": "New Hampshire",
+      "local_name": "New Hampshire",
+      "code": "NH",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2921,
+    "fields": {
+      "name": "New Jersey",
+      "local_name": "New Jersey",
+      "code": "NJ",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2922,
+    "fields": {
+      "name": "New York",
+      "local_name": "New York",
+      "code": "NY",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2923,
+    "fields": {
+      "name": "Ohio",
+      "local_name": "Ohio",
+      "code": "OH",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2924,
+    "fields": {
+      "name": "Rhode Island",
+      "local_name": "Rhode Island",
+      "code": "RI",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2925,
+    "fields": {
+      "name": "Vermont",
+      "local_name": "Vermont",
+      "code": "VT",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2926,
+    "fields": {
+      "name": "Wisconsin",
+      "local_name": "Wisconsin",
+      "code": "WI",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2927,
+    "fields": {
+      "name": "California",
+      "local_name": "California",
+      "code": "CA",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2928,
+    "fields": {
+      "name": "Colorado",
+      "local_name": "Colorado",
+      "code": "CO",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2929,
+    "fields": {
+      "name": "New Mexico",
+      "local_name": "New Mexico",
+      "code": "NM",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2930,
+    "fields": {
+      "name": "Nevada",
+      "local_name": "Nevada",
+      "code": "NV",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2931,
+    "fields": {
+      "name": "Utah",
+      "local_name": "Utah",
+      "code": "UT",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2932,
+    "fields": {
+      "name": "Arizona",
+      "local_name": "Arizona",
+      "code": "AZ",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2933,
+    "fields": {
+      "name": "Idaho",
+      "local_name": "Idaho",
+      "code": "ID",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2934,
+    "fields": {
+      "name": "Montana",
+      "local_name": "Montana",
+      "code": "MT",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2935,
+    "fields": {
+      "name": "North Dakota",
+      "local_name": "North Dakota",
+      "code": "ND",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2936,
+    "fields": {
+      "name": "Oregon",
+      "local_name": "Oregon",
+      "code": "OR",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2937,
+    "fields": {
+      "name": "South Dakota",
+      "local_name": "South Dakota",
+      "code": "SD",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2938,
+    "fields": {
+      "name": "Washington",
+      "local_name": "Washington",
+      "code": "WA",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2939,
+    "fields": {
+      "name": "Wyoming",
+      "local_name": "Wyoming",
+      "code": "WY",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2940,
+    "fields": {
+      "name": "Hawaii",
+      "local_name": "Hawaii",
+      "code": "HI",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2941,
+    "fields": {
+      "name": "Alaska",
+      "local_name": "Alaska",
+      "code": "AK",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2942,
+    "fields": {
+      "name": "Kentucky",
+      "local_name": "Kentucky",
+      "code": "KY",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2943,
+    "fields": {
+      "name": "Massachusetts",
+      "local_name": "Massachusetts",
+      "code": "MA",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2944,
+    "fields": {
+      "name": "Pennsylvania",
+      "local_name": "Pennsylvania",
+      "code": "PA",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.region",
+    "pk": 2945,
+    "fields": {
+      "name": "Virginia",
+      "local_name": "Virginia",
+      "code": "VA",
+      "country": 9
+    }
+  },
+  {
+    "model": "contacts.contactgroup",
+    "pk": 1,
+    "fields": {
+      "name": "Public NL",
+      "category": 1,
+      "order": null
+    }
+  },
+  {
+    "model": "contacts.contactgroup",
+    "pk": 2,
+    "fields": {
+      "name": "Public NL-invite",
+      "category": 1,
+      "order": null
+    }
+  },
+  {
+    "model": "contacts.contactgroup",
+    "pk": 3,
+    "fields": {
+      "name": "Public NL-unsubscribed",
+      "category": 1,
+      "order": null
+    }
+  },
+  {
+    "model": "contacts.contactgroupaction",
+    "pk": 1,
+    "fields": {
+      "group": 1,
+      "action": 1,
+      "on_event": "contact_added"
+    }
+  },
+  {
+    "model": "contacts.contactgroupaction",
+    "pk": 2,
+    "fields": {
+      "group": 1,
+      "action": 2,
+      "on_event": "contact_removed"
+    }
+  },
+  {
+    "model": "contacts.contactgroupaction",
+    "pk": 3,
+    "fields": {
+      "group": 1,
+      "action": 3,
+      "on_event": "contact_updated"
+    }
+  },
+  {
+    "model": "contacts.contactgroupaction",
+    "pk": 4,
+    "fields": {
+        "group": 1,
+        "action": 8,
+        "on_event": "periodic_24hr"
+    }
+  },
+  {
+    "model": "contacts.importtemplate",
+    "pk": 1,
+    "fields": {
+      "name": "TEST Contacts all",
+      "duplicate_handling": "smart",
+      "tag_import": false,
+      "frozen_groups": [],
+      "extra_groups": []
+    }
+  },
+  {
+    "model": "contacts.importmapping",
+    "pk": 1,
+    "fields": {
+      "template": 1,
+      "header": "Title",
+      "field": "title",
+      "group_separator": ""
+    }
+  },
+  {
+    "model": "contacts.importmapping",
+    "pk": 2,
+    "fields": {
+      "template": 1,
+      "header": "Last name",
+      "field": "last_name",
+      "group_separator": ""
+    }
+  },
+  {
+    "model": "contacts.importmapping",
+    "pk": 3,
+    "fields": {
+      "template": 1,
+      "header": "First name",
+      "field": "first_name",
+      "group_separator": ""
+    }
+  },
+  {
+    "model": "contacts.importmapping",
+    "pk": 4,
+    "fields": {
+      "template": 1,
+      "header": "Position",
+      "field": "position",
+      "group_separator": ""
+    }
+  },
+  {
+    "model": "contacts.importmapping",
+    "pk": 5,
+    "fields": {
+      "template": 1,
+      "header": "Organization",
+      "field": "organisation",
+      "group_separator": ""
+    }
+  },
+  {
+    "model": "contacts.importmapping",
+    "pk": 6,
+    "fields": {
+      "template": 1,
+      "header": "Department",
+      "field": "department",
+      "group_separator": ""
+    }
+  },
+  {
+    "model": "contacts.importmapping",
+    "pk": 7,
+    "fields": {
+      "template": 1,
+      "header": "Groups",
+      "field": "groups",
+      "group_separator": ","
+    }
+  },
+  {
+    "model": "contacts.importmapping",
+    "pk": 8,
+    "fields": {
+      "template": 1,
+      "header": "Street 1",
+      "field": "street_1",
+      "group_separator": ""
+    }
+  },
+  {
+    "model": "contacts.importmapping",
+    "pk": 9,
+    "fields": {
+      "template": 1,
+      "header": "Street 2",
+      "field": "street_2",
+      "group_separator": ""
+    }
+  },
+  {
+    "model": "contacts.importmapping",
+    "pk": 10,
+    "fields": {
+      "template": 1,
+      "header": "City",
+      "field": "city",
+      "group_separator": ""
+    }
+  },
+  {
+    "model": "contacts.importmapping",
+    "pk": 11,
+    "fields": {
+      "template": 1,
+      "header": "Zipcode",
+      "field": "zip",
+      "group_separator": ""
+    }
+  },
+  {
+    "model": "contacts.importmapping",
+    "pk": 12,
+    "fields": {
+      "template": 1,
+      "header": "Country",
+      "field": "country",
+      "group_separator": ""
+    }
+  },
+  {
+    "model": "contacts.importmapping",
+    "pk": 13,
+    "fields": {
+      "template": 1,
+      "header": "Region/State",
+      "field": "region",
+      "group_separator": ""
+    }
+  },
+  {
+    "model": "contacts.importmapping",
+    "pk": 14,
+    "fields": {
+      "template": 1,
+      "header": "Language",
+      "field": "language",
+      "group_separator": ""
+    }
+  },
+  {
+    "model": "contacts.importmapping",
+    "pk": 15,
+    "fields": {
+      "template": 1,
+      "header": "Email",
+      "field": "email",
+      "group_separator": ""
+    }
+  },
+  {
+    "model": "contacts.importmapping",
+    "pk": 16,
+    "fields": {
+      "template": 1,
+      "header": "Phone",
+      "field": "phone",
+      "group_separator": ""
+    }
+  },
+  {
+    "model": "contacts.importmapping",
+    "pk": 17,
+    "fields": {
+      "template": 1,
+      "header": "Website",
+      "field": "website",
+      "group_separator": ""
+    }
+  },
+  {
+    "model": "contacts.importgroupmapping",
+    "pk": 1,
+    "fields": {
+      "mapping": 7,
+      "value": "Public NL",
+      "group": 1
+    }
+  },
+  {
+    "model": "contacts.importgroupmapping",
+    "pk": 2,
+    "fields": {
+      "mapping": 7,
+      "value": "Public NL-invite",
+      "group": 2
+    }
+  }
+]

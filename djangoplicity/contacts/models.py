@@ -45,6 +45,7 @@ from django.db import models, connection
 from django.db.models.signals import pre_delete, post_delete, post_save, \
     pre_save
 from six import python_2_unicode_compatible
+from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 
 from djangoplicity.actions.models import Action  # pylint: disable=E0611
@@ -357,7 +358,7 @@ class Contact( DirtyFieldsMixin, models.Model ):
     department = models.CharField( max_length=255, blank=True )
     street_1 = models.CharField( max_length=255, blank=True )
     street_2 = models.CharField( max_length=255, blank=True )
-    zip = models.CharField( max_length=10, blank=True, help_text=_('ZIP/Postcal code'))
+    zip = models.CharField( max_length=50, blank=True, help_text=_('ZIP/Postcal code'))
     city = models.CharField( max_length=255, blank=True )
     country = models.ForeignKey( Country, blank=True, null=True, on_delete=models.CASCADE )
     region = models.ForeignKey(Region, blank=True, null=True, on_delete=models.CASCADE)
@@ -431,6 +432,16 @@ class Contact( DirtyFieldsMixin, models.Model ):
                 if code == self.language:
                     return language
         return ''
+
+    def get_groups(self):
+        '''
+        Return all name groups in a array
+        '''
+        return [g.name for g in self.groups.all()]
+
+    @classmethod
+    def get_contacts_with_email(cls, email):
+        return cls.objects.filter(email=email)
 
     @classmethod
     def get_language_code(cls, language):
@@ -513,15 +524,20 @@ class Contact( DirtyFieldsMixin, models.Model ):
             obj.save()
             obj.update_extra_fields( **kwargs )
             if groups:
-                groups = list(ContactGroup.objects.filter( name__in=groups ))
-                obj.groups.add( *groups )
+                try:
+                    groups = list(ContactGroup.objects.filter(id__in=groups))
+                except ValueError:
+                    # In case the groups is a list of strings and not ids
+                    groups = list(ContactGroup.objects.filter(name__in=groups))
+                if groups:
+                    obj.groups.add( *groups )
                 for g in groups:
                     contact_added.send(sender=obj.__class__, group=g, contact=obj)
             return obj
         else:
             return None
 
-    def update_object( self, **kwargs ):
+    def update_object( self, groups=None, **kwargs ):
         """
         Update a contact with new information from a dictionary. Following keys are supported:
             * first_name
@@ -553,6 +569,27 @@ class Contact( DirtyFieldsMixin, models.Model ):
             self.country = ctry
             changed = True
             del kwargs['country']
+        if 'region' in kwargs:
+            if kwargs['region']:
+                try:
+                    self.region = Region.objects.get(pk=kwargs['region'])
+                    changed = True
+                except ValueError:
+                    if self.country:
+                        query = Region.objects.filter(name__icontains=kwargs['region'], country=self.country)
+                        if query:
+                            self.region = query[0]
+                            changed = True
+            del kwargs['region']
+        if groups:
+            try:
+                groups = list(ContactGroup.objects.filter(id__in=groups))
+            except ValueError:
+                groups = list(ContactGroup.objects.filter(name__in=groups))
+            if groups:
+                self.groups.add( *groups )
+            for g in groups:
+                contact_added.send(sender=self.__class__, group=g, contact=self)
 
         # Set the fields
         for field, val in list(kwargs.items()):
@@ -596,8 +633,10 @@ class Contact( DirtyFieldsMixin, models.Model ):
         """
         Callback is used to send contact_removed, contact_added signals
         """
-        for g in instance.groups.all():
-            contact_removed.send_robust( sender=cls, group=g, contact=instance, email=instance.email )
+        # If there is a duplicated contact, do not unsubscribe it from Mailchimp
+        if len(cls.get_contacts_with_email(instance.email)) == 1:
+            for g in instance.groups.all():
+                contact_removed.send_robust(sender=cls, group=g, contact=instance, email=instance.email)
 
     @classmethod
     def pre_save_callback( cls, sender, instance=None, raw=False, **kwargs ):
@@ -1348,6 +1387,12 @@ class ImportMapping( models.Model ):
                         return ImportMapping._country_cache['iso'][iso.lower()]
             return None
 
+    def get_region_value(self, value):
+        if not value:
+            return None
+        region = Region.objects.filter(Q(name__istartswith=value) | Q(local_name__istartswith=value)).first()
+        return region.pk if region else None
+
     def get_groups_value( self, value ):
         """
         """
@@ -1371,11 +1416,13 @@ class ImportMapping( models.Model ):
         try:
             val = data[self.header]
             if self.field:
-                trail = self.field.split( "__" )
+                trail = self.field.split("__")
                 if trail[0] == 'groups':
-                    return self.get_groups_value( val )
+                    return self.get_groups_value(val)
                 if trail[0] == 'country':
-                    return self.get_country_value( val )
+                    return self.get_country_value(val)
+                if trail[0] == 'region':
+                    return self.get_region_value(val)
                 if trail[0] == 'language':
                     if not isinstance(val, str):
                         val = str(val)
@@ -1771,7 +1818,7 @@ post_save.connect( ContactGroupAction.clear_cache, sender=Action )
 post_delete.connect( ContactGroupAction.clear_cache, sender=ContactGroup )
 post_save.connect( ContactGroupAction.clear_cache, sender=ContactGroup )
 
-# Connect signals needed to send out contac_added/contact_removed signals.
+# Connect signals needed to send out contact_added/contact_removed signals.
 pre_delete.connect( Contact.pre_delete_callback, sender=Contact )
 pre_save.connect( Contact.pre_save_callback, sender=Contact )
 post_save.connect( Contact.post_save_callback, sender=Contact )

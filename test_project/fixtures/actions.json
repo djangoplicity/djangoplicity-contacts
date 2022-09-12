@@ -1,0 +1,288 @@
+[
+  {
+    "model": "actions.action",
+    "pk": 1,
+    "fields": {
+      "plugin": "djangoplicity.mailinglists.tasks.mailchimp_actions.MailChimpSubscribeAction",
+      "name": "Tests News - Mailchimp Subscribe"
+    }
+  },
+  {
+    "model": "actions.action",
+    "pk": 2,
+    "fields": {
+      "plugin": "djangoplicity.mailinglists.tasks.mailchimp_actions.MailChimpUnsubscribeAction",
+      "name": "Tests News - Mailchimp Unsubscribe"
+    }
+  },
+  {
+    "model": "actions.action",
+    "pk": 3,
+    "fields": {
+      "plugin": "djangoplicity.mailinglists.tasks.mailchimp_actions.MailChimpUpdateAction",
+      "name": "Tests News - Mailchimp Update"
+    }
+  },
+  {
+    "model": "actions.action",
+    "pk": 7,
+    "fields": {
+      "plugin": "djangoplicity.contacts.tasks.UpdateContactAction",
+      "name": "Contacts - Update Contact"
+    }
+  },
+  {
+    "model": "actions.action",
+    "pk": 8,
+    "fields": {
+      "plugin": "djangoplicity.contacts.tasks.SetContactGroupAction",
+      "name": "Contacts - Add to \"Public NL\" Group"
+    }
+  },
+  {
+    "model": "actions.action",
+    "pk": 10,
+    "fields": {
+      "plugin": "djangoplicity.contacts.tasks.UnsetContactGroupAction",
+      "name": "Contacts - Remove from \"Public NL\" Group"
+    }
+  },
+  {
+    "model": "actions.action",
+    "pk": 12,
+    "fields": {
+      "plugin": "djangoplicity.contacts.tasks.SetContactGroupAction",
+      "name": "Contacts - Add to \"Public NL-unsubscribed\" Group"
+    }
+  },
+  {
+    "model": "actions.action",
+    "pk": 14,
+    "fields": {
+      "plugin": "djangoplicity.contacts.tasks.RemoveEmailAction",
+      "name": "Contacts - Clean email"
+    }
+  },
+  {
+    "model": "actions.action",
+    "pk": 15,
+    "fields": {
+      "plugin": "djangoplicity.contacts.tasks.UnsetContactGroupAction",
+      "name": "Contacts - Remove from \"Public NL-unsubscribed\" Group"
+    }
+  },
+  {
+    "model": "actions.action",
+    "pk": 17,
+    "fields": {
+      "plugin": "djangoplicity.contacts.tasks.CreateContactAction",
+      "name": "Contacts - Create Contact \"Public NL\""
+    }
+  },
+  {
+    "model": "actions.action",
+    "pk": 36,
+    "fields": {
+      "plugin": "djangoplicity.contacts.tasks.UpdateContactEmail",
+      "name": "Contacts - Update Contact Email"
+    }
+  },
+  {
+    "model": "actions.actionparameter",
+    "pk": 1,
+    "fields": {
+      "action": 1,
+      "name": "list_id",
+      "value": "12345abcdf",
+      "type": "str",
+      "help_text": "MailChimp list id - must be defined in djangoplicity"
+    }
+  },
+  {
+    "model": "actions.actionparameter",
+    "pk": 2,
+    "fields": {
+      "action": 1,
+      "name": "double_optin",
+      "value": "False",
+      "type": "bool",
+      "help_text": "Flag to control whether a double opt-in confirmation message is sent, defaults to true. Abusing this may cause our MailChimp account to be suspended."
+    }
+  },
+  {
+    "model": "actions.actionparameter",
+    "pk": 3,
+    "fields": {
+      "action": 1,
+      "name": "send_welcome",
+      "value": "False",
+      "type": "bool",
+      "help_text": "If double_optin is false and this is true, a welcome email will be sent if this subscribe succeeds. If double_optin is true, this has no effect. defaults to false."
+    }
+  },
+  {
+    "model": "actions.actionparameter",
+    "pk": 4,
+    "fields": {
+      "action": 2,
+      "name": "list_id",
+      "value": "12345abcdf",
+      "type": "str",
+      "help_text": "MailChimp list id - must be defined in djangoplicity"
+    }
+  },
+  {
+    "model": "actions.actionparameter",
+    "pk": 5,
+    "fields": {
+      "action": 2,
+      "name": "delete_member",
+      "value": "False",
+      "type": "bool",
+      "help_text": "Flag to completely delete the member from your list instead of just unsubscribing, default to false (unsubscribed members cannot be re-subscribed)."
+    }
+  },
+  {
+    "model": "actions.actionparameter",
+    "pk": 6,
+    "fields": {
+      "action": 2,
+      "name": "send_goodbye",
+      "value": "False",
+      "type": "bool",
+      "help_text": "Flag to send the goodbye email to the email address, defaults to true."
+    }
+  },
+  {
+    "model": "actions.actionparameter",
+    "pk": 7,
+    "fields": {
+      "action": 3,
+      "name": "list_id",
+      "value": "12345abcdf",
+      "type": "str",
+      "help_text": "MailChimp list id - must be defined in djangoplicity"
+    }
+  },
+  {
+    "model": "actions.actionparameter",
+    "pk": 8,
+    "fields": {
+      "action": 3,
+      "name": "double_optin",
+      "value": "False",
+      "type": "bool",
+      "help_text": "Flag to control whether a double opt-in confirmation message is sent, defaults to true. Abusing this may cause our MailChimp account to be suspended."
+    }
+  },
+  {
+    "model": "actions.actionparameter",
+    "pk": 9,
+    "fields": {
+      "action": 3,
+      "name": "send_welcome",
+      "value": "False",
+      "type": "bool",
+      "help_text": "If double_optin is false and this is true, a welcome email will be sent if this subscribe succeeds. If double_optin is true, this has no effect. defaults to false."
+    }
+  },
+  {
+    "model": "actions.actionparameter",
+    "pk": 10,
+    "fields": {
+      "action": 3,
+      "name": "delete_member",
+      "value": "False",
+      "type": "bool",
+      "help_text": "Flag to completely delete the member from your list instead of just unsubscribing, default to false."
+    }
+  },
+  {
+    "model": "actions.actionparameter",
+    "pk": 11,
+    "fields": {
+      "action": 3,
+      "name": "send_goodbye",
+      "value": "False",
+      "type": "bool",
+      "help_text": "Flag to send the goodbye email to the email address, defaults to true."
+    }
+  },
+  {
+    "model": "actions.actionparameter",
+    "pk": 23,
+    "fields": {
+      "action": 8,
+      "name": "group",
+      "value": "Public NL",
+      "type": "str",
+      "help_text": "Name of group to assign to contact."
+    }
+  },
+  {
+    "model": "actions.actionparameter",
+    "pk": 25,
+    "fields": {
+      "action": 10,
+      "name": "group",
+      "value": "Public NL",
+      "type": "str",
+      "help_text": "Name of group to remove from contact."
+    }
+  },
+  {
+    "model": "actions.actionparameter",
+    "pk": 27,
+    "fields": {
+      "action": 12,
+      "name": "group",
+      "value": "Public NL-unsubscribed",
+      "type": "str",
+      "help_text": "Name of group to assign to contact."
+    }
+  },
+  {
+    "model": "actions.actionparameter",
+    "pk": 29,
+    "fields": {
+      "action": 14,
+      "name": "clear",
+      "value": "False",
+      "type": "bool",
+      "help_text": "Clear the email field for all contacts with this email"
+    }
+  },
+  {
+    "model": "actions.actionparameter",
+    "pk": 30,
+    "fields": {
+      "action": 14,
+      "name": "append",
+      "value": "-INVALID",
+      "type": "str",
+      "help_text": "If clear is False, append the text in this field to contacts with this email (unless the field is empty)"
+    }
+  },
+  {
+    "model": "actions.actionparameter",
+    "pk": 31,
+    "fields": {
+      "action": 15,
+      "name": "group",
+      "value": "Public NL-unsubscribed",
+      "type": "str",
+      "help_text": "Name of group to remove from contact."
+    }
+  },
+  {
+    "model": "actions.actionparameter",
+    "pk": 33,
+    "fields": {
+      "action": 17,
+      "name": "group",
+      "value": "Public NL",
+      "type": "str",
+      "help_text": "Name of group to assign to contact."
+    }
+  }
+]

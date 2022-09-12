@@ -1,0 +1,3 @@
+# Upgrade djangoplicity
+-r requirements/requirements-essential.txt
+-r requirements/requirements-testing.txt
