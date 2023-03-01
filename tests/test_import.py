@@ -234,7 +234,7 @@ class TestImportMapping(BasicTestCase):
         # Not find country and regions
         result5 = country_mapping.get_country_value('gArmany')
         result6 = country_mapping.get_country_value('DI')
-        unknown = country_mapping.get_region_value(None)
+        unknown = country_mapping.get_region_value(None, None)
 
         self.assertIsNotNone(result1)
         self.assertIsNotNone(result2)
