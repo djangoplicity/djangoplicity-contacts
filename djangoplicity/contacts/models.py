@@ -1387,10 +1387,13 @@ class ImportMapping( models.Model ):
                         return ImportMapping._country_cache['iso'][iso.lower()]
             return None
 
-    def get_region_value(self, value):
+    def get_region_value(self, value, country_id):
         if not value:
             return None
-        region = Region.objects.filter(Q(name__istartswith=value) | Q(local_name__istartswith=value)).first()
+        queryset = Region.objects.filter(country=country_id) if country_id else Region.objects.all()
+        region = queryset.filter(code__iexact=value).first()
+        if not region:
+            region = queryset.filter(Q(name__istartswith=value) | Q(local_name__istartswith=value)).first()
         return region.pk if region else None
 
     def get_groups_value( self, value ):
@@ -1422,7 +1425,10 @@ class ImportMapping( models.Model ):
                 if trail[0] == 'country':
                     return self.get_country_value(val)
                 if trail[0] == 'region':
-                    return self.get_region_value(val)
+                    # Try to get the country from the imported data to filter Regions inside that country
+                    country = data.get('country', None) or data.get('Country', None)
+                    country_id = self.get_country_value(country)
+                    return self.get_region_value(val, country_id)
                 if trail[0] == 'language':
                     if not isinstance(val, str):
                         val = str(val)
